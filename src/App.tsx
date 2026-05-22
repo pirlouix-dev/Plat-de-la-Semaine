@@ -53,11 +53,6 @@ function App() {
     fetchHelloMessage(setMessage, setError);
   }, []);
 
-  // Si une erreur est survenue, on affiche le message d'erreur
-  if (error) {
-    return <h1 style={{ color: "crimson" }}>❌ {error}</h1>;
-  }
-
   // Sinon, on affiche le titre avec la variable dynamiquement mise à jour
   return (
     <div className="app-container">
