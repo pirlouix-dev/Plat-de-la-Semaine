@@ -56,9 +56,7 @@ function App() {
   // Sinon, on affiche le titre avec la variable dynamiquement mise à jour
   return (
     <div className="app-container">
-      <header className="app-header">
-        <img src={LOGO_IMG} alt="Plat de la Semaine" className="app-logo" />
-      </header>
+      <img src={LOGO_IMG} alt="Plat de la Semaine" className="app-logo" />
 
       <main className="menu-grid">
         {mainMenuItems.map((item) => (

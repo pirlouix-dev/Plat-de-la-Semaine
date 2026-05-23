@@ -1,5 +1,5 @@
 :root {
-  --bg-dark: #2c2c2c;
+  --bg-dark: rgb(44, 44, 44);
 }
 
 * {
@@ -11,24 +11,25 @@
 
 body {
   background-color: var(--bg-dark);
-  height: 100%;
+  height: auto;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .app-container {
-  height: 100dvh;
+  height: 100%;
   width: auto;
-  padding: 2rem;
+  padding: min(40px, 6.8dvh);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
+  gap: min(50px, 8.4dvh);
 }
 
 .app-logo {
-  height: 20dvh;
+  height: 16dvh;
+  height: min(127px, 21.5dvh);
   width: auto;
   max-height: 160px;
   object-fit: contain;
@@ -38,11 +39,10 @@ body {
    Grille principale
    ========================================================================== */
 .menu-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-  height: 50dvh;
-  width: auto;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  gap: 30px;
 }
 
 /* Le conteneur de la carte qui gère la superposition */
@@ -64,7 +64,7 @@ body {
 
 /* L'image prend toute la largeur et garde son ratio */
 .card-background-img {
-  height: 30dvh;
+  height: min(207px, 35dvh);
   width: auto;
   display: block;
 }
@@ -90,7 +90,7 @@ body {
 /* ==========================================================================
    Media Queries (Ajustement des tailles sur mobile)
    ========================================================================== */
-@media (max-width: 768px) {
+@media (max-width: 580px) {
   .menu-grid {
     grid-template-columns: 1fr; /* 1 seule colonne sur mobile */
     gap: 1.5rem;
