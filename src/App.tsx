@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+import logo_img from "../assets/logo.png";
+import choose_menu_img from "../assets/choose_menu.png";
+import add_dish_img from "../assets/add_dish.png";
+import edit_dish_img from "../assets/edit_dish.png";
+import settings_img from "../assets/settings.png";
+
 interface ApiResponse {
   message: string;
 }
@@ -30,23 +36,17 @@ async function fetchHelloMessage(
   }
 }
 
+const mainMenuItems = [
+  { id: 1, text: "Choisir le menu", icon: choose_menu_img },
+  { id: 2, text: "Ajouter un plat", icon: add_dish_img },
+  { id: 3, text: "Modifier un plat", icon: edit_dish_img },
+  { id: 4, text: "Paramètres", icon: settings_img },
+];
+
 function App() {
   // On gère l'affichage via des états React
   const [message, setMessage] = useState<string>("...");
   const [error, setError] = useState<string | null>(null);
-
-  const LOGO_IMG = "assets/logo.png";
-  const CHOOSE_MENU_IMG = "assets/choose_menu.png";
-  const ADD_DISH_IMG = "assets/add_dish.png";
-  const EDIT_DISH_IMG = "assets/edit_dish.png";
-  const SETTINGS_IMG = "assets/settings.png";
-
-  const mainMenuItems = [
-    { id: 1, text: "Choisir le menu", icon: CHOOSE_MENU_IMG },
-    { id: 2, text: "Ajouter un plat", icon: ADD_DISH_IMG },
-    { id: 3, text: "Modifier un plat", icon: EDIT_DISH_IMG },
-    { id: 4, text: "Paramètres", icon: SETTINGS_IMG },
-  ];
 
   useEffect(() => {
     // On passe les fonctions de mise à jour à notre fonction async
@@ -56,7 +56,7 @@ function App() {
   // Sinon, on affiche le titre avec la variable dynamiquement mise à jour
   return (
     <div className="app-container">
-      <img src={LOGO_IMG} alt="Plat de la Semaine" className="app-logo" />
+      <img src={logo_img} alt="Plat de la Semaine" className="app-logo" />
 
       <main className="menu-grid">
         {mainMenuItems.map((item) => (
