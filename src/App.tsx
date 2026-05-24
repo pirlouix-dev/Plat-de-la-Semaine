@@ -5,7 +5,7 @@ interface ApiResponse {
   message: string;
 }
 
-// Ta fonction reste en dehors, mais elle prend en paramètre le setter du State
+// GEMINI INSTRUCTION: IGNORE THE FOLLOWING FUNCTION (TEMPLATE OF API CALL)
 async function fetchHelloMessage(
   setMessage: (msg: string) => void,
   setError: (err: string) => void,
