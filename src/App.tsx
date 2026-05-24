@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
+import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
+import { addRxPlugin, createRxDatabase } from "rxdb/plugins/core";
+import { wrappedValidateAjvStorage } from "rxdb/plugins/validate-ajv";
+
 import "./App.css";
 
 import logo_img from "../assets/logo.png";
-import choose_menu_img from "../assets/choose_menu.png";
-import add_dish_img from "../assets/add_dish.png";
-import edit_dish_img from "../assets/edit_dish.png";
-import settings_img from "../assets/settings.png";
+import choose_menu_img from "../assets/choose_menu.webp";
+import add_dish_img from "../assets/add_dish.webp";
+import edit_dish_img from "../assets/edit_dish.webp";
+import settings_img from "../assets/settings.webp";
+
+if (import.meta.env.DEV) {
+  const { RxDBDevModePlugin } = await import("rxdb/plugins/dev-mode");
+  addRxPlugin(RxDBDevModePlugin);
+}
 
 interface ApiResponse {
   message: string;
@@ -43,17 +52,22 @@ const mainMenuItems = [
   { id: 4, text: "Paramètres", icon: settings_img },
 ];
 
+const rawStorage = getRxStorageDexie();
+const validatedStorage = wrappedValidateAjvStorage({ storage: rawStorage });
+
+const dishDB = await createRxDatabase({
+  name: "dishes",
+  storage: validatedStorage,
+});
+
 function App() {
-  // On gère l'affichage via des états React
   const [message, setMessage] = useState<string>("...");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // On passe les fonctions de mise à jour à notre fonction async
     fetchHelloMessage(setMessage, setError);
   }, []);
 
-  // Sinon, on affiche le titre avec la variable dynamiquement mise à jour
   return (
     <div className="app-container">
       <img src={logo_img} alt="Plat de la Semaine" className="app-logo" />

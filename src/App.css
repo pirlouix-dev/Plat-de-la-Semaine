@@ -34,9 +34,6 @@ body {
   object-fit: contain;
 }
 
-/* ==========================================================================
-   Grille principale
-   ========================================================================== */
 .menu-grid {
   display: inline-grid;
   grid-template-columns: auto auto;
@@ -44,7 +41,6 @@ body {
   gap: min(30px, 4.3dvh);
 }
 
-/* Le conteneur de la carte qui gère la superposition */
 .menu-card-wrapper {
   position: relative;
   cursor: pointer;
@@ -53,7 +49,6 @@ body {
   width: auto;
 }
 
-/* Effet au survol / clic sur la carte */
 .menu-card-wrapper:hover {
   transform: scale(1.02);
 }
@@ -61,19 +56,14 @@ body {
   transform: scale(0.98);
 }
 
-/* L'image prend toute la largeur et garde son ratio */
 .card-background-img {
   height: min(207px, 29.4dvh);
   width: auto;
   display: block;
 }
 
-/* ==========================================================================
-   Superposition du texte sur le bouton bleu
-   ========================================================================== */
 .card-text-overlay {
   position: absolute;
-  /* On cible le bas de l'image (zone du bouton) */
   top: 76%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -82,20 +72,17 @@ body {
   font-size: min(21px, 3dvh);
   font-weight: bold;
   text-align: center;
-  white-space: nowrap; /* Évite que le texte ne revienne à la ligne */
-  pointer-events: none; /* Laisse le clic traverser vers le conteneur */
+  white-space: nowrap;
+  pointer-events: none;
 }
 
-/* ==========================================================================
-   Media Queries (Ajustement des tailles sur mobile)
-   ========================================================================== */
 @media (max-width: 580px) {
   .app-container {
     padding: min(15px, 2.1dvh);
   }
 
   .menu-grid {
-    grid-template-columns: 1fr; /* 1 seule colonne sur mobile */
+    grid-template-columns: 1fr;
     padding: 0 1.5rem;
     gap: min(15px, 2.1dvh);
   }
