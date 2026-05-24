@@ -1,26 +1,36 @@
-using System.ComponentModel.DataAnnotations.Schema;
+using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
 using DotNetEnv;
 
 [Table("Dishes")]
 class Dishes : BaseModel
 {
-    [Supabase.Postgrest.Attributes.PrimaryKey("id")]
-    public string? Id { get; set; }
+    [PrimaryKey("id")]
+    public Guid? id { get; set; }
     [Column("version")]
-    public string? Version { get; set; }
+    public int version { get; set; } = 0;
     [Column("user_id")]
-    public int UserId { get; set; }
-    [Column("name")] public string? Name { get; set; }
+    public Guid user_id { get; set; }
+    [Column("name")] public string name { get; set; } = String.Empty;
     [Column("description")]
-    public string? Description { get; set; }
+    public string description { get; set; } = String.Empty;
     [Column("course")]
-    public int Course { get; set; }
+    public long course { get; set; }
     [Column("seasons")]
-    public int[]? Seasons { get; set; }
+    public int[] seasons { get; set; } = Array.Empty<int>();
     [Column("updated_at")]
-    public int UpdatedAt { get; set; }
+    public DateTimeOffset updated_at { get; set; }
+    [Column("is_deleted")]
+    public bool is_deleted { get; set; }
 
+}
+
+[Table("Users")]
+class Users : BaseModel
+{
+    [PrimaryKey("id")]
+    public Guid? id { get; set; }
+    public DateTimeOffset created_at { get; set; }
 }
 
 class Program
@@ -29,8 +39,7 @@ class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // 1. Configuration des services (l'équivalent de la boîte à outils du serveur)
-        builder.Services.AddCors(); // Indispensable pour que ton React puisse lui parler plus tard !
+        builder.Services.AddCors();
 
         var app = builder.Build();
 
@@ -46,18 +55,41 @@ class Program
         var supabase = new Supabase.Client(url, key, options);
         await supabase.InitializeAsync();
 
-        // 2. Configuration du pipeline HTTP (la sécurité et les routes)
         app.UseCors(policy => policy
             .AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader());
 
-        // Notre route Hello World !
         app.MapGet("/api/hello", () => new { message = "Hello World!" });
 
-        var result = await supabase.From<Dishes>().Get();
-        Console.WriteLine(result.Models);
-        Console.WriteLine("Supabase client initialized and ready to use!");
+        var userResult = await supabase.From<Users>().Get();
+        Console.WriteLine(userResult.Models.Count + " users retrieved from Supabase.");
+
+        var dishResult = await supabase.From<Dishes>().Get();
+        Console.WriteLine(dishResult.Models.Count + " dishes retrieved from Supabase.");
+
+        var user = new Users
+        {
+            id = Guid.NewGuid(),
+            created_at = DateTimeOffset.UtcNow
+        };
+
+        await supabase.From<Users>().Insert(user);
+
+        var dish = new Dishes
+        {
+            id = Guid.NewGuid(),
+            version = 0,
+            user_id = Guid.Parse("249b35c6-83af-491e-bc1f-15e128b38630"),
+            name = "Spaghetti Carbonara",
+            description = "A classic Italian pasta dish made with eggs, cheese, pancetta, and pepper.",
+            course = 1,
+            seasons = [1, 2],
+            updated_at = DateTimeOffset.UtcNow,
+            is_deleted = false
+        };
+
+        await supabase.From<Dishes>().Insert(dish);
 
         app.Run();
     }
