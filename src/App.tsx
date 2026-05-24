@@ -65,6 +65,55 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    (async () => {
+      await dishDB.addCollections({
+        dishes: {
+          schema: {
+            version: 0,
+            primaryKey: "userId",
+            type: "object",
+            properties: {
+              userId: {
+                type: "string",
+                maxLength: 100,
+              },
+              name: {
+                type: "string",
+              },
+              description: {
+                type: "string",
+              },
+              course: {
+                type: "number",
+              },
+              seasons: {
+                type: "array",
+                items: {
+                  type: "number",
+                },
+              },
+              updated_at: {
+                type: "string",
+                format: "date-time",
+              },
+              is_deleted: {
+                type: "boolean",
+              },
+            },
+            required: [
+              "userId",
+              "name",
+              "description",
+              "course",
+              "seasons",
+              "updated_at",
+              "is_deleted",
+            ],
+          },
+        },
+      });
+    })();
+
     fetchHelloMessage(setMessage, setError);
   }, []);
 
@@ -75,14 +124,12 @@ function App() {
       <main className="menu-grid">
         {mainMenuItems.map((item) => (
           <div key={item.id} className="menu-card-wrapper">
-            {/* L'image de fond qui contient tout le graphisme */}
             <img
               src={item.icon}
               alt={item.text}
               className="card-background-img"
             />
 
-            {/* Le texte superposé pile à l'emplacement du bouton bleu */}
             <div className="card-text-overlay">{item.text}</div>
           </div>
         ))}
