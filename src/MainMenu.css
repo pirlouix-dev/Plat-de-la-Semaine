@@ -1,0 +1,74 @@
+.app-container {
+  height: 100%;
+  width: auto;
+  padding: min(40px, 5.7dvh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: min(50px, 7.1dvh);
+}
+
+.app-logo {
+  height: min(127px, 18dvh);
+  width: auto;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.menu-grid {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  gap: min(30px, 4.3dvh);
+}
+
+.menu-card-wrapper {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  height: auto;
+  width: auto;
+}
+
+.menu-card-wrapper:hover {
+  transform: scale(1.02);
+}
+.menu-card-wrapper:active {
+  transform: scale(0.98);
+}
+
+.card-background-img {
+  height: min(207px, 29.4dvh);
+  width: auto;
+  display: block;
+}
+
+.card-text-overlay {
+  position: absolute;
+  top: 76%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  color: white;
+  font-size: min(21px, 3dvh);
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 580px) {
+  .app-container {
+    padding: min(15px, 2.1dvh);
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+    padding: 0 1.5rem;
+    gap: min(15px, 2.1dvh);
+  }
+
+  .app-logo {
+    display: none;
+  }
+}
