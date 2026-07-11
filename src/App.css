@@ -1,18 +1,2 @@
-:root {
-  --bg-dark: rgb(44, 44, 44);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
-}
-
-body {
-  background-color: var(--bg-dark);
-  height: auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+/* App-component-specific styles */
+/* Global resets and base styles have been moved to index.css */
