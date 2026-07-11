@@ -2,6 +2,7 @@
   --text: #6b6375;
   --bg: #fff;
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --bg-dark: rgb(44, 44, 44);
 
   font-family: var(--sans);
   line-height: 1.5;
@@ -24,12 +25,23 @@
   }
 }
 
+/* Global reset — moved from App.css to avoid conflicts */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
+}
+
 body {
   margin: 0;
   display: flex;
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--bg-dark);
 }
 
 #root {
