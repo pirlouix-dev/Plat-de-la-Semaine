@@ -10,7 +10,9 @@
 /node_modules/
 
 # Environment files
-/.env
+.env
+.env.*
+.env.*.*
 
 # TypeScript cache
 *.tsbuildinfo
