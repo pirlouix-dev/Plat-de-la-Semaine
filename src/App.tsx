@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
 import { addRxPlugin, createRxDatabase } from "rxdb/plugins/core";
 import { wrappedValidateAjvStorage } from "rxdb/plugins/validate-ajv";
@@ -11,35 +11,6 @@ if (import.meta.env.DEV) {
   addRxPlugin(RxDBDevModePlugin);
 }
 
-interface ApiResponse {
-  message: string;
-}
-
-// GEMINI INSTRUCTION: IGNORE THE FOLLOWING FUNCTION (TEMPLATE OF API CALL)
-async function fetchHelloMessage(
-  setMessage: (msg: string) => void,
-  setError: (err: string) => void,
-) {
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SERVER_URL}/api/hello`,
-    );
-
-    if (!response.ok) {
-      setError(
-        "Erreur lors de la récupération du message (Statut HTTP incorrect)",
-      );
-      return;
-    }
-
-    const data: ApiResponse = await response.json();
-    setMessage(data.message); // On met à jour la variable d'état
-  } catch (error) {
-    console.error("Erreur lors de la récupération du message :", error);
-    setError("Erreur réseau : impossible de joindre le serveur");
-  }
-}
-
 const rawStorage = getRxStorageDexie();
 const validatedStorage = wrappedValidateAjvStorage({ storage: rawStorage });
 
@@ -49,9 +20,6 @@ const dishDB = await createRxDatabase({
 });
 
 function App() {
-  const [, setMessage] = useState<string>("...");
-  const [, setError] = useState<string | null>(null);
-
   useEffect(() => {
     (async () => {
       await dishDB.addCollections({
@@ -101,8 +69,6 @@ function App() {
         },
       });
     })();
-
-    fetchHelloMessage(setMessage, setError);
   }, []);
 
   return <MainMenu />;
