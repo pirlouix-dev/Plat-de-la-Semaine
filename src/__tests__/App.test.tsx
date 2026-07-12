@@ -161,7 +161,7 @@ describe("App component — rendering states", () => {
     vi.doMock("../db/DatabaseContext", () => ({
       DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
       useDatabase: () => ({
-        db: { name: "dishes" } as any,
+        db: { name: "dishes" } as unknown as import("../db/DatabaseContext").AppDatabase,
         isLoading: false,
         error: null,
       }),

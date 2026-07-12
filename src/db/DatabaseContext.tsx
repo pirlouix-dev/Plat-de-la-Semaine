@@ -159,6 +159,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDatabase(): DatabaseState {
   const ctx = useContext(DatabaseContext);
   if (!ctx) {
