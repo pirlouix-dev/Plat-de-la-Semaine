@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import App from "../App";
 
 // ── Static code checks (file content) ─────────────────────────────────────────
@@ -41,12 +42,43 @@ describe("App.tsx — dead code removed (issue #2)", () => {
     expect(content).toMatch(/<DatabaseProvider>/);
   });
 
-  it("should still render MainMenu when database is ready", () => {
+  it("should render MainMenu as the home route", () => {
     expect(content).toMatch(/<MainMenu\s*\/>/);
   });
 
   it("should export App as default", () => {
     expect(content).toMatch(/export default App/);
+  });
+});
+
+// ── Routing checks ────────────────────────────────────────────────────────────
+
+describe("App.tsx — routing (issue #17)", () => {
+  const appPath = resolve(__dirname, "../App.tsx");
+  const content = readFileSync(appPath, "utf-8");
+
+  it("should import Routes and Route from react-router-dom", () => {
+    expect(content).toMatch(/import.*Routes.*from "react-router-dom"/);
+  });
+
+  it("should define a route for / with MainMenu", () => {
+    expect(content).toMatch(/path="\/".*element=\{?<MainMenu/);
+  });
+
+  it("should define a route for /choose", () => {
+    expect(content).toMatch(/path="\/choose"/);
+  });
+
+  it("should define a route for /add", () => {
+    expect(content).toMatch(/path="\/add"/);
+  });
+
+  it("should define a route for /edit", () => {
+    expect(content).toMatch(/path="\/edit"/);
+  });
+
+  it("should define a route for /settings", () => {
+    expect(content).toMatch(/path="\/settings"/);
   });
 });
 
@@ -94,14 +126,17 @@ describe("App component — rendering states", () => {
   });
 
   it("shows loading state while database initializes", async () => {
-    // Mock the db module to never resolve (stay in loading)
     vi.doMock("../db/DatabaseContext", () => ({
       DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
       useDatabase: () => ({ db: null, isLoading: true, error: null }),
     }));
 
     const { default: MockApp } = await import("../App");
-    render(<MockApp />);
+    render(
+      <MemoryRouter>
+        <MockApp />
+      </MemoryRouter>
+    );
     expect(screen.getByText("Loading database...")).toBeTruthy();
   });
 
@@ -112,7 +147,11 @@ describe("App component — rendering states", () => {
     }));
 
     const { default: MockApp } = await import("../App");
-    render(<MockApp />);
+    render(
+      <MemoryRouter>
+        <MockApp />
+      </MemoryRouter>
+    );
     expect(
       screen.getByText(/Failed to initialize database: IndexedDB unavailable/)
     ).toBeTruthy();
@@ -129,7 +168,39 @@ describe("App component — rendering states", () => {
     }));
 
     const { default: MockApp } = await import("../App");
-    render(<MockApp />);
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <MockApp />
+      </MemoryRouter>
+    );
     expect(screen.getByText("Choisir le menu")).toBeTruthy();
+  });
+});
+
+// ── Page placeholder components ───────────────────────────────────────────────
+
+describe("Page placeholder files (issue #17)", () => {
+  it("ChooseMenuPage exists and exports a default component", () => {
+    const content = readFileSync(resolve(__dirname, "../pages/ChooseMenuPage.tsx"), "utf-8");
+    expect(content).toMatch(/export default/);
+    expect(content).toMatch(/Choisir le menu/);
+  });
+
+  it("AddDishPage exists and exports a default component", () => {
+    const content = readFileSync(resolve(__dirname, "../pages/AddDishPage.tsx"), "utf-8");
+    expect(content).toMatch(/export default/);
+    expect(content).toMatch(/Ajouter un plat/);
+  });
+
+  it("EditDishPage exists and exports a default component", () => {
+    const content = readFileSync(resolve(__dirname, "../pages/EditDishPage.tsx"), "utf-8");
+    expect(content).toMatch(/export default/);
+    expect(content).toMatch(/Modifier un plat/);
+  });
+
+  it("SettingsPage exists and exports a default component", () => {
+    const content = readFileSync(resolve(__dirname, "../pages/SettingsPage.tsx"), "utf-8");
+    expect(content).toMatch(/export default/);
+    expect(content).toMatch(/Paramètres/);
   });
 });
