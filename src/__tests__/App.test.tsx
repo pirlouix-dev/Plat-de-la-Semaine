@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import App from "../App";
 
 // ── Static code checks (file content) ─────────────────────────────────────────
 
@@ -122,7 +121,7 @@ describe("App component — rendering states", () => {
     vi.doMock("../db/DatabaseContext", () => ({
       DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
       useDatabase: () => ({
-        db: { name: "dishes" } as any,
+        db: { name: "dishes" } as unknown as import("../db/DatabaseContext").AppDatabase,
         isLoading: false,
         error: null,
       }),
