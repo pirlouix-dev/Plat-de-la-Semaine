@@ -1,2 +1,13 @@
 /* App-component-specific styles */
 /* Global resets and base styles have been moved to index.css */
+
+.status-message {
+  text-align: center;
+  font-size: 1.125rem;
+  color: var(--text);
+  padding: 2rem;
+}
+
+.status-error {
+  color: #e53e3e;
+}
