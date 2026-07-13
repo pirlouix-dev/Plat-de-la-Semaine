@@ -3,7 +3,6 @@ import { resolve } from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import App from "../App";
 
 // ── Static code checks (file content) ─────────────────────────────────────────
 
