@@ -9,7 +9,8 @@ OPENAPI_URL="http://localhost:${PORT}/openapi/v1.json"
 OUTPUT="openapi.yml"
 
 echo "Building project..."
-dotnet build -q
+rm -rf obj bin
+dotnet build
 
 echo "Starting app on port ${PORT} in background..."
 ASPNETCORE_URLS="http://localhost:${PORT}" dotnet run --no-build --no-launch-profile &
