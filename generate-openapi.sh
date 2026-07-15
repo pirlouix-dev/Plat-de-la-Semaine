@@ -12,7 +12,7 @@ echo "Building project..."
 dotnet build -q
 
 echo "Starting app on port ${PORT} in background..."
-ASPNETCORE_URLS="http://localhost:${PORT}" dotnet run --no-build &
+ASPNETCORE_URLS="http://localhost:${PORT}" dotnet run --no-build --no-launch-profile &
 APP_PID=$!
 
 cleanup() {
