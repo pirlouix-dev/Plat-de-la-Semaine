@@ -10,7 +10,7 @@ OUTPUT="openapi.yml"
 
 echo "Building project..."
 rm -rf obj bin
-dotnet build
+dotnet build plat-de-la-semaine-back.csproj
 
 echo "Starting app on port ${PORT} in background..."
 ASPNETCORE_URLS="http://localhost:${PORT}" dotnet run --no-build --no-launch-profile &

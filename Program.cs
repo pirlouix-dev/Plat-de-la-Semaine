@@ -33,26 +33,18 @@ class Users : BaseModel
     public DateTimeOffset created_at { get; set; }
 }
 
-class Program
+public class Program
 {
-    static async Task Main(string[] args)
+    public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        SeedData().GetAwaiter().GetResult();
 
-        builder.Services.AddCors();
-        builder.Services.AddOpenApi();
+        var host = CreateHostBuilder(args).Build();
+        host.Run();
+    }
 
-        var app = builder.Build();
-
-        app.UseCors(policy => policy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader());
-
-        app.MapGet("/api/hello", () => new { message = "Hello World!" });
-
-        app.MapOpenApi();
-
+    static async Task SeedData()
+    {
         try
         {
             Env.Load();
@@ -100,7 +92,32 @@ class Program
         {
             Console.WriteLine($"Supabase warning: {ex.Message}");
         }
-
-        app.Run();
     }
+
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.Configure(app =>
+                {
+                    app.UseCors(policy => policy
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
+
+                    app.UseRouting();
+
+                    app.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapGet("/api/hello", () => new { message = "Hello World!" });
+                        endpoints.MapOpenApi();
+                    });
+                });
+                webBuilder.ConfigureServices(services =>
+                {
+                    services.AddCors();
+                    services.AddOpenApi();
+                });
+                webBuilder.UseUrls("http://localhost:5199");
+            });
 }
