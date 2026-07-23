@@ -10,11 +10,11 @@ namespace PlatDeLaSemaineBack.Controllers;
 [Route("api/[controller]")]
 public class StatusController : ControllerBase
 {
-    private readonly ISupabaseService _supabase;
+    private readonly IFirestoreService _firestore;
 
-    public StatusController(ISupabaseService supabase)
+    public StatusController(IFirestoreService firestore)
     {
-        _supabase = supabase;
+        _firestore = firestore;
     }
 
     /// <summary>
@@ -26,14 +26,14 @@ public class StatusController : ControllerBase
         var usersCount = 0;
         var dishesCount = 0;
 
-        if (_supabase.IsConnected)
+        if (_firestore.IsConnected)
         {
             try
             {
-                var users = await _supabase.GetAllUsersAsync();
+                var users = await _firestore.GetAllUsersAsync();
                 usersCount = users.Count;
 
-                var dishes = await _supabase.GetAllDishesAsync();
+                var dishes = await _firestore.GetAllDishesAsync();
                 dishesCount = dishes.Count;
             }
             catch (Exception ex)
@@ -50,7 +50,7 @@ public class StatusController : ControllerBase
 
         return Ok(new
         {
-            database = _supabase.IsConnected ? "connected" : "disconnected",
+            database = _firestore.IsConnected ? "connected" : "disconnected",
             usersCount,
             dishesCount
         });

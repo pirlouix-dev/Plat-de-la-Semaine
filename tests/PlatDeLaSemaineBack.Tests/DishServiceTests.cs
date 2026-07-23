@@ -1,5 +1,4 @@
 using NSubstitute;
-using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 using Xunit;
 
@@ -8,52 +7,29 @@ namespace PlatDeLaSemaineBack.Tests;
 public class DishServiceTests
 {
     [Fact]
-    public async Task InsertSeedDishAsync_SupabaseDisconnected_ReturnsNull()
+    public void Constructor_WithValidFirestoreService_CreatesInstance()
     {
         // Arrange
-        var supabase = Substitute.For<ISupabaseService>();
-        supabase.IsConnected.Returns(false);
-
-        var service = new DishService(supabase);
+        var firestore = Substitute.For<IFirestoreService>();
 
         // Act
-        var result = await service.InsertSeedDishAsync();
+        var service = new DishService(firestore);
 
         // Assert
-        Assert.Null(result);
-        await supabase.DidNotReceive().InsertDishAsync(Arg.Any<Dish>());
+        Assert.NotNull(service);
     }
 
     [Fact]
-    public async Task InsertSeedDishAsync_SupabaseConnected_InsertsAndReturnsDish()
+    public void Constructor_CreatesDishService_ThatImplementsIDishService()
     {
         // Arrange
-        var supabase = Substitute.For<ISupabaseService>();
-        supabase.IsConnected.Returns(true);
-
-        var expectedDish = new Dish
-        {
-            Id = Guid.NewGuid(),
-            Name = "Spaghetti Carbonara",
-            Course = 1,
-            Seasons = [1, 2]
-        };
-
-        supabase.InsertDishAsync(Arg.Any<Dish>()).Returns(expectedDish);
-
-        var service = new DishService(supabase);
+        var firestore = Substitute.For<IFirestoreService>();
 
         // Act
-        var result = await service.InsertSeedDishAsync();
+        IDishService service = new DishService(firestore);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(expectedDish.Name, result!.Name);
-        Assert.Equal(expectedDish.Course, result.Course);
-
-        await supabase.Received(1).InsertDishAsync(Arg.Is<Dish>(d =>
-            d.Name == "Spaghetti Carbonara" &&
-            d.Course == 1 &&
-            d.Seasons.SequenceEqual(new[] { 1, 2 })));
+        Assert.NotNull(service);
+        Assert.IsAssignableFrom<IDishService>(service);
     }
 }

@@ -21,14 +21,14 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task GetHello_ReturnsOk()
     {
         // Arrange
-        var supabase = Substitute.For<ISupabaseService>();
-        supabase.IsConnected.Returns(false);
+        var firestore = Substitute.For<IFirestoreService>();
+        firestore.IsConnected.Returns(false);
 
         var client = _factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton(supabase);
+                services.AddSingleton(firestore);
             });
         }).CreateClient();
 
@@ -47,14 +47,14 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task GetStatus_ReturnsOkWithDatabaseStatus()
     {
         // Arrange
-        var supabase = Substitute.For<ISupabaseService>();
-        supabase.IsConnected.Returns(false);
+        var firestore = Substitute.For<IFirestoreService>();
+        firestore.IsConnected.Returns(false);
 
         var client = _factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton(supabase);
+                services.AddSingleton(firestore);
             });
         }).CreateClient();
 

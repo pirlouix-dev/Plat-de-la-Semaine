@@ -1,5 +1,6 @@
 using DotNetEnv;
 using PlatDeLaSemaineBack.Middleware;
+using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,7 +11,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddCors();
 
 // Register application services
-builder.Services.AddSingleton<ISupabaseService, SupabaseService>();
+builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
 builder.Services.AddScoped<IDishService, DishService>();
 
 // ── App Pipeline ──────────────────────────────────────────────────
@@ -30,29 +31,33 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Startup Initialization ────────────────────────────────────────
-try
+
+Env.Load();
+
+var firestoreService = app.Services.GetRequiredService<IFirestoreService>();
+var initialized = await firestoreService.InitializeAsync();
+
+if (initialized)
 {
-    Env.Load();
+    var insertedUser = await firestoreService.InsertUserAsync(new User { CreatedAt = DateTimeOffset.UtcNow });
 
-    var supabaseService = app.Services.GetRequiredService<ISupabaseService>();
-    var initialized = await supabaseService.InitializeAsync();
-
-    if (initialized)
+    var insertedDish = await firestoreService.InsertDishAsync(new Dish
     {
-        var users = await supabaseService.GetAllUsersAsync();
-        Console.WriteLine($"{users.Count} users retrieved from Supabase.");
+        Name = "Sample Dish",
+        Description = "This is a sample dish.",
+        Course = 1,
+        Seasons = [1, 2],
+        UpdatedAt = DateTimeOffset.UtcNow,
+        IsDeleted = false
+    });
 
-        var dishes = await supabaseService.GetAllDishesAsync();
-        Console.WriteLine($"{dishes.Count} dishes retrieved from Supabase.");
+    var users = await firestoreService.GetAllUsersAsync();
+    Console.WriteLine($"{users.Count} users retrieved from Firestore.");
 
-        // Insert seed data for development/testing
-        var dishService = app.Services.GetRequiredService<IDishService>();
-        await dishService.InsertSeedDishAsync();
-    }
+    var dishes = await firestoreService.GetAllDishesAsync();
+    Console.WriteLine($"{dishes.Count} dishes retrieved from Firestore.");
 }
-catch (Exception ex)
-{
-    Console.WriteLine($"Startup warning: {ex.Message}");
-}
+
+
 
 app.Run();

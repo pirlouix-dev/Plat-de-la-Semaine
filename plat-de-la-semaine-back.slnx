@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="plat-de-la-semaine-back.csproj" />
   <Project Path="plat-de-la-semaine-back.Tests/plat-de-la-semaine-back.Tests.csproj" />
+  <Project Path="tests/PlatDeLaSemaineBack.Tests/PlatDeLaSemaineBack.Tests.csproj" />
 </Solution>

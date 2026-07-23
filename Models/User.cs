@@ -1,14 +1,13 @@
-using Supabase.Postgrest.Attributes;
-using Supabase.Postgrest.Models;
-
 namespace PlatDeLaSemaineBack.Models;
 
-[Table("Users")]
-public class User : BaseModel
-{
-    [PrimaryKey("id")]
-    public Guid? Id { get; set; }
+using Google.Cloud.Firestore;
 
-    [Column("created_at")]
+[FirestoreData]
+public class User
+{
+    [FirestoreDocumentId]
+    public string? Id { get; set; }
+
+    [FirestoreProperty]
     public DateTimeOffset CreatedAt { get; set; }
 }

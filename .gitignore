@@ -45,6 +45,7 @@ ScaffoldingReadMe.txt
 CodeCoverage/
 .DS_Store
 AGENTS.md
+firebase-credentials.json
 
 # MSBuild Binary and Structured Log
 *.binlog

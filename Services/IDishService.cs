@@ -7,8 +7,5 @@ namespace PlatDeLaSemaineBack.Services;
 /// </summary>
 public interface IDishService
 {
-    /// <summary>
-    /// Inserts a sample/seed dish for testing purposes.
-    /// </summary>
-    Task<Dish?> InsertSeedDishAsync();
+
 }

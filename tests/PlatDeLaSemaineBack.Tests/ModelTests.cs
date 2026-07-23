@@ -23,8 +23,8 @@ public class ModelTests
     public void Dish_Properties_CanBeSetAndRead()
     {
         // Arrange
-        var id = Guid.NewGuid();
-        var userId = Guid.NewGuid();
+        var id = Guid.NewGuid().ToString();
+        var userId = Guid.NewGuid().ToString();
         var now = DateTimeOffset.UtcNow;
 
         // Act
@@ -98,7 +98,7 @@ public class ModelTests
     public void User_Properties_CanBeSet()
     {
         // Arrange
-        var id = Guid.NewGuid();
+        var id = Guid.NewGuid().ToString();
         var now = DateTimeOffset.UtcNow;
 
         // Act

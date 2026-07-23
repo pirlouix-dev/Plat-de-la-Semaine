@@ -1,35 +1,34 @@
-using Supabase.Postgrest.Attributes;
-using Supabase.Postgrest.Models;
-
 namespace PlatDeLaSemaineBack.Models;
 
-[Table("Dishes")]
-public class Dish : BaseModel
+using Google.Cloud.Firestore;
+
+[FirestoreData]
+public class Dish
 {
-    [PrimaryKey("id")]
-    public Guid? Id { get; set; }
-    
-    [Column("version")]
+    [FirestoreDocumentId]
+    public string? Id { get; set; }
+
+    [FirestoreProperty]
     public int Version { get; set; } = 0;
-    
-    [Column("user_id")]
-    public Guid UserId { get; set; }
-    
-    [Column("name")]
+
+    [FirestoreProperty]
+    public string UserId { get; set; } = string.Empty;
+
+    [FirestoreProperty]
     public string Name { get; set; } = string.Empty;
-    
-    [Column("description")]
+
+    [FirestoreProperty]
     public string Description { get; set; } = string.Empty;
-    
-    [Column("course")]
+
+    [FirestoreProperty]
     public long Course { get; set; }
-    
-    [Column("seasons")]
+
+    [FirestoreProperty]
     public int[] Seasons { get; set; } = Array.Empty<int>();
-    
-    [Column("updated_at")]
+
+    [FirestoreProperty]
     public DateTimeOffset UpdatedAt { get; set; }
-    
-    [Column("is_deleted")]
+
+    [FirestoreProperty]
     public bool IsDeleted { get; set; }
 }

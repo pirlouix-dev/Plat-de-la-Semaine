@@ -3,37 +3,37 @@ using PlatDeLaSemaineBack.Models;
 namespace PlatDeLaSemaineBack.Services;
 
 /// <summary>
-/// Service interface for Supabase database operations.
+/// Service interface for Firestore database operations.
 /// </summary>
-public interface ISupabaseService
+public interface IFirestoreService
 {
     /// <summary>
-    /// Retrieves all dishes from the database.
+    /// Retrieves all dishes from Firestore.
     /// </summary>
     Task<List<Dish>> GetAllDishesAsync();
 
     /// <summary>
-    /// Retrieves all users from the database.
+    /// Retrieves all users from Firestore.
     /// </summary>
     Task<List<User>> GetAllUsersAsync();
 
     /// <summary>
-    /// Inserts a new user into the database.
+    /// Inserts a new user into Firestore.
     /// </summary>
     Task<User> InsertUserAsync(User user);
 
     /// <summary>
-    /// Inserts a new dish into the database.
+    /// Inserts a new dish into Firestore.
     /// </summary>
     Task<Dish> InsertDishAsync(Dish dish);
 
     /// <summary>
-    /// Initializes the Supabase client.
+    /// Initializes the Firestore client.
     /// </summary>
     Task<bool> InitializeAsync();
 
     /// <summary>
-    /// Checks whether the Supabase client is initialized and connected.
+    /// Checks whether the Firestore client is initialized and connected.
     /// </summary>
     bool IsConnected { get; }
 }
