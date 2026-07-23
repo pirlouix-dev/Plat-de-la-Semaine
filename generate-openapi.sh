@@ -13,7 +13,7 @@ rm -rf obj bin
 dotnet build plat-de-la-semaine-back.csproj
 
 echo "Starting app on port ${PORT} in background..."
-ASPNETCORE_URLS="http://localhost:${PORT}" dotnet run --no-build --no-launch-profile &
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS="http://localhost:${PORT}" dotnet run --no-build --no-launch-profile &
 APP_PID=$!
 
 cleanup() {
