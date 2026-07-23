@@ -5,6 +5,8 @@
  * with the .NET backend API contract.
  */
 
+import type { components } from "../schema";
+
 // ── Enums (const-object pattern for erasableSyntaxOnly compat) ────────────────
 
 /** Course (type) of a dish: 0 = Starter, 1 = Main, 2 = Dessert */
@@ -49,51 +51,11 @@ export const ALL_SEASONS: Season[] = [
   Season.Winter,
 ];
 
-// ── Core Types ───────────────────────────────────────────────────────────────
+// ── Core Types (from OpenAPI schema) ─────────────────────────────────────────
 
-/**
- * A dish entity as stored in the database and returned by the backend API.
- */
-export interface Dish {
-  /** Unique identifier (from backend / Firebase) */
-  id: string;
-  /** Owner user identifier */
-  userId: string;
-  /** Dish name (unique per user, kept in alphabetical order) */
-  name: string;
-  /** Free-text description (can be empty) */
-  description: string;
-  /** Course type (0 = Starter, 1 = Main, 2 = Dessert) */
-  course: Course;
-  /** Array of season values (0-3); all four indicates year-round */
-  seasons: Season[];
-  /** ISO-8601 datetime of last update */
-  updatedAt: string;
-  /** Soft-delete flag */
-  isDeleted: boolean;
-}
-
-/**
- * Payload for creating a new dish (POST /api/dishes).
- * Backend assigns `id`, `userId`, `updatedAt`, and `isDeleted`.
- */
-export interface CreateDishPayload {
-  name: string;
-  description?: string;
-  course: Course;
-  seasons: Season[];
-}
-
-/**
- * Payload for updating an existing dish (PUT /api/dishes/:id).
- * Only provided fields will be updated.
- */
-export interface UpdateDishPayload {
-  name?: string;
-  description?: string;
-  course?: Course;
-  seasons?: Season[];
-}
+export type Dish = components["schemas"]["Dish"];
+export type CreateDishPayload = components["schemas"]["CreateDishPayload"];
+export type UpdateDishPayload = components["schemas"]["UpdateDishPayload"];
 
 // ── Validation helpers ───────────────────────────────────────────────────────
 

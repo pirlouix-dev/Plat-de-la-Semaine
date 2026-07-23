@@ -4,22 +4,15 @@
  * CRUD operations for dishes via the .NET backend.
  */
 
-import type { Dish, CreateDishPayload, UpdateDishPayload } from "../types";
+import type { components } from "../schema";
 import { apiGet, apiPost, apiPut, apiDelete } from "./api";
 import type { ApiResult } from "./api";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-/** Response shape for GET /api/dishes */
-interface DishListResponse {
-  data: Dish[];
-  total: number;
-}
-
-/** Response shape for POST/PUT /api/dishes */
-interface DishSingleResponse {
-  data: Dish;
-}
+type Dish = components["schemas"]["Dish"];
+type DishListResponse = components["schemas"]["DishListResponse"];
+type DishSingleResponse = components["schemas"]["DishSingleResponse"];
+type CreateDishPayload = components["schemas"]["CreateDishPayload"];
+type UpdateDishPayload = components["schemas"]["UpdateDishPayload"];
 
 // ── Service ──────────────────────────────────────────────────────────────────
 

@@ -24,3 +24,7 @@ yarn-error.log*
 
 # Agent config
 AGENTS.md
+
+# Generated API types
+openapi.yml
+src/schema.d.ts

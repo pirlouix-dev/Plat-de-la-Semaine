@@ -4,22 +4,14 @@
  * Fetch and restore backup snapshots of the dish list.
  */
 
-import type { BackupSummary, RestoreBackupResponse } from "../types";
+import type { components } from "../schema";
 import { apiGet, apiPost } from "./api";
 import type { ApiResult } from "./api";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-/** Response shape for GET /api/backups */
-interface BackupListResponse {
-  data: BackupSummary[];
-  total: number;
-}
-
-/** Response shape for POST /api/backups/restore/:id */
-interface BackupRestoreResponse {
-  data: RestoreBackupResponse;
-}
+type BackupSummary = components["schemas"]["BackupSummary"];
+type BackupListResponse = components["schemas"]["BackupListResponse"];
+type RestoreBackupResponse = components["schemas"]["RestoreBackupResponse"];
+type BackupRestoreResponse = components["schemas"]["BackupRestoreResponse"];
 
 // ── Service ──────────────────────────────────────────────────────────────────
 

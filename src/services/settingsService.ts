@@ -4,26 +4,12 @@
  * Version check, feedback submission, and utility endpoints.
  */
 
+import type { components } from "../schema";
 import { apiGet, apiPost } from "./api";
 import type { ApiResult } from "./api";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-/** Version info returned by GET /api/version */
-export interface VersionInfo {
-  /** Semantic version string (e.g., "2.0.0") */
-  latestVersion: string;
-  /** Human-readable update description */
-  description: string;
-  /** Download URL for the latest version */
-  downloadUrl: string;
-}
-
-/** Feedback submission payload */
-export interface FeedbackPayload {
-  /** The feedback / bug report message */
-  message: string;
-}
+export type VersionInfo = components["schemas"]["VersionInfo"];
+export type FeedbackPayload = components["schemas"]["FeedbackPayload"];
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
