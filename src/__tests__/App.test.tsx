@@ -104,8 +104,9 @@ describe("DatabaseContext.tsx — database lifecycle", () => {
     expect(content).toMatch(/\.destroy\(\)/);
   });
 
-  it("should guard against StrictMode double-invocation", () => {
-    expect(content).toMatch(/initRef/);
+  it("should handle StrictMode double-invocation via disposed flag", () => {
+    expect(content).not.toMatch(/initRef/);
+    expect(content).toMatch(/disposed/);
   });
 
   it("should expose a useDatabase hook", () => {
