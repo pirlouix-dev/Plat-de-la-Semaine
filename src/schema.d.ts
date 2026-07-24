@@ -4,6 +4,106 @@
  */
 
 export interface paths {
+    "/api/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fetch all backups for the current user (max 5, newest first) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["BackupListResponse"];
+                        "application/json": components["schemas"]["BackupListResponse"];
+                        "text/json": components["schemas"]["BackupListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backups/restore/{backupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore the dish list from a specific backup */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    backupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["BackupRestoreResponse"];
+                        "application/json": components["schemas"]["BackupRestoreResponse"];
+                        "text/json": components["schemas"]["BackupRestoreResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dishes": {
         parameters: {
             query?: never;
@@ -27,7 +127,20 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        "text/plain": components["schemas"]["DishListResponse"];
                         "application/json": components["schemas"]["DishListResponse"];
+                        "text/json": components["schemas"]["DishListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
             };
@@ -44,6 +157,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["CreateDishPayload"];
+                    "text/json": components["schemas"]["CreateDishPayload"];
+                    "application/*+json": components["schemas"]["CreateDishPayload"];
                 };
             };
             responses: {
@@ -53,7 +168,20 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        "text/plain": components["schemas"]["DishSingleResponse"];
                         "application/json": components["schemas"]["DishSingleResponse"];
+                        "text/json": components["schemas"]["DishSingleResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
             };
@@ -68,9 +196,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -87,6 +213,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["UpdateDishPayload"];
+                    "text/json": components["schemas"]["UpdateDishPayload"];
+                    "application/*+json": components["schemas"]["UpdateDishPayload"];
                 };
             };
             responses: {
@@ -96,7 +224,20 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        "text/plain": components["schemas"]["DishSingleResponse"];
                         "application/json": components["schemas"]["DishSingleResponse"];
+                        "text/json": components["schemas"]["DishSingleResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
             };
@@ -121,120 +262,19 @@ export interface paths {
                     };
                     content?: never;
                 };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/backups": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Fetch all backups for the current user (max 5, newest first) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
+                /** @description Bad Request */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["BackupListResponse"];
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/backups/restore/{backupId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                backupId: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Restore the dish list from a specific backup */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    backupId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BackupRestoreResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/version": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Fetch the latest version information */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["VersionInfo"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -260,6 +300,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["FeedbackPayload"];
+                    "text/json": components["schemas"]["FeedbackPayload"];
+                    "application/*+json": components["schemas"]["FeedbackPayload"];
                 };
             };
             responses: {
@@ -269,6 +311,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
                 };
             };
         };
@@ -344,70 +397,133 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fetch the latest version information */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["VersionInfo"];
+                        "application/json": components["schemas"]["VersionInfo"];
+                        "text/json": components["schemas"]["VersionInfo"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Dish: {
-            id: string;
-            userId: string;
-            name: string;
-            description: string;
-            /** @enum {integer} */
-            course: 0 | 1 | 2;
-            seasons: (0 | 1 | 2 | 3)[];
-            /** Format: date-time */
-            updatedAt: string;
-            isDeleted: boolean;
+        ApiErrorDetail: {
+            code?: string;
+            message?: string;
+            details?: null | components["schemas"]["ApiFieldError"][];
         };
-        CreateDishPayload: {
-            name: string;
-            description?: string;
-            /** @enum {integer} */
-            course: 0 | 1 | 2;
-            seasons: (0 | 1 | 2 | 3)[];
+        ApiFieldError: {
+            field?: string;
+            message?: string;
+            rejectedValue?: unknown;
         };
-        UpdateDishPayload: {
-            name?: string;
-            description?: string;
-            /** @enum {integer} */
-            course?: 0 | 1 | 2;
-            seasons?: (0 | 1 | 2 | 3)[];
+        BackupListResponse: {
+            data: components["schemas"]["BackupSummary"][];
+            /** Format: int32 */
+            total: number | string;
         };
-        DishListResponse: {
-            data: components["schemas"]["Dish"][];
-            total: number;
-        };
-        DishSingleResponse: {
-            data: components["schemas"]["Dish"];
+        BackupRestoreResponse: {
+            data: components["schemas"]["RestoreBackupResponse"];
         };
         BackupSummary: {
             id: string;
             label: string;
             /** Format: date-time */
             createdAt: string;
-            dishCount: number;
+            /** Format: int32 */
+            dishCount: number | string;
         };
-        BackupListResponse: {
-            data: components["schemas"]["BackupSummary"][];
-            total: number;
+        CreateDishPayload: {
+            name: string;
+            description?: string;
+            /** Format: int32 */
+            course: number | string;
+            seasons: (number | string)[];
+        };
+        Dish: {
+            id?: null | string;
+            userId?: string;
+            name?: string;
+            description?: string;
+            /** Format: int32 */
+            course?: number | string;
+            seasons?: (number | string)[];
+            /** Format: date-time */
+            updatedAt?: string;
+            isDeleted?: boolean;
+        };
+        DishListResponse: {
+            data: components["schemas"]["Dish"][];
+            /** Format: int32 */
+            total: number | string;
+        };
+        DishSingleResponse: {
+            data: components["schemas"]["Dish"];
+        };
+        FeedbackPayload: {
+            message: string;
         };
         RestoreBackupResponse: {
             backupId: string;
-            restoredCount: number;
+            /** Format: int32 */
+            restoredCount: number | string;
             /** Format: date-time */
             safetyBackupCreatedAt: string;
         };
-        BackupRestoreResponse: {
-            data: components["schemas"]["RestoreBackupResponse"];
+        UpdateDishPayload: {
+            name?: null | string;
+            description?: null | string;
+            /** Format: int32 */
+            course?: null | number | string;
+            seasons?: null | (number | string)[];
         };
         VersionInfo: {
             latestVersion: string;
             description: string;
             downloadUrl: string;
-        };
-        FeedbackPayload: {
-            message: string;
         };
     };
     responses: never;
