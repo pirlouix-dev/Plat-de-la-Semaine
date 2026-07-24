@@ -9,9 +9,6 @@ public class Dish
     public string? Id { get; set; }
 
     [FirestoreProperty]
-    public int Version { get; set; } = 0;
-
-    [FirestoreProperty]
     public string UserId { get; set; } = string.Empty;
 
     [FirestoreProperty]
@@ -21,14 +18,11 @@ public class Dish
     public string Description { get; set; } = string.Empty;
 
     [FirestoreProperty]
-    public long Course { get; set; }
+    public int Course { get; set; }
 
     [FirestoreProperty]
     public int[] Seasons { get; set; } = Array.Empty<int>();
 
     [FirestoreProperty]
     public DateTimeOffset UpdatedAt { get; set; }
-
-    [FirestoreProperty]
-    public bool IsDeleted { get; set; }
 }

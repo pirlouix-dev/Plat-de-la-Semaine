@@ -18,7 +18,6 @@ public class FirestoreService : IFirestoreService
 
     /// <summary>
     /// Initializes the Firebase Admin SDK and Firestore client using environment variables.
-    /// Returns true if initialization succeeded, false otherwise.
     /// </summary>
     public Task<bool> InitializeAsync()
     {
@@ -53,6 +52,8 @@ public class FirestoreService : IFirestoreService
         }
     }
 
+    // ── Dishes ──────────────────────────────────────────────────────
+
     /// <inheritdoc />
     public async Task<List<Dish>> GetAllDishesAsync()
     {
@@ -62,28 +63,21 @@ public class FirestoreService : IFirestoreService
     }
 
     /// <inheritdoc />
-    public async Task<List<User>> GetAllUsersAsync()
+    public async Task<List<Dish>> GetDishesByUserIdAsync(string userId)
     {
-        if (!IsConnected) return new List<User>();
-        var snapshot = await _db!.Collection("Users").GetSnapshotAsync();
-        return snapshot.Documents.Select(doc => doc.ConvertTo<User>()).ToList();
+        if (!IsConnected) return new List<Dish>();
+        var snapshot = await _db!.Collection("Dishes")
+            .WhereEqualTo("UserId", userId)
+            .GetSnapshotAsync();
+        return snapshot.Documents.Select(doc => doc.ConvertTo<Dish>()).ToList();
     }
 
     /// <inheritdoc />
-    public async Task<User> InsertUserAsync(User user)
+    public async Task<Dish?> GetDishByIdAsync(string dishId)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
-
-        var collection = _db!.Collection("Users");
-        var docRef = user.Id == null
-            ? collection.Document()
-            : collection.Document(user.Id);
-
-        if (user.Id == null)
-            user.Id = docRef.Id;
-
-        await docRef.SetAsync(user);
-        return user;
+        if (!IsConnected) return null;
+        var doc = await _db!.Collection("Dishes").Document(dishId).GetSnapshotAsync();
+        return doc.Exists ? doc.ConvertTo<Dish>() : null;
     }
 
     /// <inheritdoc />
@@ -101,5 +95,109 @@ public class FirestoreService : IFirestoreService
 
         await docRef.SetAsync(dish);
         return dish;
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateDishAsync(Dish dish)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        if (dish.Id == null) throw new ArgumentException("Dish ID cannot be null.");
+
+        await _db!.Collection("Dishes").Document(dish.Id).SetAsync(dish, SetOptions.MergeAll);
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteDishAsync(string dishId)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        await _db!.Collection("Dishes").Document(dishId).DeleteAsync();
+    }
+
+    // ── Users ───────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<List<User>> GetAllUsersAsync()
+    {
+        if (!IsConnected) return new List<User>();
+        var snapshot = await _db!.Collection("Users").GetSnapshotAsync();
+        return snapshot.Documents.Select(doc => doc.ConvertTo<User>()).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<User?> GetUserByIdAsync(string userId)
+    {
+        if (!IsConnected) return null;
+        var doc = await _db!.Collection("Users").Document(userId).GetSnapshotAsync();
+        return doc.Exists ? doc.ConvertTo<User>() : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<User> InsertUserAsync(User user, string id)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+
+        user.Id = id;
+        var docRef = _db!.Collection("Users").Document(id);
+        await docRef.SetAsync(user);
+        return user;
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateUserAsync(User user)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        if (user.Id == null) throw new ArgumentException("User ID cannot be null.");
+
+        await _db!.Collection("Users").Document(user.Id).SetAsync(user, SetOptions.MergeAll);
+    }
+
+    // ── Backups ─────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<Backup?> GetBackupByIdAsync(string backupId)
+    {
+        if (!IsConnected) return null;
+        var doc = await _db!.Collection("Backups").Document(backupId).GetSnapshotAsync();
+        return doc.Exists ? doc.ConvertTo<Backup>() : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<Backup> InsertBackupAsync(Backup backup)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+
+        var collection = _db!.Collection("Backups");
+        var docRef = backup.Id == null
+            ? collection.Document()
+            : collection.Document(backup.Id);
+
+        if (backup.Id == null)
+            backup.Id = docRef.Id;
+
+        await docRef.SetAsync(backup);
+        return backup;
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteBackupAsync(string backupId)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        await _db!.Collection("Backups").Document(backupId).DeleteAsync();
+    }
+
+    // ── Config ──────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<VersionInfo?> GetVersionInfoAsync()
+    {
+        if (!IsConnected) return null;
+        var doc = await _db!.Collection("Config").Document("version").GetSnapshotAsync();
+        if (!doc.Exists) return null;
+        return new VersionInfo
+        {
+            LatestVersion = doc.GetValue<string>("LatestVersion"),
+            Description = doc.GetValue<string>("Description"),
+            DownloadUrl = doc.GetValue<string>("DownloadUrl")
+        };
     }
 }

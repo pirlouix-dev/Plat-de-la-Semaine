@@ -89,7 +89,7 @@ public class FirestoreServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.InsertUserAsync(user));
+            () => service.InsertUserAsync(user, "test-id"));
     }
 
     [Fact]

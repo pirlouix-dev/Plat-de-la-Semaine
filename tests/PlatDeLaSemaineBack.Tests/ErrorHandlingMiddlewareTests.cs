@@ -52,13 +52,13 @@ public class ErrorHandlingMiddlewareTests
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var response = JsonSerializer.Deserialize<ErrorResponse>(body, new JsonSerializerOptions
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         Assert.NotNull(response);
-        Assert.Equal("NOT_FOUND", response!.ErrorCode);
+        Assert.Equal("NOT_FOUND", response!.Code);
         Assert.Equal("The requested resource was not found.", response.Message);
     }
 
@@ -81,13 +81,13 @@ public class ErrorHandlingMiddlewareTests
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var response = JsonSerializer.Deserialize<ErrorResponse>(body, new JsonSerializerOptions
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         Assert.NotNull(response);
-        Assert.Equal("BAD_REQUEST", response!.ErrorCode);
+        Assert.Equal("BAD_REQUEST", response!.Code);
         Assert.Equal("Invalid dish name.", response.Message);
     }
 
@@ -110,12 +110,12 @@ public class ErrorHandlingMiddlewareTests
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var response = JsonSerializer.Deserialize<ErrorResponse>(body, new JsonSerializerOptions
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
         Assert.NotNull(response);
-        Assert.Equal("INVALID_OPERATION", response!.ErrorCode);
+        Assert.Equal("INVALID_OPERATION", response!.Code);
     }
 }

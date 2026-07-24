@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 
 namespace PlatDeLaSemaineBack.Controllers;
@@ -7,7 +8,8 @@ namespace PlatDeLaSemaineBack.Controllers;
 /// Application status and diagnostic endpoint.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/Status")]
+[Tags("Health")]
 public class StatusController : ControllerBase
 {
     private readonly IFirestoreService _firestore;

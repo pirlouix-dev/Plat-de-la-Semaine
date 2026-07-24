@@ -1,6 +1,5 @@
 using DotNetEnv;
 using PlatDeLaSemaineBack.Middleware;
-using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +12,9 @@ builder.Services.AddCors();
 // Register application services
 builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
 builder.Services.AddScoped<IDishService, DishService>();
+builder.Services.AddScoped<IBackupService, BackupService>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IVersionService, VersionService>();
 
 // ── App Pipeline ──────────────────────────────────────────────────
 var app = builder.Build();
@@ -31,33 +33,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Startup Initialization ────────────────────────────────────────
-
 Env.Load();
 
 var firestoreService = app.Services.GetRequiredService<IFirestoreService>();
-var initialized = await firestoreService.InitializeAsync();
-
-if (initialized)
-{
-    var insertedUser = await firestoreService.InsertUserAsync(new User { CreatedAt = DateTimeOffset.UtcNow });
-
-    var insertedDish = await firestoreService.InsertDishAsync(new Dish
-    {
-        Name = "Sample Dish",
-        Description = "This is a sample dish.",
-        Course = 1,
-        Seasons = [1, 2],
-        UpdatedAt = DateTimeOffset.UtcNow,
-        IsDeleted = false
-    });
-
-    var users = await firestoreService.GetAllUsersAsync();
-    Console.WriteLine($"{users.Count} users retrieved from Firestore.");
-
-    var dishes = await firestoreService.GetAllDishesAsync();
-    Console.WriteLine($"{dishes.Count} dishes retrieved from Firestore.");
-}
-
-
+await firestoreService.InitializeAsync();
 
 app.Run();

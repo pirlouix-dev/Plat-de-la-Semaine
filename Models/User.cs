@@ -10,4 +10,7 @@ public class User
 
     [FirestoreProperty]
     public DateTimeOffset CreatedAt { get; set; }
+
+    [FirestoreProperty]
+    public List<string> BackupIds { get; set; } = new();
 }

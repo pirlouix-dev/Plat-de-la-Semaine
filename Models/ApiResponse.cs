@@ -1,21 +1,45 @@
+using System.Text.Json.Serialization;
+
 namespace PlatDeLaSemaineBack.Models;
 
 /// <summary>
-/// Standard API response wrapper for consistent error formatting.
+/// Field-level validation error.
 /// </summary>
-public class ApiResponse
+public class ApiFieldError
 {
-    public bool Success { get; set; }
+    /// <summary>
+    /// The field that failed validation.
+    /// </summary>
+    public string Field { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Validation error message.
+    /// </summary>
     public string Message { get; set; } = string.Empty;
-    public object? Data { get; set; }
+
+    /// <summary>
+    /// Rejected value (if available).
+    /// </summary>
+    public object? RejectedValue { get; set; }
 }
 
 /// <summary>
-/// Standard error response structure.
+/// Structured error response.
 /// </summary>
-public class ErrorResponse
+public class ApiErrorDetail
 {
-    public string ErrorCode { get; set; } = "UNKNOWN_ERROR";
+    /// <summary>
+    /// Machine-readable error code (e.g. "VALIDATION_ERROR", "NOT_FOUND").
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Human-readable error message.
+    /// </summary>
     public string Message { get; set; } = string.Empty;
-    public string? Details { get; set; }
+
+    /// <summary>
+    /// Optional field-level validation errors.
+    /// </summary>
+    public List<ApiFieldError>? Details { get; set; }
 }

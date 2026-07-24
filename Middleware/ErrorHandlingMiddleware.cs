@@ -47,11 +47,10 @@ public class ErrorHandlingMiddleware
 
         context.Response.StatusCode = (int)statusCode;
 
-        var errorResponse = new ErrorResponse
+        var errorResponse = new ApiErrorDetail
         {
-            ErrorCode = errorCode,
-            Message = message,
-            Details = exception.Message != message ? exception.Message : null
+            Code = errorCode,
+            Message = message
         };
 
         var json = JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions
