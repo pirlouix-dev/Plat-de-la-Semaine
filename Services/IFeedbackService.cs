@@ -8,7 +8,7 @@ namespace PlatDeLaSemaineBack.Services;
 public interface IFeedbackService
 {
     /// <summary>
-    /// Submits a feedback message. TODO: dispatch via Discord webhook.
+    /// Submits a feedback message via Discord webhook.
     /// </summary>
-    Task SubmitFeedbackAsync(string userId, FeedbackPayload payload);
+    Task<FeedbackResult> SubmitFeedbackAsync(string userId, FeedbackPayload payload);
 }

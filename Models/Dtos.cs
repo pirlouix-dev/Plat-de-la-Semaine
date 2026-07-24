@@ -114,4 +114,15 @@ public class VersionInfo
 public class FeedbackPayload
 {
     public required string Message { get; set; } = string.Empty;
+    public required string AppVersion { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Result of a feedback submission attempt.
+/// </summary>
+public class FeedbackResult
+{
+    public required bool Success { get; set; }
+    public string? ErrorCode { get; set; }
+    public string? ErrorMessage { get; set; }
 }

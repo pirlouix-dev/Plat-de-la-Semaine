@@ -26,10 +26,32 @@ public class FeedbackController : BaseController
     [EndpointSummary("Submit a bug report or feedback message")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Submit([FromBody] FeedbackPayload payload)
     {
         var userId = await GetUserIdAsync();
-        await _feedbackService.SubmitFeedbackAsync(userId, payload);
-        return Ok();
+        var result = await _feedbackService.SubmitFeedbackAsync(userId, payload);
+
+        if (result.Success)
+            return Ok();
+
+        return result.ErrorCode switch
+        {
+            "VERSION_MISMATCH" => BadRequest(new ApiErrorDetail
+            {
+                Code = result.ErrorCode,
+                Message = result.ErrorMessage!
+            }),
+            "RATE_LIMITED" => StatusCode(StatusCodes.Status429TooManyRequests, new ApiErrorDetail
+            {
+                Code = result.ErrorCode,
+                Message = result.ErrorMessage!
+            }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError, new ApiErrorDetail
+            {
+                Code = result.ErrorCode ?? "UNKNOWN_ERROR",
+                Message = result.ErrorMessage ?? "An unexpected error occurred."
+            })
+        };
     }
 }
