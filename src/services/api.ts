@@ -31,7 +31,7 @@ let baseUrl: string | undefined = import.meta.env.VITE_SERVER_URL as
 
 /**
  * Override the API base URL. Useful in tests.
- * Pass `undefined` to fall back to the environment variable.
+ * Pass `undefined` to explicitly unset the base URL.
  */
 export function setBaseUrl(url: string | undefined): void {
   baseUrl = url;
