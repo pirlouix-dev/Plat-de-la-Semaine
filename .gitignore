@@ -24,3 +24,6 @@ yarn-error.log*
 
 # Agent config
 AGENTS.md
+
+# Generated API spec
+openapi.yml
