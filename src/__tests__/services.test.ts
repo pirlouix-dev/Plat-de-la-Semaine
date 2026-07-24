@@ -23,7 +23,6 @@ describe("services barrel exports", () => {
     expect(typeof services.createDish).toBe("function");
     expect(typeof services.updateDish).toBe("function");
     expect(typeof services.deleteDish).toBe("function");
-    expect(typeof services.sortDishes).toBe("function");
   });
 
   it("exports all backup service functions", async () => {

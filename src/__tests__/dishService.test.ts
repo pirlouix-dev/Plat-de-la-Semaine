@@ -4,7 +4,6 @@ import {
   createDish,
   updateDish,
   deleteDish,
-  sortDishes,
 } from "../services/dishService";
 import { setBaseUrl } from "../services/api";
 import type { Dish, CreateDishPayload, UpdateDishPayload } from "../types";
@@ -228,22 +227,4 @@ describe("deleteDish", () => {
   });
 });
 
-describe("sortDishes", () => {
-  it("calls POST /api/dishes/sort and returns sorted list", async () => {
-    const sorted = [
-      { ...SAMPLE_DISH, name: "A" },
-      { ...SAMPLE_DISH_2, name: "B" },
-    ];
-    mockFetchResponse(200, { data: sorted, total: 2 });
 
-    const result = await sortDishes();
-    expect(result).toEqual({ ok: true, data: sorted });
-
-    const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
-    expect(url).toBe(`${FAKE_BASE_URL}/api/dishes/sort`);
-    const options = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
-    expect(options.method).toBe("POST");
-    // No body should be sent for sort
-    expect(options.body).toBeUndefined();
-  });
-});

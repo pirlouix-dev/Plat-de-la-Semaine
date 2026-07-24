@@ -82,19 +82,4 @@ export async function deleteDish(
   );
 }
 
-/**
- * Re-sort all dishes alphabetically (POST /api/dishes/sort).
- */
-export async function sortDishes(
-  options?: { signal?: AbortSignal }
-): Promise<ApiResult<Dish[]>> {
-  const result = await apiPost<DishListResponse>(
-    "/api/dishes/sort",
-    undefined,
-    options
-  );
-  if (result.ok) {
-    return { ok: true, data: result.data.data };
-  }
-  return result;
-}
+
