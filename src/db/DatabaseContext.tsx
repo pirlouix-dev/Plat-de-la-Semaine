@@ -2,7 +2,6 @@ import {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -46,13 +45,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     isLoading: true,
     error: null,
   });
-  const initRef = useRef(false);
 
   useEffect(() => {
-    // Guard against StrictMode double-invocation in development
-    if (initRef.current) return;
-    initRef.current = true;
-
     let disposed = false;
     let dbInstance: AppDatabase | null = null;
 
@@ -85,6 +79,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         const db = await createRxDatabase<DatabaseCollections>({
           name: "dishes",
           storage: validatedStorage,
+          ignoreDuplicate: true,
         });
         dbInstance = db;
 
