@@ -1,15 +1,15 @@
 .app-container {
   height: 100%;
   width: auto;
-  padding: min(40px, 5.7dvh);
+  padding: min(40px, 5.7svh);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: min(50px, 7.1dvh);
+  gap: min(50px, 7.1svh);
 }
 
 .app-logo {
-  height: min(127px, 18dvh);
+  height: min(127px, 18svh);
   width: auto;
   max-height: 160px;
   object-fit: contain;
@@ -19,7 +19,7 @@
   display: inline-grid;
   grid-template-columns: auto auto;
   grid-template-rows: auto auto;
-  gap: min(30px, 4.3dvh);
+  gap: min(30px, 4.3svh);
 }
 
 .menu-card-wrapper {
@@ -38,7 +38,7 @@
 }
 
 .card-background-img {
-  height: min(207px, 29.4dvh);
+  height: min(207px, 29.4svh);
   width: auto;
   display: block;
 }
@@ -50,7 +50,7 @@
   transform: translate(-50%, -50%);
 
   color: white;
-  font-size: min(21px, 3dvh);
+  font-size: min(21px, 3svh);
   font-weight: bold;
   text-align: center;
   white-space: nowrap;
@@ -59,13 +59,13 @@
 
 @media (max-width: 580px) {
   .app-container {
-    padding: min(15px, 2.1dvh);
+    padding: min(15px, 2.1svh);
   }
 
   .menu-grid {
     grid-template-columns: 1fr;
     padding: 0 1.5rem;
-    gap: min(15px, 2.1dvh);
+    gap: min(15px, 2.1svh);
   }
 
   .app-logo {
