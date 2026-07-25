@@ -38,7 +38,7 @@ describe("Asset files — unused .png removed (issue #16)", () => {
     const mainMenuPath = resolve(__dirname, "../pages/MainMenuPage.tsx");
     const content = readFileSync(mainMenuPath, "utf-8");
     // Extract all asset imports
-    const assetImports = content.match(/from\s+"[.\/]+assets\/([^"]+)"/g) || [];
+    const assetImports = content.match(/from\s+"[./]+assets\/([^"]+)"/g) || [];
     expect(assetImports.length).toBe(6);
     expect(assetImports.some((imp) => imp.includes("logo.png"))).toBe(true);
     expect(assetImports.some((imp) => imp.includes("book.webp"))).toBe(true);
