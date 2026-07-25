@@ -1,0 +1,159 @@
+.app-container {
+  height: 100%;
+  width: auto;
+  padding: min(40px, 5.7svh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: min(50px, 7.1svh);
+}
+
+.app-logo {
+  height: min(127px, 18svh);
+  width: auto;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.menu-grid {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  gap: min(30px, 4.3svh);
+}
+
+.menu-card-wrapper {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  height: min(207px, 29.4svh);
+  aspect-ratio: 1.32;
+  background-color: #e2e3e5;
+  border-radius: min(38px, 5.4svh);
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-card-wrapper:hover {
+  transform: scale(1.02);
+}
+
+.menu-card-wrapper:active {
+  transform: scale(0.98);
+}
+
+.card-icon {
+  position: absolute;
+  top: 33%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 46%;
+  max-width: 60%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.card-textbox-container {
+  position: absolute;
+  top: 76%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 83%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.textbox-bg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.card-text {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: min(21px, 3svh);
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 580px) {
+  .app-container {
+    padding: min(20px, 2.5svh) 1.25rem;
+    gap: min(24px, 3.2svh);
+    justify-content: center;
+  }
+
+  .app-logo {
+    display: block;
+    height: min(85px, 12svh);
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    width: 100%;
+    max-width: 400px;
+    padding: 0;
+    gap: min(12px, 1.8svh);
+  }
+
+  .menu-card-wrapper {
+    height: min(64px, 8.8svh);
+    aspect-ratio: unset;
+    border-radius: min(18px, 2.5svh);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 8px 0 14px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  }
+
+  .card-icon {
+    position: static;
+    transform: none;
+    max-height: unset;
+    max-width: unset;
+    height: 68%;
+    width: auto;
+    aspect-ratio: 1;
+    flex-shrink: 0;
+  }
+
+  .card-textbox-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: auto;
+    flex: 1;
+    margin-left: 12px;
+    height: 74%;
+    background-color: #0865ff;
+    border-bottom: 3px solid #0541a5;
+    border-radius: min(12px, 1.8svh);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+
+  .textbox-bg {
+    display: none;
+  }
+
+  .card-text {
+    position: static;
+    transform: none;
+    font-size: min(16px, 2.5svh);
+    font-weight: 700;
+  }
+}

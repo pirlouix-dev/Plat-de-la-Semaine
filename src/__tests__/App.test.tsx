@@ -41,8 +41,8 @@ describe("App.tsx — dead code removed (issue #2)", () => {
     expect(content).toMatch(/<DatabaseProvider>/);
   });
 
-  it("should render MainMenu as the home route", () => {
-    expect(content).toMatch(/<MainMenu\s*\/>/);
+  it("should render MainMenuPage as the home route", () => {
+    expect(content).toMatch(/<MainMenuPage\s*\/>/);
   });
 
   it("should export App as default", () => {
@@ -60,8 +60,8 @@ describe("App.tsx — routing (issue #17)", () => {
     expect(content).toMatch(/import.*Routes.*from "react-router-dom"/);
   });
 
-  it("should define a route for / with MainMenu", () => {
-    expect(content).toMatch(/path="\/".*element=\{?<MainMenu/);
+  it("should define a route for / with MainMenuPage", () => {
+    expect(content).toMatch(/path="\/".*element=\{?<MainMenuPage/);
   });
 
   it("should define a route for /choose", () => {
@@ -125,9 +125,10 @@ describe("App component — rendering states", () => {
     vi.resetModules();
   });
 
-  it("shows loading state while database initializes", async () => {
+  it("renders routes immediately while database initializes", async () => {
     vi.doMock("../db/DatabaseContext", () => ({
-      DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
+      DatabaseProvider: ({ children }: { children: React.ReactNode }) =>
+        children,
       useDatabase: () => ({ db: null, isLoading: true, error: null }),
     }));
 
@@ -135,33 +136,41 @@ describe("App component — rendering states", () => {
     render(
       <MemoryRouter>
         <MockApp />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    expect(screen.getByText("Loading database...")).toBeTruthy();
+    expect(screen.getByAltText("Plat de la Semaine")).toBeTruthy();
   });
 
   it("shows error state when database fails", async () => {
     vi.doMock("../db/DatabaseContext", () => ({
-      DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
-      useDatabase: () => ({ db: null, isLoading: false, error: "IndexedDB unavailable" }),
+      DatabaseProvider: ({ children }: { children: React.ReactNode }) =>
+        children,
+      useDatabase: () => ({
+        db: null,
+        isLoading: false,
+        error: "IndexedDB unavailable",
+      }),
     }));
 
     const { default: MockApp } = await import("../App");
     render(
       <MemoryRouter>
         <MockApp />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(
-      screen.getByText(/Failed to initialize database: IndexedDB unavailable/)
+      screen.getByText(/Failed to initialize database: IndexedDB unavailable/),
     ).toBeTruthy();
   });
 
-  it("renders MainMenu when database is ready", async () => {
+  it("renders MainMenuPage when database is ready", async () => {
     vi.doMock("../db/DatabaseContext", () => ({
-      DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
+      DatabaseProvider: ({ children }: { children: React.ReactNode }) =>
+        children,
       useDatabase: () => ({
-        db: { name: "dishes" } as unknown as import("../db/DatabaseContext").AppDatabase,
+        db: {
+          name: "dishes",
+        } as unknown as import("../db/DatabaseContext").AppDatabase,
         isLoading: false,
         error: null,
       }),
@@ -171,7 +180,7 @@ describe("App component — rendering states", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <MockApp />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText("Choisir le menu")).toBeTruthy();
   });
@@ -181,25 +190,37 @@ describe("App component — rendering states", () => {
 
 describe("Page placeholder files (issue #17)", () => {
   it("ChooseMenuPage exists and exports a default component", () => {
-    const content = readFileSync(resolve(__dirname, "../pages/ChooseMenuPage.tsx"), "utf-8");
+    const content = readFileSync(
+      resolve(__dirname, "../pages/ChooseMenuPage.tsx"),
+      "utf-8",
+    );
     expect(content).toMatch(/export default/);
     expect(content).toMatch(/Choisir le menu/);
   });
 
   it("AddDishPage exists and exports a default component", () => {
-    const content = readFileSync(resolve(__dirname, "../pages/AddDishPage.tsx"), "utf-8");
+    const content = readFileSync(
+      resolve(__dirname, "../pages/AddDishPage.tsx"),
+      "utf-8",
+    );
     expect(content).toMatch(/export default/);
     expect(content).toMatch(/Ajouter un plat/);
   });
 
   it("EditDishPage exists and exports a default component", () => {
-    const content = readFileSync(resolve(__dirname, "../pages/EditDishPage.tsx"), "utf-8");
+    const content = readFileSync(
+      resolve(__dirname, "../pages/EditDishPage.tsx"),
+      "utf-8",
+    );
     expect(content).toMatch(/export default/);
     expect(content).toMatch(/Modifier un plat/);
   });
 
   it("SettingsPage exists and exports a default component", () => {
-    const content = readFileSync(resolve(__dirname, "../pages/SettingsPage.tsx"), "utf-8");
+    const content = readFileSync(
+      resolve(__dirname, "../pages/SettingsPage.tsx"),
+      "utf-8",
+    );
     expect(content).toMatch(/export default/);
     expect(content).toMatch(/Paramètres/);
   });
