@@ -22,7 +22,7 @@
   gap: min(30px, 4.3svh);
 }
 
-/* Carte principale (rectangle arrondi gris clair) */
+/* --- RENDER DESKTOP --- */
 .menu-card-wrapper {
   position: relative;
   cursor: pointer;
@@ -47,7 +47,6 @@
   transform: scale(0.98);
 }
 
-/* Icône ré-haussée et réduite pour dégager l'espace au-dessus de la bannière */
 .card-icon {
   position: absolute;
   top: 33%;
@@ -59,7 +58,6 @@
   pointer-events: none;
 }
 
-/* Conteneur de la bannière bleue */
 .card-textbox-container {
   position: absolute;
   top: 76%;
@@ -78,7 +76,6 @@
   display: block;
 }
 
-/* Texte centré sur la zone bleue de la bannière */
 .card-text {
   position: absolute;
   top: 42%;
@@ -92,18 +89,79 @@
   pointer-events: none;
 }
 
+/* --- RENDER MOBILE (< 580px) --- */
 @media (max-width: 580px) {
   .app-container {
-    padding: min(15px, 2.1svh);
+    padding: min(20px, 2.5svh) 1.25rem;
+    gap: min(24px, 3.2svh);
+    justify-content: center;
+  }
+
+  /* Affichage du logo sur mobile */
+  .app-logo {
+    display: block;
+    height: min(85px, 12svh);
   }
 
   .menu-grid {
     grid-template-columns: 1fr;
-    padding: 0 1.5rem;
-    gap: min(15px, 2.1svh);
+    grid-template-rows: auto;
+    width: 100%;
+    max-width: 400px;
+    padding: 0;
+    gap: min(12px, 1.8svh);
   }
 
-  .app-logo {
+  /* Transformation du rectangle en barre horizontale */
+  .menu-card-wrapper {
+    height: min(64px, 8.8svh);
+    aspect-ratio: unset;
+    border-radius: min(18px, 2.5svh);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 8px 0 14px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Icône positionnée à gauche */
+  .card-icon {
+    position: static;
+    transform: none;
+    max-height: unset;
+    max-width: unset;
+    height: 68%;
+    width: auto;
+    aspect-ratio: 1;
+    flex-shrink: 0;
+  }
+
+  /* Bannières bleues adaptées en pilule à droite */
+  .card-textbox-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: auto;
+    flex: 1;
+    margin-left: 12px;
+    height: 74%;
+    background-color: #0865ff;
+    border-bottom: 3px solid #0541a5;
+    border-radius: min(12px, 1.8svh);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Désactivation de l'image de fond fixe au profit du style CSS responsive */
+  .textbox-bg {
     display: none;
+  }
+
+  /* Centrage du texte dans le badge bleu */
+  .card-text {
+    position: static;
+    transform: none;
+    font-size: min(16px, 2.5svh);
+    font-weight: 700;
   }
 }
