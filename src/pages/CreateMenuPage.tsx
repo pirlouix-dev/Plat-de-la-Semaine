@@ -51,7 +51,7 @@ function CreateMenuPage() {
         >
           <BackArrowIcon size={20} />
         </button>
-        <h1 className="page-title">Créer un plat</h1>
+        <h1 className="page-title">Ajouter un plat</h1>
         <div className="header-spacer" />
       </header>
 

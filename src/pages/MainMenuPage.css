@@ -22,7 +22,6 @@
   gap: min(30px, 4.3svh);
 }
 
-/* --- RENDER DESKTOP --- */
 .menu-card-wrapper {
   position: relative;
   cursor: pointer;
@@ -89,7 +88,6 @@
   pointer-events: none;
 }
 
-/* --- RENDER MOBILE (< 580px) --- */
 @media (max-width: 580px) {
   .app-container {
     padding: min(20px, 2.5svh) 1.25rem;
@@ -97,7 +95,6 @@
     justify-content: center;
   }
 
-  /* Affichage du logo sur mobile */
   .app-logo {
     display: block;
     height: min(85px, 12svh);
@@ -112,7 +109,6 @@
     gap: min(12px, 1.8svh);
   }
 
-  /* Transformation du rectangle en barre horizontale */
   .menu-card-wrapper {
     height: min(64px, 8.8svh);
     aspect-ratio: unset;
@@ -124,7 +120,6 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   }
 
-  /* Icône positionnée à gauche */
   .card-icon {
     position: static;
     transform: none;
@@ -136,7 +131,6 @@
     flex-shrink: 0;
   }
 
-  /* Bannières bleues adaptées en pilule à droite */
   .card-textbox-container {
     position: relative;
     top: auto;
@@ -152,12 +146,10 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
 
-  /* Désactivation de l'image de fond fixe au profit du style CSS responsive */
   .textbox-bg {
     display: none;
   }
 
-  /* Centrage du texte dans le badge bleu */
   .card-text {
     position: static;
     transform: none;
