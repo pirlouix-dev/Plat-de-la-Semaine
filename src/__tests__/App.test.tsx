@@ -198,9 +198,9 @@ describe("Page placeholder files (issue #17)", () => {
     expect(content).toMatch(/Choisir le menu/);
   });
 
-  it("CreateMenuPage exists and exports a default component", () => {
+  it("AddDishPage exists and exports a default component", () => {
     const content = readFileSync(
-      resolve(__dirname, "../pages/CreateMenuPage.tsx"),
+      resolve(__dirname, "../pages/AddDishPage.tsx"),
       "utf-8",
     );
     expect(content).toMatch(/export default/);

@@ -4,7 +4,7 @@ import { DatabaseProvider, useDatabase } from "./db/DatabaseContext";
 import "./App.css";
 import MainMenuPage from "./pages/MainMenuPage";
 import ChooseMenuPage from "./pages/ChooseMenuPage";
-import CreateMenuPage from "./pages/CreateMenuPage";
+import AddDishPage from "./pages/AddDishPage";
 import EditDishPage from "./pages/EditDishPage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -29,7 +29,7 @@ function AppContent() {
     <Routes>
       <Route path="/" element={<MainMenuPage />} />
       <Route path="/choose" element={<ChooseMenuPage />} />
-      <Route path="/add" element={<CreateMenuPage />} />
+      <Route path="/add" element={<AddDishPage />} />
       <Route path="/edit" element={<EditDishPage />} />
       <Route path="/settings" element={<SettingsPage />} />
     </Routes>

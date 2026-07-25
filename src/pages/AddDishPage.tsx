@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "../components/Icons";
-import "./CreateMenuPage.css";
+import "./AddDishPage.css";
 
 type DishType = "Entrée" | "Plat" | "Dessert";
 
@@ -18,7 +18,7 @@ const SEASONS = [
   { id: "Hiver", label: "Hiver", icon: "❄️" },
 ];
 
-function CreateMenuPage() {
+function AddDishPage() {
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -132,4 +132,4 @@ function CreateMenuPage() {
   );
 }
 
-export default CreateMenuPage;
+export default AddDishPage;
