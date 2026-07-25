@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import type { RxCollection, RxDatabase } from "rxdb";
+import { hashFunction } from "./hashFunction";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,6 +81,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           name: "dishes",
           storage: validatedStorage,
           ignoreDuplicate: true,
+          hashFunction,
         });
         dbInstance = db;
 
