@@ -42,7 +42,6 @@ function AddDishPage() {
 
   return (
     <div className="create-dish-container">
-      {/* En-tête */}
       <header className="form-header">
         <button
           className="back-btn"
@@ -56,7 +55,6 @@ function AddDishPage() {
       </header>
 
       <form className="dish-form" onSubmit={handleSubmit}>
-        {/* Champ Nom du plat */}
         <div className="input-group">
           <input
             type="text"
@@ -68,9 +66,7 @@ function AddDishPage() {
           />
         </div>
 
-        {/* Section Sélecteurs (Type & Saisons) */}
         <div className="form-section-row">
-          {/* Sélecteur de Type (Segmented control) */}
           <div className="type-segmented-control">
             {DISH_TYPES.map(({ label, icon }) => (
               <button
@@ -85,7 +81,6 @@ function AddDishPage() {
             ))}
           </div>
 
-          {/* Sélecteur des Saisons */}
           <div className="seasons-group">
             {SEASONS.map(({ id, label, icon }) => {
               const isSelected = selectedSeasons.includes(id);
@@ -104,7 +99,6 @@ function AddDishPage() {
           </div>
         </div>
 
-        {/* Champ Description */}
         <div className="input-group">
           <textarea
             className="modern-input description-input"
@@ -114,7 +108,6 @@ function AddDishPage() {
           />
         </div>
 
-        {/* Boutons d'action */}
         <div className="action-buttons">
           <button
             type="button"
