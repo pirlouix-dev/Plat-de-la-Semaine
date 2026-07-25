@@ -60,7 +60,7 @@ describe("MainMenuPage component", () => {
     expect(container.querySelector(".app-container")).toBeTruthy();
     expect(container.querySelector(".menu-grid")).toBeTruthy();
     expect(container.querySelectorAll(".menu-card-wrapper").length).toBe(4);
-    expect(container.querySelectorAll(".card-text-overlay").length).toBe(4);
+    expect(container.querySelectorAll(".card-textbox-container").length).toBe(4);
   });
 
   it("renders menu cards as interactive buttons", () => {
