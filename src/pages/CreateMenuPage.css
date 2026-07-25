@@ -219,13 +219,13 @@
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ff5252;
-  border: 1px solid rgba(255, 82, 82, 0.3);
+  background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
+  color: #ffffff;
+  border: none;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 82, 82, 0.15);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 800px) {
