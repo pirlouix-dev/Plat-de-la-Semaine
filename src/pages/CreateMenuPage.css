@@ -169,8 +169,10 @@
   color: #ffffff;
 }
 
-.season-chip:hover:not(.selected) {
-  background: #e4e7eb;
+@media (hover: hover) {
+  .season-chip:hover:not(.selected) {
+    background: #e4e7eb;
+  }
 }
 
 @container (max-width: 400px) {
