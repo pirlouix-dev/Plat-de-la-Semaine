@@ -10,13 +10,11 @@ const FAKE_BASE_URL = "http://test.local:5126";
 const SAMPLE_BACKUPS: BackupSummary[] = [
   {
     id: "back-1",
-    label: "Before edit: Carbonara",
     createdAt: "2026-07-14T17:48:00Z",
     dishCount: 12,
   },
   {
     id: "back-2",
-    label: "Before delete: Salade",
     createdAt: "2026-07-14T18:00:00Z",
     dishCount: 11,
   },
@@ -37,7 +35,7 @@ function mockFetchResponse(status: number, body: unknown): void {
       ok: status >= 200 && status < 300,
       status,
       json: vi.fn().mockResolvedValue(body),
-    } as Response)
+    } as unknown as Response)
   );
 }
 

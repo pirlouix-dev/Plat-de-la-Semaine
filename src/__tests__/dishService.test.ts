@@ -44,7 +44,7 @@ function mockFetchResponse(status: number, body: unknown): void {
       ok: status >= 200 && status < 300,
       status,
       json: vi.fn().mockResolvedValue(body),
-    } as Response)
+    } as unknown as Response)
   );
 }
 

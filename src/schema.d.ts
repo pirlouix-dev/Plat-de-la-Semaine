@@ -4,6 +4,171 @@
  */
 
 export interface paths {
+    "/api/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register a new account */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RegisterPayload"];
+                    "text/json": components["schemas"]["RegisterPayload"];
+                    "application/*+json": components["schemas"]["RegisterPayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AuthResponse"];
+                        "application/json": components["schemas"]["AuthResponse"];
+                        "text/json": components["schemas"]["AuthResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authenticate and return a JWT */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoginPayload"];
+                    "text/json": components["schemas"]["LoginPayload"];
+                    "application/*+json": components["schemas"]["LoginPayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AuthResponse"];
+                        "application/json": components["schemas"]["AuthResponse"];
+                        "text/json": components["schemas"]["AuthResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh an expired token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RefreshPayload"];
+                    "text/json": components["schemas"]["RefreshPayload"];
+                    "application/*+json": components["schemas"]["RefreshPayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AuthResponse"];
+                        "application/json": components["schemas"]["AuthResponse"];
+                        "text/json": components["schemas"]["AuthResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/backups": {
         parameters: {
             query?: never;
@@ -323,6 +488,17 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -427,6 +603,12 @@ export interface components {
             message?: string;
             rejectedValue?: unknown;
         };
+        AuthResponse: {
+            idToken: string;
+            refreshToken: string;
+            expiresIn: string;
+            userId: string;
+        };
         BackupListResponse: {
             data: components["schemas"]["BackupSummary"][];
             /** Format: int32 */
@@ -443,6 +625,7 @@ export interface components {
             dishCount: number | string;
         };
         CreateDishPayload: {
+            id?: null | string;
             name: string;
             description?: string;
             /** Format: int32 */
@@ -450,8 +633,8 @@ export interface components {
             seasons: (number | string)[];
         };
         Dish: {
-            id?: null | string;
-            userId?: string;
+            id: null | string;
+            userId: string;
             name?: string;
             description?: string;
             /** Format: int32 */
@@ -459,6 +642,9 @@ export interface components {
             seasons?: (number | string)[];
             /** Format: date-time */
             updatedAt?: string;
+            isDeleted?: boolean;
+            /** Format: date-time */
+            deletedAt?: null | string;
         };
         DishListResponse: {
             data: components["schemas"]["Dish"][];
@@ -470,6 +656,18 @@ export interface components {
         };
         FeedbackPayload: {
             message: string;
+            appVersion: string;
+        };
+        LoginPayload: {
+            email: string;
+            password: string;
+        };
+        RefreshPayload: {
+            refreshToken: string;
+        };
+        RegisterPayload: {
+            email: string;
+            password: string;
         };
         RestoreBackupResponse: {
             backupId: string;
