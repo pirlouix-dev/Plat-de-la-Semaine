@@ -29,10 +29,8 @@ function MainMenuPage() {
             className="menu-card-wrapper"
             onClick={() => navigate(item.route)}
           >
-            {/* Icône du badge */}
             <img src={item.icon} alt={item.text} className="card-icon" />
 
-            {/* Conteneur de la bannière bleue + texte */}
             <div className="card-textbox-container">
               <img src={textbox_img} alt="" className="textbox-bg" />
               <span className="card-text">{item.text}</span>
