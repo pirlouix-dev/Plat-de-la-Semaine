@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import MainMenu from "../MainMenu";
+import MainMenuPage from "../pages/MainMenuPage";
 
-describe("MainMenu component", () => {
+describe("MainMenuPage component", () => {
   it("renders without crashing", () => {
     const { container } = render(
       <MemoryRouter>
-        <MainMenu />
+        <MainMenuPage />
       </MemoryRouter>
     );
     expect(container).toBeTruthy();
@@ -16,7 +16,7 @@ describe("MainMenu component", () => {
   it("displays all four menu items", () => {
     render(
       <MemoryRouter>
-        <MainMenu />
+        <MainMenuPage />
       </MemoryRouter>
     );
     expect(screen.getByText("Choisir le menu")).toBeTruthy();
@@ -28,7 +28,7 @@ describe("MainMenu component", () => {
   it("renders the logo image", () => {
     render(
       <MemoryRouter>
-        <MainMenu />
+        <MainMenuPage />
       </MemoryRouter>
     );
     const logo = screen.getByAltText("Plat de la Semaine");
@@ -39,7 +39,7 @@ describe("MainMenu component", () => {
   it("renders four card images with correct alt texts", () => {
     render(
       <MemoryRouter>
-        <MainMenu />
+        <MainMenuPage />
       </MemoryRouter>
     );
     const images = screen.getAllByRole("img");
@@ -54,7 +54,7 @@ describe("MainMenu component", () => {
   it("has the correct CSS class structure", () => {
     const { container } = render(
       <MemoryRouter>
-        <MainMenu />
+        <MainMenuPage />
       </MemoryRouter>
     );
     expect(container.querySelector(".app-container")).toBeTruthy();
@@ -66,7 +66,7 @@ describe("MainMenu component", () => {
   it("renders menu cards as interactive buttons", () => {
     render(
       <MemoryRouter>
-        <MainMenu />
+        <MainMenuPage />
       </MemoryRouter>
     );
     const cards = screen.getAllByRole("button");

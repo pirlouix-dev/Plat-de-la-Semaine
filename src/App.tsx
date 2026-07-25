@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { DatabaseProvider, useDatabase } from "./db/DatabaseContext";
 
 import "./App.css";
-import MainMenu from "./MainMenu";
+import MainMenuPage from "./pages/MainMenuPage";
 import ChooseMenuPage from "./pages/ChooseMenuPage";
 import CreateMenuPage from "./pages/CreateMenuPage";
 import EditDishPage from "./pages/EditDishPage";
@@ -27,7 +27,7 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route path="/" element={<MainMenu />} />
+      <Route path="/" element={<MainMenuPage />} />
       <Route path="/choose" element={<ChooseMenuPage />} />
       <Route path="/add" element={<CreateMenuPage />} />
       <Route path="/edit" element={<EditDishPage />} />

@@ -41,8 +41,8 @@ describe("App.tsx — dead code removed (issue #2)", () => {
     expect(content).toMatch(/<DatabaseProvider>/);
   });
 
-  it("should render MainMenu as the home route", () => {
-    expect(content).toMatch(/<MainMenu\s*\/>/);
+  it("should render MainMenuPage as the home route", () => {
+    expect(content).toMatch(/<MainMenuPage\s*\/>/);
   });
 
   it("should export App as default", () => {
@@ -60,8 +60,8 @@ describe("App.tsx — routing (issue #17)", () => {
     expect(content).toMatch(/import.*Routes.*from "react-router-dom"/);
   });
 
-  it("should define a route for / with MainMenu", () => {
-    expect(content).toMatch(/path="\/".*element=\{?<MainMenu/);
+  it("should define a route for / with MainMenuPage", () => {
+    expect(content).toMatch(/path="\/".*element=\{?<MainMenuPage/);
   });
 
   it("should define a route for /choose", () => {
@@ -157,7 +157,7 @@ describe("App component — rendering states", () => {
     ).toBeTruthy();
   });
 
-  it("renders MainMenu when database is ready", async () => {
+  it("renders MainMenuPage when database is ready", async () => {
     vi.doMock("../db/DatabaseContext", () => ({
       DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
       useDatabase: () => ({

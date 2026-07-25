@@ -33,11 +33,11 @@ describe("Asset files — unused .png removed (issue #16)", () => {
     expect(existsSync(resolve(assetsDir, "settings.png"))).toBe(false);
   });
 
-  it("should only reference .webp and logo.png in MainMenu.tsx imports", () => {
-    const mainMenuPath = resolve(__dirname, "../MainMenu.tsx");
+  it("should only reference .webp and logo.png in MainMenuPage.tsx imports", () => {
+    const mainMenuPath = resolve(__dirname, "../pages/MainMenuPage.tsx");
     const content = readFileSync(mainMenuPath, "utf-8");
     // Extract all asset imports
-    const assetImports = content.match(/from\s+"\.\.\/assets\/([^"]+)"/g) || [];
+    const assetImports = content.match(/from\s+"[.\/]+assets\/([^"]+)"/g) || [];
     expect(assetImports.length).toBe(5);
     expect(assetImports.some((imp) => imp.includes("logo.png"))).toBe(true);
     expect(assetImports.some((imp) => imp.includes("choose_menu.webp"))).toBe(true);

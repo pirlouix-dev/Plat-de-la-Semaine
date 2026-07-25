@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import "./MainMenu.css";
+import "./MainMenuPage.css";
 
-import logo_img from "../assets/logo.png";
-import choose_menu_img from "../assets/choose_menu.webp";
-import add_dish_img from "../assets/add_dish.webp";
-import edit_dish_img from "../assets/edit_dish.webp";
-import settings_img from "../assets/settings.webp";
+import logo_img from "../../assets/logo.png";
+import choose_menu_img from "../../assets/choose_menu.webp";
+import add_dish_img from "../../assets/add_dish.webp";
+import edit_dish_img from "../../assets/edit_dish.webp";
+import settings_img from "../../assets/settings.webp";
 
 const mainMenuItems = [
   { id: 1, text: "Choisir le menu", icon: choose_menu_img, route: "/choose" },
@@ -14,7 +14,7 @@ const mainMenuItems = [
   { id: 4, text: "Paramètres", icon: settings_img, route: "/settings" },
 ];
 
-function MainMenu() {
+function MainMenuPage() {
   const navigate = useNavigate();
 
   return (
@@ -42,4 +42,4 @@ function MainMenu() {
   );
 }
 
-export default MainMenu;
+export default MainMenuPage;
