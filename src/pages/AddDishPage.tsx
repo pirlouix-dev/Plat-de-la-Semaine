@@ -12,10 +12,10 @@ const DISH_TYPES: { label: DishType; icon: string }[] = [
 ];
 
 const SEASONS = [
-  { id: "Printemps", label: "Printemps", icon: "🌱" },
-  { id: "Été", label: "Été", icon: "☀️" },
-  { id: "Automne", label: "Automne", icon: "🍂" },
-  { id: "Hiver", label: "Hiver", icon: "❄️" },
+  { label: "Printemps", icon: "🌱" },
+  { label: "Été", icon: "☀️" },
+  { label: "Automne", icon: "🍂" },
+  { label: "Hiver", icon: "❄️" },
 ];
 
 function AddDishPage() {
@@ -82,14 +82,14 @@ function AddDishPage() {
           </div>
 
           <div className="seasons-group">
-            {SEASONS.map(({ id, label, icon }) => {
-              const isSelected = selectedSeasons.includes(id);
+            {SEASONS.map(({ label, icon }) => {
+              const isSelected = selectedSeasons.includes(label);
               return (
                 <button
                   type="button"
-                  key={id}
+                  key={label}
                   className={`season-chip ${isSelected ? "selected" : ""}`}
-                  onClick={() => toggleSeason(id)}
+                  onClick={() => toggleSeason(label)}
                 >
                   <span className="season-icon">{icon}</span>
                   <span>{label}</span>
