@@ -170,6 +170,9 @@
 }
 
 @media (hover: hover) {
+  .type-option:hover:not(.active) {
+    background: #e4e7eb;
+  }
   .season-chip:hover:not(.selected) {
     background: #e4e7eb;
   }
