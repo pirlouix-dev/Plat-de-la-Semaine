@@ -158,7 +158,7 @@
 }
 
 .season-chip {
-  background: #f0f2f5;
+  background: transparent;
   padding: 0 6px;
   color: #333333;
   flex: 1;
