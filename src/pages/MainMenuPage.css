@@ -22,39 +22,68 @@
   gap: min(30px, 4.3svh);
 }
 
+/* Carte principale (rectangle arrondi gris clair) */
 .menu-card-wrapper {
   position: relative;
   cursor: pointer;
   transition: transform 0.15s ease;
-  height: auto;
-  width: auto;
-  background: none;
+  height: min(207px, 29.4svh);
+  aspect-ratio: 1.32;
+  background-color: #e2e3e5;
+  border-radius: min(38px, 5.4svh);
   border: none;
   padding: 0;
   font: inherit;
   color: inherit;
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
 .menu-card-wrapper:hover {
   transform: scale(1.02);
 }
+
 .menu-card-wrapper:active {
   transform: scale(0.98);
 }
 
-.card-background-img {
-  height: min(207px, 29.4svh);
-  width: auto;
-  display: block;
+/* Icône ré-haussée et réduite pour dégager l'espace au-dessus de la bannière */
+.card-icon {
+  position: absolute;
+  top: 33%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 46%;
+  max-width: 60%;
+  object-fit: contain;
+  pointer-events: none;
 }
 
-.card-text-overlay {
+/* Conteneur de la bannière bleue */
+.card-textbox-container {
   position: absolute;
   top: 76%;
   left: 50%;
   transform: translate(-50%, -50%);
+  width: 83%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
 
+.textbox-bg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Texte centré sur la zone bleue de la bannière */
+.card-text {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   color: white;
   font-size: min(21px, 3svh);
   font-weight: bold;

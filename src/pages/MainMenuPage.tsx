@@ -2,16 +2,17 @@ import { useNavigate } from "react-router-dom";
 import "./MainMenuPage.css";
 
 import logo_img from "../../assets/logo.png";
-import choose_menu_img from "../../assets/choose_menu.webp";
-import add_dish_img from "../../assets/add_dish.webp";
-import edit_dish_img from "../../assets/edit_dish.webp";
-import settings_img from "../../assets/settings.webp";
+import book_img from "../../assets/book.webp";
+import add_img from "../../assets/add.webp";
+import pencil_img from "../../assets/pencil.webp";
+import wheel_img from "../../assets/wheel.webp";
+import textbox_img from "../../assets/textbox.webp";
 
 const mainMenuItems = [
-  { id: 1, text: "Choisir le menu", icon: choose_menu_img, route: "/choose" },
-  { id: 2, text: "Ajouter un plat", icon: add_dish_img, route: "/add" },
-  { id: 3, text: "Modifier un plat", icon: edit_dish_img, route: "/edit" },
-  { id: 4, text: "Paramètres", icon: settings_img, route: "/settings" },
+  { id: 1, text: "Choisir le menu", icon: book_img, route: "/choose" },
+  { id: 2, text: "Ajouter un plat", icon: add_img, route: "/add" },
+  { id: 3, text: "Modifier un plat", icon: pencil_img, route: "/edit" },
+  { id: 4, text: "Paramètres", icon: wheel_img, route: "/settings" },
 ];
 
 function MainMenuPage() {
@@ -28,13 +29,14 @@ function MainMenuPage() {
             className="menu-card-wrapper"
             onClick={() => navigate(item.route)}
           >
-            <img
-              src={item.icon}
-              alt={item.text}
-              className="card-background-img"
-            />
+            {/* Icône du badge */}
+            <img src={item.icon} alt={item.text} className="card-icon" />
 
-            <div className="card-text-overlay">{item.text}</div>
+            {/* Conteneur de la bannière bleue + texte */}
+            <div className="card-textbox-container">
+              <img src={textbox_img} alt="" className="textbox-bg" />
+              <span className="card-text">{item.text}</span>
+            </div>
           </button>
         ))}
       </main>
