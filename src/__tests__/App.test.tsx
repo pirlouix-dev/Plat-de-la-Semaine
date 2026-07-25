@@ -125,7 +125,7 @@ describe("App component — rendering states", () => {
     vi.resetModules();
   });
 
-  it("shows loading state while database initializes", async () => {
+  it("renders routes immediately while database initializes", async () => {
     vi.doMock("../db/DatabaseContext", () => ({
       DatabaseProvider: ({ children }: { children: React.ReactNode }) => children,
       useDatabase: () => ({ db: null, isLoading: true, error: null }),
@@ -137,7 +137,7 @@ describe("App component — rendering states", () => {
         <MockApp />
       </MemoryRouter>
     );
-    expect(screen.getByText("Loading database...")).toBeTruthy();
+    expect(screen.getByAltText("Plat de la Semaine")).toBeTruthy();
   });
 
   it("shows error state when database fails", async () => {
@@ -186,10 +186,10 @@ describe("Page placeholder files (issue #17)", () => {
     expect(content).toMatch(/Choisir le menu/);
   });
 
-  it("AddDishPage exists and exports a default component", () => {
-    const content = readFileSync(resolve(__dirname, "../pages/AddDishPage.tsx"), "utf-8");
+  it("CreateMenuPage exists and exports a default component", () => {
+    const content = readFileSync(resolve(__dirname, "../pages/CreateMenuPage.tsx"), "utf-8");
     expect(content).toMatch(/export default/);
-    expect(content).toMatch(/Ajouter un plat/);
+    expect(content).toMatch(/Créer un plat/);
   });
 
   it("EditDishPage exists and exports a default component", () => {

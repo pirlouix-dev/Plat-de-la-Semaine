@@ -23,18 +23,10 @@ function MainMenu() {
 
       <main className="menu-grid">
         {mainMenuItems.map((item) => (
-          <div
+          <button
             key={item.id}
             className="menu-card-wrapper"
-            role="button"
-            tabIndex={0}
             onClick={() => navigate(item.route)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navigate(item.route);
-              }
-            }}
           >
             <img
               src={item.icon}
@@ -43,7 +35,7 @@ function MainMenu() {
             />
 
             <div className="card-text-overlay">{item.text}</div>
-          </div>
+          </button>
         ))}
       </main>
     </div>

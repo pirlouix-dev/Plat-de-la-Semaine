@@ -2,7 +2,7 @@
   --text: #6b6375;
   --text-secondary: #8f8898;
   --bg: #fff;
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   --bg-dark: rgb(44, 44, 44);
 
   font-family: var(--sans);
@@ -37,16 +37,29 @@
   font-family: "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
 }
 
+html {
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   display: flex;
   place-items: center;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: 10vh;
   background-color: var(--bg-dark);
 }
 
 #root {
   width: 100%;
   margin: 0 auto;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  touch-action: manipulation;
 }

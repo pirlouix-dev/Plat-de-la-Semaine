@@ -71,6 +71,5 @@ describe("MainMenu component", () => {
     );
     const cards = screen.getAllByRole("button");
     expect(cards.length).toBe(4);
-    expect(cards[0]).toHaveAttribute("tabindex", "0");
   });
 });
