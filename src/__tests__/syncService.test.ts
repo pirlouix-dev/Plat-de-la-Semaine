@@ -4,7 +4,6 @@ import {
   expect,
   vi,
   beforeAll,
-  afterAll,
   beforeEach,
   afterEach,
 } from "vitest";
@@ -62,9 +61,6 @@ function makeDish(overrides: Partial<DishDocType> = {}): DishDocType {
   };
 }
 
-const testDishesSchema = { ...dishesSchema, version: 0 };
-const testPreferencesSchema = { ...preferencesSchema, version: 0 };
-
 beforeAll(async () => {
   const rawStorage = getRxStorageDexie();
   const validatedStorage = wrappedValidateAjvStorage({ storage: rawStorage });
@@ -77,13 +73,9 @@ beforeAll(async () => {
   })) as unknown as AppDatabase;
 
   await db.addCollections({
-    dishes: { schema: testDishesSchema },
-    preferences: { schema: testPreferencesSchema },
+    dishes: { schema: dishesSchema },
+    preferences: { schema: preferencesSchema },
   });
-});
-
-afterAll(async () => {
-  // RxDB v17+ does not expose destroy(); unique DB names per test file prevent collisions
 });
 
 beforeEach(async () => {
