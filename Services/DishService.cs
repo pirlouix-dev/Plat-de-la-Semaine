@@ -87,7 +87,7 @@ public class DishService : IDishService
         await CreateBackupAsync(userId);
 
         existing.IsDeleted = true;
-        existing.DeletedAt = DateTimeOffset.UtcNow;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
         await _firestore.UpdateDishAsync(existing);
     }
 

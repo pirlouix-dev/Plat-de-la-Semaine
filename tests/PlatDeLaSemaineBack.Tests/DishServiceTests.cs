@@ -193,7 +193,7 @@ public class DishServiceTests
 
         // Assert
         Assert.True(dish.IsDeleted);
-        Assert.NotNull(dish.DeletedAt);
+        Assert.NotEqual(default, dish.UpdatedAt);
         await _firestore.Received(1).UpdateDishAsync(dish);
         await _firestore.DidNotReceive().DeleteDishAsync(Arg.Any<string>());
     }

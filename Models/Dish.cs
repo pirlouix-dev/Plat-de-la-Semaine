@@ -31,7 +31,4 @@ public class Dish
 
     [FirestoreProperty]
     public bool IsDeleted { get; set; }
-
-    [FirestoreProperty]
-    public DateTimeOffset? DeletedAt { get; set; }
 }
