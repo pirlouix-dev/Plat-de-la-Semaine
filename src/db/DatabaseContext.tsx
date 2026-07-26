@@ -38,25 +38,19 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    const disposed = false;
-
     (async () => {
       try {
         if (import.meta.env.DEV) {
-          const { RxDBDevModePlugin } = await import(
-            "rxdb/plugins/dev-mode"
-          );
+          const { RxDBDevModePlugin } = await import("rxdb/plugins/dev-mode");
           const { addRxPlugin } = await import("rxdb/plugins/core");
           addRxPlugin(RxDBDevModePlugin);
         }
 
         const { createRxDatabase } = await import("rxdb/plugins/core");
-        const { getRxStorageDexie } = await import(
-          "rxdb/plugins/storage-dexie"
-        );
-        const { wrappedValidateAjvStorage } = await import(
-          "rxdb/plugins/validate-ajv"
-        );
+        const { getRxStorageDexie } =
+          await import("rxdb/plugins/storage-dexie");
+        const { wrappedValidateAjvStorage } =
+          await import("rxdb/plugins/validate-ajv");
 
         const rawStorage = getRxStorageDexie();
         const validatedStorage = wrappedValidateAjvStorage({
@@ -64,7 +58,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         });
 
         const db = await createRxDatabase<DatabaseCollections>({
-          name: "pdlsv4",
+          name: "PDLS_DB",
           storage: validatedStorage,
           ignoreDuplicate: true,
           hashFunction,
@@ -79,21 +73,17 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           },
         });
 
-        if (!disposed) {
-          setState({
-            db: db as unknown as AppDatabase,
-            isLoading: false,
-            error: null,
-          });
-        }
+        setState({
+          db: db as unknown as AppDatabase,
+          isLoading: false,
+          error: null,
+        });
       } catch (err) {
-        if (!disposed) {
-          const message =
-            err instanceof Error
-              ? err.message
-              : "Unknown error initializing database";
-          setState({ db: null, isLoading: false, error: message });
-        }
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Unknown error initializing database";
+        setState({ db: null, isLoading: false, error: message });
       }
     })();
   }, []);
