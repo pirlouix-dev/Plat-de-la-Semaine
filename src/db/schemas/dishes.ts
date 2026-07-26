@@ -17,7 +17,7 @@ export interface DishDocType {
 }
 
 export const dishesSchema: RxJsonSchema<DishDocType> = {
-  version: 1,
+  version: 0,
   primaryKey: "id",
   type: "object",
   properties: {

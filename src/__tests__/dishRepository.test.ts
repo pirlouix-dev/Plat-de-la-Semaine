@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach } from "vitest";
 import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
 import { addRxPlugin, createRxDatabase } from "rxdb/plugins/core";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
@@ -41,10 +41,6 @@ function makeDish(overrides: Partial<DishDocType> = {}): DishDocType {
   };
 }
 
-// Use version 0 schemas for tests (no migration needed)
-const testDishesSchema = { ...dishesSchema, version: 0 };
-const testPreferencesSchema = { ...preferencesSchema, version: 0 };
-
 beforeAll(async () => {
   const rawStorage = getRxStorageDexie();
   const validatedStorage = wrappedValidateAjvStorage({ storage: rawStorage });
@@ -57,13 +53,9 @@ beforeAll(async () => {
   })) as unknown as AppDatabase;
 
   await db.addCollections({
-    dishes: { schema: testDishesSchema },
-    preferences: { schema: testPreferencesSchema },
+    dishes: { schema: dishesSchema },
+    preferences: { schema: preferencesSchema },
   });
-});
-
-afterAll(async () => {
-  // RxDB v17+ does not expose destroy(); unique DB names per test file prevent collisions
 });
 
 beforeEach(async () => {
