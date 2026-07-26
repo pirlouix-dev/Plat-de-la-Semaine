@@ -14,6 +14,7 @@ builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
 builder.Services.AddScoped<IDishService, DishService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddHttpClient<IFeedbackService, FeedbackService>();
+builder.Services.AddHttpClient<IAuthService, AuthService>();
 builder.Services.AddScoped<IVersionService, VersionService>();
 
 // ── App Pipeline ──────────────────────────────────────────────────

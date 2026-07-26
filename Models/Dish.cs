@@ -1,14 +1,17 @@
 namespace PlatDeLaSemaineBack.Models;
 
+using System.ComponentModel.DataAnnotations;
 using Google.Cloud.Firestore;
 
 [FirestoreData]
 public class Dish
 {
     [FirestoreDocumentId]
+    [Required]
     public string? Id { get; set; }
 
     [FirestoreProperty]
+    [Required]
     public string UserId { get; set; } = string.Empty;
 
     [FirestoreProperty]
@@ -25,4 +28,10 @@ public class Dish
 
     [FirestoreProperty]
     public DateTimeOffset UpdatedAt { get; set; }
+
+    [FirestoreProperty]
+    public bool IsDeleted { get; set; }
+
+    [FirestoreProperty]
+    public DateTimeOffset? DeletedAt { get; set; }
 }

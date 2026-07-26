@@ -177,7 +177,7 @@ public class DishServiceTests
     }
 
     [Fact]
-    public async Task DeleteDish_DeletesDish()
+    public async Task DeleteDish_SoftDeletesDish()
     {
         // Arrange
         var userId = "user1";
@@ -192,7 +192,10 @@ public class DishServiceTests
         await _service.DeleteDishAsync(userId, dishId);
 
         // Assert
-        await _firestore.Received(1).DeleteDishAsync(dishId);
+        Assert.True(dish.IsDeleted);
+        Assert.NotNull(dish.DeletedAt);
+        await _firestore.Received(1).UpdateDishAsync(dish);
+        await _firestore.DidNotReceive().DeleteDishAsync(Arg.Any<string>());
     }
 
     [Fact]

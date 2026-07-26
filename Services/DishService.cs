@@ -33,6 +33,7 @@ public class DishService : IDishService
 
         var dish = new Dish
         {
+            Id = payload.Id,
             UserId = userId,
             Name = payload.Name,
             Description = payload.Description,
@@ -85,7 +86,9 @@ public class DishService : IDishService
 
         await CreateBackupAsync(userId);
 
-        await _firestore.DeleteDishAsync(dishId);
+        existing.IsDeleted = true;
+        existing.DeletedAt = DateTimeOffset.UtcNow;
+        await _firestore.UpdateDishAsync(existing);
     }
 
     /// <summary>
