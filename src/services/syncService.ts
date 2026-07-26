@@ -127,6 +127,7 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
       : undefined;
 
     if (!matchByServerId) {
+      // Skip if a local dish already has this ID (UUID collision with an unsynced local draft)
       if (!existingById.has(localDish.id)) {
         await db.dishes.upsert(localDish);
       }

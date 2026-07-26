@@ -58,7 +58,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         });
 
         const db = await createRxDatabase<DatabaseCollections>({
-          name: "PDLS_DB",
+          name: "pdlsv4",
           storage: validatedStorage,
           ignoreDuplicate: true,
           hashFunction,
