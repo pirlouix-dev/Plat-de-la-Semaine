@@ -1,0 +1,448 @@
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from "vitest";
+import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
+import { addRxPlugin, createRxDatabase } from "rxdb/plugins/core";
+import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
+import { wrappedValidateAjvStorage } from "rxdb/plugins/validate-ajv";
+import { dishesSchema, type DishDocType } from "../db/schemas/dishes";
+import { preferencesSchema } from "../db/schemas/preferences";
+import type { DatabaseCollections } from "../db/collections";
+import type { AppDatabase } from "../db/DatabaseContext";
+import { hashFunction } from "../db/hashFunction";
+import { insertDish } from "../repositories/dishRepository";
+
+addRxPlugin(RxDBDevModePlugin);
+
+// ── Mock dishService ────────────────────────────────────────────────────────
+
+vi.mock("../services/dishService", () => ({
+  getDishes: vi.fn(),
+  createDish: vi.fn(),
+  updateDish: vi.fn(),
+  deleteDish: vi.fn(),
+}));
+
+import {
+  getDishes,
+  createDish,
+  updateDish,
+  deleteDish,
+} from "../services/dishService";
+import { sync, startAutoSync, _resetSyncState } from "../services/syncService";
+
+const mockGetDishes = vi.mocked(getDishes);
+const mockCreateDish = vi.mocked(createDish);
+const mockUpdateDish = vi.mocked(updateDish);
+const mockDeleteDish = vi.mocked(deleteDish);
+
+// ── Test database ───────────────────────────────────────────────────────────
+
+let db: AppDatabase;
+
+function makeDish(overrides: Partial<DishDocType> = {}): DishDocType {
+  return {
+    id: crypto.randomUUID(),
+    serverId: "",
+    name: "Test Dish",
+    description: "A test dish",
+    course: 1,
+    seasons: [0, 1],
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    isDeleted: false,
+    syncStatus: "synced",
+    ...overrides,
+  };
+}
+
+const testDishesSchema = { ...dishesSchema, version: 0 };
+const testPreferencesSchema = { ...preferencesSchema, version: 0 };
+
+beforeAll(async () => {
+  const rawStorage = getRxStorageDexie();
+  const validatedStorage = wrappedValidateAjvStorage({ storage: rawStorage });
+
+  db = (await createRxDatabase<DatabaseCollections>({
+    name: "test-sync-" + crypto.randomUUID(),
+    storage: validatedStorage,
+    ignoreDuplicate: true,
+    hashFunction,
+  })) as unknown as AppDatabase;
+
+  await db.addCollections({
+    dishes: { schema: testDishesSchema },
+    preferences: { schema: testPreferencesSchema },
+  });
+});
+
+afterAll(async () => {
+  // RxDB v17+ does not expose destroy(); unique DB names per test file prevent collisions
+});
+
+beforeEach(async () => {
+  const all = await db.dishes.find().exec();
+  for (const doc of all) {
+    await doc.remove();
+  }
+  vi.resetAllMocks();
+  _resetSyncState();
+  vi.stubGlobal("navigator", { onLine: true });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+// ── sync ────────────────────────────────────────────────────────────────────
+
+describe("sync", () => {
+  it("skips when offline", async () => {
+    vi.stubGlobal("navigator", { onLine: false });
+
+    await sync(db);
+
+    expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
+  it("skips when db has no dishes collection", async () => {
+    const fakeDb = {} as AppDatabase;
+    await sync(fakeDb);
+
+    expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
+  it("pushes pending_create dishes to the API", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-1",
+        name: "Tarte",
+        syncStatus: "pending_create",
+        description: "",
+        course: 2,
+        seasons: [2],
+      })
+    );
+
+    mockCreateDish.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "server-1",
+        userId: "u1",
+        name: "Tarte",
+        description: "",
+        course: 2,
+        seasons: [2],
+        updatedAt: "2026-01-01T00:00:00Z",
+        isDeleted: false,
+      },
+    });
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "server-1",
+          userId: "u1",
+          name: "Tarte",
+          description: "",
+          course: 2,
+          seasons: [2],
+          updatedAt: "2026-01-01T00:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    expect(mockCreateDish).toHaveBeenCalledWith({
+      id: "sync-1",
+      name: "Tarte",
+      description: "",
+      course: 2,
+      seasons: [2],
+    });
+
+    const doc = await db.dishes.findOne("sync-1").exec();
+    expect(doc!.get("syncStatus")).toBe("synced");
+    expect(doc!.get("serverId")).toBe("server-1");
+  });
+
+  it("pushes pending_update dishes to the API", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-2",
+        serverId: "srv-2",
+        name: "Updated Dish",
+        syncStatus: "pending_update",
+        description: "",
+        course: 1,
+        seasons: [0],
+      })
+    );
+
+    mockUpdateDish.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "srv-2",
+        userId: "u1",
+        name: "Updated Dish",
+        description: "",
+        course: 1,
+        seasons: [0],
+        updatedAt: "2026-01-01T00:00:00Z",
+        isDeleted: false,
+      },
+    });
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-2",
+          userId: "u1",
+          name: "Updated Dish",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-01-01T00:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    expect(mockUpdateDish).toHaveBeenCalledWith("srv-2", {
+      name: "Updated Dish",
+      description: "",
+      course: 1,
+      seasons: [0],
+    });
+
+    const doc = await db.dishes.findOne("sync-2").exec();
+    expect(doc!.get("syncStatus")).toBe("synced");
+  });
+
+  it("pushes pending_delete dishes and removes them locally", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-3",
+        serverId: "srv-3",
+        syncStatus: "pending_delete",
+        isDeleted: true,
+      })
+    );
+
+    mockDeleteDish.mockResolvedValue({ ok: true, data: undefined });
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    expect(mockDeleteDish).toHaveBeenCalledWith("srv-3");
+
+    const doc = await db.dishes.findOne("sync-3").exec();
+    expect(doc).toBeNull();
+  });
+
+  it("pulls remote dishes and inserts new ones locally", async () => {
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "remote-1",
+          userId: "u1",
+          name: "Remote Dish",
+          description: "From server",
+          course: 0,
+          seasons: [1, 2],
+          updatedAt: "2026-06-01T00:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("remote-1").exec();
+    expect(doc).not.toBeNull();
+    expect(doc!.get("name")).toBe("Remote Dish");
+    expect(doc!.get("syncStatus")).toBe("synced");
+  });
+
+  it("pull merges: overwrites local when server is newer", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "remote-2",
+        serverId: "remote-2",
+        name: "Old Name",
+        syncStatus: "synced",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "remote-2",
+          userId: "u1",
+          name: "New Name",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-07-01T00:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("remote-2").exec();
+    expect(doc!.get("name")).toBe("New Name");
+  });
+
+  it("pull skips local when local is newer", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "remote-3",
+        serverId: "remote-3",
+        name: "Local Newer",
+        syncStatus: "synced",
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "remote-3",
+          userId: "u1",
+          name: "Server Older",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-01-01T00:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("remote-3").exec();
+    expect(doc!.get("name")).toBe("Local Newer");
+  });
+
+  it("pull removes local synced dishes absent from server", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "gone-local",
+        serverId: "gone-server",
+        syncStatus: "synced",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("gone-local").exec();
+    expect(doc).toBeNull();
+  });
+
+  it("does not remove local dishes with pending sync status", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "pending-local",
+        serverId: "pending-server",
+        syncStatus: "pending_update",
+      })
+    );
+
+    mockUpdateDish.mockResolvedValue({
+      ok: false,
+      error: { code: "SERVER_ERROR", message: "fail" },
+    });
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("pending-local").exec();
+    expect(doc).not.toBeNull();
+    expect(doc!.get("syncStatus")).toBe("pending_update");
+  });
+});
+
+// ── startAutoSync ───────────────────────────────────────────────────────────
+
+describe("startAutoSync", () => {
+  it("returns a cleanup function", () => {
+    const cleanup = startAutoSync(db);
+    expect(typeof cleanup).toBe("function");
+    cleanup();
+  });
+
+  it("triggers sync when coming online", async () => {
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    const cleanup = startAutoSync(db);
+
+    window.dispatchEvent(new Event("online"));
+    // Allow async sync to complete
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockGetDishes).toHaveBeenCalled();
+
+    cleanup();
+  });
+
+  it("triggers sync on visibility change to visible", async () => {
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    const cleanup = startAutoSync(db);
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockGetDishes).toHaveBeenCalled();
+
+    cleanup();
+  });
+
+  it("cleanup removes event listeners", () => {
+    const cleanup = startAutoSync(db);
+
+    const onlineSpy = vi.spyOn(window, "removeEventListener");
+    const visibilitySpy = vi.spyOn(document, "removeEventListener");
+
+    cleanup();
+
+    expect(onlineSpy).toHaveBeenCalledWith("online", expect.any(Function));
+    expect(visibilitySpy).toHaveBeenCalledWith(
+      "visibilitychange",
+      expect.any(Function)
+    );
+
+    onlineSpy.mockRestore();
+    visibilitySpy.mockRestore();
+  });
+});

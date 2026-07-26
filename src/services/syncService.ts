@@ -18,6 +18,16 @@ let syncRunning = false;
 let retryCount = 0;
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Reset module-level sync state. Only for use in tests. */
+export function _resetSyncState(): void {
+  syncRunning = false;
+  retryCount = 0;
+  if (syncTimer) {
+    clearTimeout(syncTimer);
+    syncTimer = null;
+  }
+}
+
 function isOnline(): boolean {
   return navigator.onLine;
 }

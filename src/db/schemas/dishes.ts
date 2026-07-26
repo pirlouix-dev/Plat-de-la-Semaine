@@ -2,7 +2,7 @@ import type { RxJsonSchema } from "rxdb";
 
 export interface DishDocType {
   id: string;
-  serverId: string | null;
+  serverId: string;
   name: string;
   description: string;
   course: number;

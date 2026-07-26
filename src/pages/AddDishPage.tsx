@@ -46,7 +46,7 @@ function AddDishPage() {
     const now = new Date().toISOString();
     const dish: DishDocType = {
       id: crypto.randomUUID(),
-      serverId: null,
+      serverId: "",
       name,
       description,
       course: typeEntry.course,

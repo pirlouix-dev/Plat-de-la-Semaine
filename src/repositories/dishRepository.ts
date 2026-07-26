@@ -38,14 +38,12 @@ export async function softDeleteDish(
   const syncStatus = doc.get("syncStatus");
   const newSyncStatus =
     syncStatus === "pending_create" ? "pending_create" : "pending_delete";
-  const patch: Partial<DishDocType> = {
+  const now = new Date().toISOString();
+  await doc.patch({
     isDeleted: true,
     syncStatus: newSyncStatus as DishDocType["syncStatus"],
-  };
-  await doc.patch(patch);
-  if (newSyncStatus !== "pending_create") {
-    await doc.patch({ updatedAt: new Date().toISOString() });
-  }
+    updatedAt: now,
+  });
 }
 
 export async function removeDish(
