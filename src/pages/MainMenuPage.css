@@ -1,35 +1,91 @@
 .app-container {
-  height: 100%;
+  height: 100svh;
+  box-sizing: border-box;
   width: auto;
-  padding: min(40px, 5.7svh);
+  padding: min(24px, 3.5svh) min(20px, 3svh);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: min(50px, 7.1svh);
+  justify-content: flex-start;
+  gap: min(20px, 2.8svh);
+  overflow: hidden;
 }
 
 .app-logo {
-  height: min(127px, 18svh);
+  height: min(115px, 15svh);
   width: auto;
-  max-height: 160px;
+  max-height: 140px;
   object-fit: contain;
+}
+
+.account-card {
+  width: 100%;
+  max-width: calc(2 * min(190px, 26svh) * 1.32 + min(20px, 2.8svh));
+  background-color: #e2e3e5;
+  border-radius: min(22px, 3svh);
+  padding: min(14px, 2.1svh) min(22px, 3svh);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.account-title {
+  font-size: min(17px, 2.3svh);
+  font-weight: bold;
+  color: #111;
+}
+
+.account-subtitle {
+  font-size: min(13px, 1.7svh);
+  color: #555;
+}
+
+.account-btn {
+  background-color: #0865ff;
+  border: none;
+  border-bottom: 3px solid #0541a5;
+  border-radius: min(12px, 1.8svh);
+  color: white;
+  font-weight: bold;
+  font-size: min(14px, 2svh);
+  padding: min(10px, 1.4svh) min(18px, 2.4svh);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease;
+}
+
+.account-btn:hover {
+  transform: scale(1.03);
+}
+
+.account-btn:active {
+  transform: scale(0.97);
 }
 
 .menu-grid {
   display: inline-grid;
   grid-template-columns: auto auto;
   grid-template-rows: auto auto;
-  gap: min(30px, 4.3svh);
+  gap: min(20px, 2.8svh);
 }
 
 .menu-card-wrapper {
   position: relative;
   cursor: pointer;
   transition: transform 0.15s ease;
-  height: min(207px, 29.4svh);
+  height: min(190px, 26svh);
   aspect-ratio: 1.32;
   background-color: #e2e3e5;
-  border-radius: min(38px, 5.4svh);
+  border-radius: min(34px, 4.8svh);
   border: none;
   padding: 0;
   font: inherit;
@@ -81,7 +137,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   color: white;
-  font-size: min(21px, 3svh);
+  font-size: min(20px, 2.8svh);
   font-weight: bold;
   text-align: center;
   white-space: nowrap;
@@ -90,14 +146,33 @@
 
 @media (max-width: 650px) {
   .app-container {
-    padding: min(20px, 2.5svh) 1.25rem;
-    gap: min(24px, 3.2svh);
-    justify-content: center;
+    padding: min(20px, 3svh) 1rem;
+    gap: min(16px, 2.4svh);
+    justify-content: flex-start;
   }
 
   .app-logo {
-    display: block;
     height: min(85px, 12svh);
+  }
+
+  .account-card {
+    max-width: 400px;
+    padding: min(16px, 2.4svh) 16px;
+    margin: min(10px, 1.5svh) 0;
+    border-radius: min(16px, 2.2svh);
+  }
+
+  .account-title {
+    font-size: 15px;
+  }
+
+  .account-subtitle {
+    font-size: 12px;
+  }
+
+  .account-btn {
+    font-size: 13px;
+    padding: 8px 14px;
   }
 
   .menu-grid {
