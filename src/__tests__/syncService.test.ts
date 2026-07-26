@@ -93,6 +93,7 @@ beforeEach(async () => {
   }
   vi.resetAllMocks();
   _resetSyncState();
+  mockGetDishes.mockResolvedValue({ ok: true, data: [] });
   vi.stubGlobal("navigator", { onLine: true });
 });
 
