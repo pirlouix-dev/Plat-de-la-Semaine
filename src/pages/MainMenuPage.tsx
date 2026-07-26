@@ -17,10 +17,31 @@ const mainMenuItems = [
 
 function MainMenuPage() {
   const navigate = useNavigate();
+  const isLoggedIn = true; // Remplacez par votre logique d'authentification réelle
 
   return (
     <div className="app-container">
       <img src={logo_img} alt="Plat de la Semaine" className="app-logo" />
+
+      {/* --- CARTE COMPTE (PROPOSITION 1) --- */}
+      <div className="account-card">
+        <div className="account-info">
+          <span className="account-title">
+            {isLoggedIn ? "Bonjour, Mathéo !" : "Mode Invité"}
+          </span>
+          <span className="account-subtitle">
+            {isLoggedIn
+              ? "Vos plats sont synchronisés"
+              : "Connectez-vous pour sauvegarder vos plats"}
+          </span>
+        </div>
+        <button
+          className="account-btn"
+          onClick={() => navigate(isLoggedIn ? "/settings" : "/login")}
+        >
+          {isLoggedIn ? "Mon compte" : "Se connecter"}
+        </button>
+      </div>
 
       <main className="menu-grid">
         {mainMenuItems.map((item) => (
