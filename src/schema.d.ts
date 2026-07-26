@@ -643,8 +643,6 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             isDeleted?: boolean;
-            /** Format: date-time */
-            deletedAt?: null | string;
         };
         DishListResponse: {
             data: components["schemas"]["Dish"][];
