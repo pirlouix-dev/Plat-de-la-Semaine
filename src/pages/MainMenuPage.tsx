@@ -17,7 +17,7 @@ const mainMenuItems = [
 
 function MainMenuPage() {
   const navigate = useNavigate();
-  const isLoggedIn = true; // Remplacez par votre logique d'authentification réelle
+  const isLoggedIn = true;
 
   return (
     <div className="app-container">
