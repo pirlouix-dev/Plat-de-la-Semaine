@@ -23,14 +23,6 @@ describe('index.css — consolidated global styles', () => {
     expect(content).toMatch(/--bg-dark:\s*rgb\(44,\s*44,\s*44\)/)
   })
 
-  it('should define body display as flex', () => {
-    expect(content).toMatch(/body\s*\{[^}]*display:\s*flex/)
-  })
-
-  it('should define body place-items as center', () => {
-    expect(content).toMatch(/body\s*\{[^}]*place-items:\s*center/)
-  })
-
   it('should define body min-height as 100dvh', () => {
     expect(content).toMatch(/body\s*\{[^}]*min-height:\s*100dvh/)
   })

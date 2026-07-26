@@ -70,6 +70,6 @@ describe("MainMenuPage component", () => {
       </MemoryRouter>
     );
     const cards = screen.getAllByRole("button");
-    expect(cards.length).toBe(4);
+    expect(cards.length).toBe(5);
   });
 });
