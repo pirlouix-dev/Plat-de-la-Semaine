@@ -121,6 +121,8 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
   }
 
   for (const remote of remoteDishes) {
+    if (remote.isDeleted) continue;
+
     const localDish = mapApiDishToLocal(remote);
     const matchByServerId = remote.id
       ? existingByServerId.get(String(remote.id))
@@ -157,7 +159,7 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
   }
 
   const remoteServerIds = new Set(
-    remoteDishes.map((d) => String(d.id))
+    remoteDishes.filter((d) => !d.isDeleted).map((d) => String(d.id))
   );
   for (const doc of existingDocs) {
     const json = doc.toJSON() as DishDocType;

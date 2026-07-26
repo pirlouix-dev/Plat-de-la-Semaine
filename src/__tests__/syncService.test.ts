@@ -236,7 +236,21 @@ describe("sync", () => {
     );
 
     mockDeleteDish.mockResolvedValue({ ok: true, data: undefined });
-    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-3",
+          userId: "u1",
+          name: "Deleted Dish",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-01-01T00:00:00Z",
+          isDeleted: true,
+        },
+      ],
+    });
 
     await sync(db);
 
@@ -244,6 +258,9 @@ describe("sync", () => {
 
     const doc = await db.dishes.findOne("sync-3").exec();
     expect(doc).toBeNull();
+
+    const reInserted = await db.dishes.find({ selector: { serverId: "srv-3" } }).exec();
+    expect(reInserted).toHaveLength(0);
   });
 
   it("pulls remote dishes and inserts new ones locally", async () => {
