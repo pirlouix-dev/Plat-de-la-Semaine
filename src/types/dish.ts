@@ -57,6 +57,16 @@ export type Dish = components["schemas"]["Dish"];
 export type CreateDishPayload = components["schemas"]["CreateDishPayload"];
 export type UpdateDishPayload = components["schemas"]["UpdateDishPayload"];
 
+// ── RxDB Document Types ─────────────────────────────────────────────────────
+
+export type { DishDocType } from "../db/schemas/dishes";
+
+export type SyncStatus =
+  | "synced"
+  | "pending_create"
+  | "pending_update"
+  | "pending_delete";
+
 // ── Validation helpers ───────────────────────────────────────────────────────
 
 /** Check whether a numeric value is a valid Course member */

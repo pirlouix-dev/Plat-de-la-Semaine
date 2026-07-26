@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest'
 describe('index.css — consolidated global styles', () => {
   const indexPath = resolve(__dirname, '../index.css')
   const content = readFileSync(indexPath, 'utf-8')
-  const lines = content.split('\n').map(l => l.trim())
+  const lines = content.split('\n').map((l: string) => l.trim())
 
   it('should contain the universal reset (*, *::before, *::after)', () => {
     // The reset previously in App.css should now be in index.css

@@ -157,6 +157,15 @@ async function request<T>(
       accept: "application/json",
     };
 
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (token) {
+        headers["authorization"] = `Bearer ${token}`;
+      }
+    } catch {
+      // localStorage unavailable (e.g. in tests or SSR)
+    }
+
     if (body !== undefined) {
       headers["content-type"] = "application/json";
     }

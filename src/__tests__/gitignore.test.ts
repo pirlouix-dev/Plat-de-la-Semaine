@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 describe('.gitignore', () => {
   const gitignorePath = resolve(__dirname, '../../.gitignore');
   const content = readFileSync(gitignorePath, 'utf-8');
-  const lines = content.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  const lines = content.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !l.startsWith('#'));
 
   it('should exist', () => {
     expect(content).toBeTruthy();

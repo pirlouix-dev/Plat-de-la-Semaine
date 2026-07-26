@@ -33,7 +33,7 @@ function mockFetch(
       status,
       statusText: statusText ?? "",
       json: vi.fn().mockResolvedValue(body),
-    } as Response)
+    } as unknown as Response)
   );
 }
 

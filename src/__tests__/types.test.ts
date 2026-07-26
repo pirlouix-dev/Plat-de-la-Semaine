@@ -9,6 +9,7 @@ import {
   isValidSeason,
   isApiError,
   isApiSuccess,
+  type CreateDishPayload,
 } from "../types";
 
 // ── Course enum-equivalent ────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ describe("CreateDishPayload — structural contract", () => {
   });
 
   it("accepts a create payload without description", () => {
-    const payload = {
+    const payload: CreateDishPayload = {
       name: "Crêpe",
       course: Course.Dessert,
       seasons: [Season.Spring, Season.Summer, Season.Autumn, Season.Winter],
@@ -263,13 +264,13 @@ describe("UpdateDishPayload — structural contract", () => {
 
 describe("isApiError / isApiSuccess", () => {
   it("isApiError returns true for error result", () => {
-    const result = { ok: false, error: { code: "NOT_FOUND", message: "Dish not found" } };
+    const result = { ok: false as const, error: { code: "NOT_FOUND", message: "Dish not found" } };
     expect(isApiError(result)).toBe(true);
     expect(isApiSuccess(result)).toBe(false);
   });
 
   it("isApiSuccess returns true for success result", () => {
-    const result = { ok: true, data: { id: "abc" } };
+    const result = { ok: true as const, data: { id: "abc" } };
     expect(isApiSuccess(result)).toBe(true);
     expect(isApiError(result)).toBe(false);
   });

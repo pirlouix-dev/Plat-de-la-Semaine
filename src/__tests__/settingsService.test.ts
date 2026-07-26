@@ -22,7 +22,7 @@ function mockFetchResponse(status: number, body: unknown): void {
       ok: status >= 200 && status < 300,
       status,
       json: vi.fn().mockResolvedValue(body),
-    } as Response)
+    } as unknown as Response)
   );
 }
 
@@ -95,10 +95,10 @@ describe("submitFeedback", () => {
         ok: true,
         status: 200,
         json: vi.fn().mockResolvedValue({}),
-      } as Response)
+      } as unknown as Response)
     );
 
-    const result = await submitFeedback({ message: "Great app!" });
+    const result = await submitFeedback({ message: "Great app!", appVersion: "1.0.0" });
     expect(result).toEqual({ ok: true, data: {} });
   });
 
@@ -109,17 +109,17 @@ describe("submitFeedback", () => {
         ok: true,
         status: 200,
         json: vi.fn().mockResolvedValue({}),
-      } as Response)
+      } as unknown as Response)
     );
 
-    await submitFeedback({ message: "Bug report: crash on menu" });
+    await submitFeedback({ message: "Bug report: crash on menu", appVersion: "1.0.0" });
     const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
     const options = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
 
     expect(url).toBe(`${FAKE_BASE_URL}/api/feedback`);
     expect(options.method).toBe("POST");
     expect(options.body).toBe(
-      JSON.stringify({ message: "Bug report: crash on menu" })
+      JSON.stringify({ message: "Bug report: crash on menu", appVersion: "1.0.0" })
     );
     expect(options.headers).toHaveProperty("content-type", "application/json");
   });
@@ -138,6 +138,7 @@ describe("submitFeedback", () => {
 
     const result = await submitFeedback({
       message: "x".repeat(2001),
+      appVersion: "1.0.0",
     });
     expect(result).toEqual({
       ok: false,
@@ -160,7 +161,7 @@ describe("submitFeedback", () => {
       message: "Too many requests. Please try again later.",
     });
 
-    const result = await submitFeedback({ message: "spam" });
+    const result = await submitFeedback({ message: "spam", appVersion: "1.0.0" });
     expect(result).toEqual({
       ok: false,
       error: {
