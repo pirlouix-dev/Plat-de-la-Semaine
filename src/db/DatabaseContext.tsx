@@ -5,26 +5,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { RxCollection, RxDatabase } from "rxdb";
+import type { RxDatabase } from "rxdb";
 import { hashFunction } from "./hashFunction";
+import { dishesSchema, type DishDocType } from "./schemas/dishes";
+import { preferencesSchema } from "./schemas/preferences";
+import type { DatabaseCollections } from "./collections";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Re-export types ──────────────────────────────────────────────────────────
 
-export interface DishDocType {
-  userId: string;
-  name: string;
-  description: string;
-  course: number;
-  seasons: number[];
-  updated_at: string;
-  is_deleted: boolean;
-}
-
-export type DishesCollection = RxCollection<DishDocType>;
-
-export interface DatabaseCollections {
-  dishes: DishesCollection;
-}
+export type { DishDocType };
+export type { DatabaseCollections };
 
 export type AppDatabase = RxDatabase<DatabaseCollections>;
 
@@ -48,12 +38,10 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    let disposed = false;
-    let dbInstance: AppDatabase | null = null;
+    const disposed = false;
 
     (async () => {
       try {
-        // 1. Register dev-mode plugin before creating the database
         if (import.meta.env.DEV) {
           const { RxDBDevModePlugin } = await import(
             "rxdb/plugins/dev-mode"
@@ -62,7 +50,6 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           addRxPlugin(RxDBDevModePlugin);
         }
 
-        // 2. Import database utilities (cached — already loaded above in DEV)
         const { createRxDatabase } = await import("rxdb/plugins/core");
         const { getRxStorageDexie } = await import(
           "rxdb/plugins/storage-dexie"
@@ -71,53 +58,27 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           "rxdb/plugins/validate-ajv"
         );
 
-        // 3. Create storage and database
         const rawStorage = getRxStorageDexie();
         const validatedStorage = wrappedValidateAjvStorage({
           storage: rawStorage,
         });
 
         const db = await createRxDatabase<DatabaseCollections>({
-          name: "dishes",
+          name: "pdlsv4",
           storage: validatedStorage,
           ignoreDuplicate: true,
           hashFunction,
         });
-        dbInstance = db;
 
-        // 4. Add collections
         await db.addCollections({
           dishes: {
-            schema: {
-              version: 0,
-              primaryKey: "userId",
-              type: "object",
-              properties: {
-                userId: { type: "string", maxLength: 100 },
-                name: { type: "string" },
-                description: { type: "string" },
-                course: { type: "number" },
-                seasons: {
-                  type: "array",
-                  items: { type: "number" },
-                },
-                updated_at: { type: "string", format: "date-time" },
-                is_deleted: { type: "boolean" },
-              },
-              required: [
-                "userId",
-                "name",
-                "description",
-                "course",
-                "seasons",
-                "updated_at",
-                "is_deleted",
-              ],
-            },
+            schema: dishesSchema,
+          },
+          preferences: {
+            schema: preferencesSchema,
           },
         });
 
-        // 5. Only update state if the component is still mounted
         if (!disposed) {
           setState({
             db: db as unknown as AppDatabase,
@@ -135,16 +96,6 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         }
       }
     })();
-
-    // 6. Cleanup on unmount
-    return () => {
-      disposed = true;
-      if (dbInstance) {
-        (dbInstance as unknown as { destroy: () => Promise<void> }).destroy().catch(() => {
-          /* intentional cleanup on unmount */
-        });
-      }
-    };
   }, []);
 
   return (

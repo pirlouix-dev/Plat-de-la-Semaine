@@ -100,8 +100,8 @@ describe("DatabaseContext.tsx — database lifecycle", () => {
     expect(content).toMatch(/catch\s*\(/);
   });
 
-  it("should have a cleanup function that destroys the database", () => {
-    expect(content).toMatch(/\.destroy\(\)/);
+  it("should not destroy the database on unmount (offline-first persistence)", () => {
+    expect(content).not.toMatch(/\.destroy\(\)/);
   });
 
   it("should handle StrictMode double-invocation via disposed flag", () => {

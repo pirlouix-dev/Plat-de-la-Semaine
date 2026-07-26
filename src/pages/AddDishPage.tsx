@@ -1,43 +1,63 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "../components/Icons";
+import { useDishes } from "../hooks/useDishes";
+import { Course, Season } from "../types/dish";
+import type { DishDocType } from "../db/schemas/dishes";
 import "./AddDishPage.css";
 
 type DishType = "Entrée" | "Plat" | "Dessert";
 
-const DISH_TYPES: { label: DishType; icon: string }[] = [
-  { label: "Entrée", icon: "🥗" },
-  { label: "Plat", icon: "🍽️" },
-  { label: "Dessert", icon: "🍰" },
+const DISH_TYPES: { label: DishType; icon: string; course: Course }[] = [
+  { label: "Entrée", icon: "🥗", course: Course.Starter },
+  { label: "Plat", icon: "🍽️", course: Course.Main },
+  { label: "Dessert", icon: "🍰", course: Course.Dessert },
 ];
 
-const SEASONS = [
-  { label: "Printemps", icon: "🌱" },
-  { label: "Été", icon: "☀️" },
-  { label: "Automne", icon: "🍂" },
-  { label: "Hiver", icon: "❄️" },
+const SEASONS: { label: string; icon: string; season: Season }[] = [
+  { label: "Printemps", icon: "🌱", season: Season.Spring },
+  { label: "Été", icon: "☀️", season: Season.Summer },
+  { label: "Automne", icon: "🍂", season: Season.Autumn },
+  { label: "Hiver", icon: "❄️", season: Season.Winter },
 ];
 
 function AddDishPage() {
   const navigate = useNavigate();
+  const { addDish } = useDishes();
 
   const [name, setName] = useState("");
   const [dishType, setDishType] = useState<DishType>("Plat");
-  const [selectedSeasons, setSelectedSeasons] = useState<string[]>([]);
+  const [selectedSeasons, setSelectedSeasons] = useState<Season[]>([]);
   const [description, setDescription] = useState("");
 
-  const toggleSeason = (seasonId: string) => {
+  const toggleSeason = (season: Season) => {
     setSelectedSeasons((prev) =>
-      prev.includes(seasonId)
-        ? prev.filter((s) => s !== seasonId)
-        : [...prev, seasonId],
+      prev.includes(season)
+        ? prev.filter((s) => s !== season)
+        : [...prev, season],
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ name, dishType, selectedSeasons, description });
-    // Logique de sauvegarde
+    const typeEntry = DISH_TYPES.find((t) => t.label === dishType);
+    if (!typeEntry) return;
+
+    const now = new Date().toISOString();
+    const dish: DishDocType = {
+      id: crypto.randomUUID(),
+      serverId: null,
+      name,
+      description,
+      course: typeEntry.course,
+      seasons: selectedSeasons,
+      updatedAt: now,
+      isDeleted: false,
+      syncStatus: "pending_create",
+    };
+
+    await addDish(dish);
+    navigate("/");
   };
 
   return (
@@ -82,14 +102,14 @@ function AddDishPage() {
           </div>
 
           <div className="seasons-group">
-            {SEASONS.map(({ label, icon }) => {
-              const isSelected = selectedSeasons.includes(label);
+            {SEASONS.map(({ label, icon, season }) => {
+              const isSelected = selectedSeasons.includes(season);
               return (
                 <button
                   type="button"
                   key={label}
                   className={`season-chip ${isSelected ? "selected" : ""}`}
-                  onClick={() => toggleSeason(label)}
+                  onClick={() => toggleSeason(season)}
                 >
                   <span className="season-icon">{icon}</span>
                   <span>{label}</span>

@@ -9,6 +9,8 @@ export type {
   Dish,
   CreateDishPayload,
   UpdateDishPayload,
+  DishDocType,
+  SyncStatus,
 } from "./dish";
 export {
   Course,

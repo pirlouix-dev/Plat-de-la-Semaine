@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { DatabaseProvider, useDatabase } from "./db/DatabaseContext";
+import { useSync } from "./hooks/useSync";
 
 import "./App.css";
 import MainMenuPage from "./pages/MainMenuPage";
@@ -20,6 +21,7 @@ function DatabaseError({ message }: { message: string }) {
 
 function AppContent() {
   const { error } = useDatabase();
+  useSync();
 
   if (error) {
     return <DatabaseError message={error} />;
