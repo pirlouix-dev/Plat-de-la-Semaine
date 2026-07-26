@@ -84,6 +84,25 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
         });
         if (result.ok) {
           await doc.patch({ syncStatus: "synced" });
+        } else if (
+          result.error.code === "NOT_FOUND" ||
+          result.error.code === "HTTP_404"
+        ) {
+          const createResult = await createDish({
+            id: json.id,
+            name: json.name,
+            description: json.description,
+            course: json.course,
+            seasons: json.seasons,
+          });
+          if (createResult.ok) {
+            await doc.patch({
+              serverId: String(createResult.data.id),
+              syncStatus: "synced",
+            });
+          } else {
+            anyFailed = true;
+          }
         } else {
           anyFailed = true;
         }
@@ -121,14 +140,13 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
   }
 
   for (const remote of remoteDishes) {
-    if (remote.isDeleted) continue;
-
     const localDish = mapApiDishToLocal(remote);
     const matchByServerId = remote.id
       ? existingByServerId.get(String(remote.id))
       : undefined;
 
     if (!matchByServerId) {
+      if (remote.isDeleted) continue;
       // Skip if a local dish already has this ID (UUID collision with an unsynced local draft)
       if (!existingById.has(localDish.id)) {
         await db.dishes.upsert(localDish);
@@ -142,24 +160,29 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
     const remoteUpdated = new Date(localDish.updatedAt).getTime();
 
     if (remoteUpdated >= localUpdated) {
-      const doc = await db.dishes.findOne(matchByServerId.id).exec();
-      if (doc) {
-        await doc.patch({
-          name: localDish.name,
-          description: localDish.description,
-          course: localDish.course,
-          seasons: localDish.seasons,
-          updatedAt: localDish.updatedAt,
-          isDeleted: localDish.isDeleted,
-          serverId: localDish.serverId,
-          syncStatus: "synced",
-        });
+      if (remote.isDeleted) {
+        const doc = await db.dishes.findOne(matchByServerId.id).exec();
+        if (doc) await doc.remove();
+      } else {
+        const doc = await db.dishes.findOne(matchByServerId.id).exec();
+        if (doc) {
+          await doc.patch({
+            name: localDish.name,
+            description: localDish.description,
+            course: localDish.course,
+            seasons: localDish.seasons,
+            updatedAt: localDish.updatedAt,
+            isDeleted: localDish.isDeleted,
+            serverId: localDish.serverId,
+            syncStatus: "synced",
+          });
+        }
       }
     }
   }
 
   const remoteServerIds = new Set(
-    remoteDishes.filter((d) => !d.isDeleted).map((d) => String(d.id))
+    remoteDishes.map((d) => String(d.id))
   );
   for (const doc of existingDocs) {
     const json = doc.toJSON() as DishDocType;

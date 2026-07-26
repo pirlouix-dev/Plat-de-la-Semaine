@@ -396,6 +396,209 @@ describe("sync", () => {
     expect(doc).not.toBeNull();
     expect(doc!.get("syncStatus")).toBe("pending_update");
   });
+
+  it("pull removes local synced dish when server soft-deletes it (server newer)", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "local-sd-1",
+        serverId: "srv-sd-1",
+        name: "Synced Dish",
+        syncStatus: "synced",
+        isDeleted: false,
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-sd-1",
+          userId: "u1",
+          name: "Synced Dish",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-07-26T00:00:00Z",
+          isDeleted: true,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("local-sd-1").exec();
+    expect(doc).toBeNull();
+  });
+
+  it("pull keeps local synced dish when local is newer than server soft-delete (last mod wins)", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "local-sd-2",
+        serverId: "srv-sd-2",
+        name: "Local Newer",
+        syncStatus: "synced",
+        isDeleted: false,
+        updatedAt: "2026-07-26T12:00:00.000Z",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-sd-2",
+          userId: "u1",
+          name: "Local Newer",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-07-26T10:00:00Z",
+          isDeleted: true,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("local-sd-2").exec();
+    expect(doc).not.toBeNull();
+    expect(doc!.get("isDeleted")).toBe(false);
+  });
+
+  it("pull keeps local pending_update when server soft-deletes the dish", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "local-sd-3",
+        serverId: "srv-sd-3",
+        name: "Modified Dish",
+        syncStatus: "pending_update",
+        isDeleted: false,
+        updatedAt: "2026-07-26T12:00:00.000Z",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-sd-3",
+          userId: "u1",
+          name: "Modified Dish",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-07-26T10:00:00Z",
+          isDeleted: true,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("local-sd-3").exec();
+    expect(doc).not.toBeNull();
+    expect(doc!.get("name")).toBe("Modified Dish");
+    expect(doc!.get("syncStatus")).toBe("pending_update");
+    expect(doc!.get("isDeleted")).toBe(false);
+  });
+
+  it("push pending_update recreates dish when server soft-deleted it (no zombie)", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "local-sd-4",
+        serverId: "srv-sd-4",
+        name: "Recreated Dish",
+        syncStatus: "pending_update",
+        isDeleted: false,
+        description: "Updated",
+        course: 2,
+        seasons: [1],
+        updatedAt: "2026-07-26T12:00:00.000Z",
+      })
+    );
+
+    mockUpdateDish.mockResolvedValue({
+      ok: false,
+      error: { code: "NOT_FOUND", message: "Dish not found" },
+    });
+    mockCreateDish.mockResolvedValue({
+      ok: true,
+      data: {
+        id: "srv-sd-4-new",
+        userId: "u1",
+        name: "Recreated Dish",
+        description: "Updated",
+        course: 2,
+        seasons: [1],
+        updatedAt: "2026-07-26T12:00:00Z",
+        isDeleted: false,
+      },
+    });
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-sd-4-new",
+          userId: "u1",
+          name: "Recreated Dish",
+          description: "Updated",
+          course: 2,
+          seasons: [1],
+          updatedAt: "2026-07-26T12:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    expect(mockUpdateDish).toHaveBeenCalledWith("srv-sd-4", {
+      name: "Recreated Dish",
+      description: "Updated",
+      course: 2,
+      seasons: [1],
+    });
+    expect(mockCreateDish).toHaveBeenCalledWith({
+      id: "local-sd-4",
+      name: "Recreated Dish",
+      description: "Updated",
+      course: 2,
+      seasons: [1],
+    });
+
+    const doc = await db.dishes.findOne("local-sd-4").exec();
+    expect(doc).not.toBeNull();
+    expect(doc!.get("serverId")).toBe("srv-sd-4-new");
+    expect(doc!.get("syncStatus")).toBe("synced");
+  });
+
+  it("pull does not re-insert soft-deleted dish with no local match", async () => {
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-orphan",
+          userId: "u1",
+          name: "Deleted Dish",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-07-26T00:00:00Z",
+          isDeleted: true,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const all = await db.dishes.find().exec();
+    expect(all).toHaveLength(0);
+  });
 });
 
 // ── startAutoSync ───────────────────────────────────────────────────────────
