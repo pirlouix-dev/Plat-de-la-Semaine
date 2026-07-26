@@ -83,6 +83,10 @@ beforeEach(async () => {
   for (const doc of all) {
     await doc.remove();
   }
+  const prefs = await db.preferences.find().exec();
+  for (const doc of prefs) {
+    await doc.remove();
+  }
   vi.resetAllMocks();
   _resetSyncState();
   mockGetDishes.mockResolvedValue({ ok: true, data: [] });
@@ -598,6 +602,104 @@ describe("sync", () => {
 
     const all = await db.dishes.find().exec();
     expect(all).toHaveLength(0);
+  });
+
+  it("first sync (no lastSyncAt) does a full pull without since param", async () => {
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    expect(mockGetDishes).toHaveBeenCalledWith({});
+  });
+
+  it("subsequent sync passes stored lastSyncAt as since param", async () => {
+    await db.preferences.upsert({
+      key: "lastSyncAt",
+      value: "2026-07-20T10:00:00.000Z",
+      updatedAt: "2026-07-20T10:00:00.000Z",
+    });
+
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    expect(mockGetDishes).toHaveBeenCalledWith({
+      since: "2026-07-20T10:00:00.000Z",
+    });
+  });
+
+  it("persists lastSyncAt after successful pull", async () => {
+    const beforeSync = new Date().toISOString();
+
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    const pref = await db.preferences.findOne("lastSyncAt").exec();
+    expect(pref).not.toBeNull();
+    const stored = pref!.get("value") as string;
+    expect(new Date(stored).getTime()).toBeGreaterThanOrEqual(
+      new Date(beforeSync).getTime()
+    );
+  });
+
+  it("skips orphan removal during incremental sync", async () => {
+    await db.preferences.upsert({
+      key: "lastSyncAt",
+      value: "2026-07-20T10:00:00.000Z",
+      updatedAt: "2026-07-20T10:00:00.000Z",
+    });
+
+    await insertDish(
+      db,
+      makeDish({
+        id: "existing-local",
+        serverId: "existing-server",
+        name: "Existing Dish",
+        syncStatus: "synced",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "other-server",
+          userId: "u1",
+          name: "Other Dish",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-07-25T00:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("existing-local").exec();
+    expect(doc).not.toBeNull();
+    expect(doc!.get("name")).toBe("Existing Dish");
+  });
+
+  it("performs orphan removal during first full sync", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "orphan-local",
+        serverId: "orphan-server",
+        name: "Orphan Dish",
+        syncStatus: "synced",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("orphan-local").exec();
+    expect(doc).toBeNull();
   });
 });
 

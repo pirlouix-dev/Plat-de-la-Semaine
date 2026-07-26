@@ -95,6 +95,26 @@ describe("getDishes", () => {
       error: { code: "SERVER_ERROR", message: "Internal server error" },
     });
   });
+
+  it("sends since query parameter when provided", async () => {
+    mockFetchResponse(200, { data: [SAMPLE_DISH], total: 1 });
+
+    const since = "2026-07-20T00:00:00.000Z";
+    const result = await getDishes({ since });
+    expect(result).toEqual({ ok: true, data: [SAMPLE_DISH] });
+
+    const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(url).toContain("since=2026-07-20T00%3A00%3A00.000Z");
+  });
+
+  it("omits since query parameter when not provided", async () => {
+    mockFetchResponse(200, { data: [SAMPLE_DISH], total: 1 });
+
+    await getDishes();
+
+    const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(url).not.toContain("since=");
+  });
 });
 
 describe("createDish", () => {

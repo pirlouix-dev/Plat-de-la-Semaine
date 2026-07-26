@@ -279,7 +279,9 @@ export interface paths {
         /** Fetch all dishes for the current user */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    since?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;

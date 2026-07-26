@@ -13,6 +13,7 @@ type ApiDish = components["schemas"]["Dish"];
 const INITIAL_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
 const MAX_RETRIES = 5;
+const LAST_SYNC_KEY = "lastSyncAt";
 
 let syncRunning = false;
 let retryCount = 0;
@@ -30,6 +31,21 @@ export function _resetSyncState(): void {
 
 function isOnline(): boolean {
   return navigator.onLine;
+}
+
+async function getLastSyncAt(db: AppDatabase): Promise<string | null> {
+  if (!db?.preferences) return null;
+  const doc = await db.preferences.findOne(LAST_SYNC_KEY).exec();
+  return doc ? (doc.toJSON().value as string) : null;
+}
+
+async function setLastSyncAt(db: AppDatabase, isoDate: string): Promise<void> {
+  if (!db?.preferences) return;
+  await db.preferences.upsert({
+    key: LAST_SYNC_KEY,
+    value: isoDate,
+    updatedAt: isoDate,
+  });
 }
 
 function mapApiDishToLocal(apiDish: ApiDish): DishDocType {
@@ -123,7 +139,10 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
 }
 
 async function pullAndMerge(db: AppDatabase): Promise<void> {
-  const result = await getDishes();
+  const lastSyncAt = await getLastSyncAt(db);
+  const syncStartTime = new Date().toISOString();
+
+  const result = await getDishes({ since: lastSyncAt ?? undefined });
   if (!result.ok) return;
 
   const remoteDishes = result.data;
@@ -181,19 +200,23 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
     }
   }
 
-  const remoteServerIds = new Set(
-    remoteDishes.map((d) => String(d.id))
-  );
-  for (const doc of existingDocs) {
-    const json = doc.toJSON() as DishDocType;
-    if (
-      json.syncStatus === "synced" &&
-      json.serverId &&
-      !remoteServerIds.has(json.serverId)
-    ) {
-      await doc.remove();
+  if (!lastSyncAt) {
+    const remoteServerIds = new Set(
+      remoteDishes.map((d) => String(d.id))
+    );
+    for (const doc of existingDocs) {
+      const json = doc.toJSON() as DishDocType;
+      if (
+        json.syncStatus === "synced" &&
+        json.serverId &&
+        !remoteServerIds.has(json.serverId)
+      ) {
+        await doc.remove();
+      }
     }
   }
+
+  await setLastSyncAt(db, syncStartTime);
 }
 
 export async function sync(db: AppDatabase): Promise<void> {
