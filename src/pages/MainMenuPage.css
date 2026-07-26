@@ -7,24 +7,23 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: min(20px, 2.8svh); /* Espace vertical équilibré entre chaque bloc */
+  gap: min(20px, 2.8svh);
   overflow: hidden;
 }
 
 .app-logo {
-  height: min(115px, 15svh); /* Redonne de la présence au logo */
+  height: min(115px, 15svh);
   width: auto;
   max-height: 140px;
   object-fit: contain;
 }
 
-/* --- CARTE COMPTE (BANNIÈRE AÉRÉE) --- */
 .account-card {
   width: 100%;
   max-width: calc(2 * min(190px, 26svh) * 1.32 + min(20px, 2.8svh));
   background-color: #e2e3e5;
   border-radius: min(22px, 3svh);
-  padding: min(14px, 2.1svh) min(22px, 3svh); /* + d'espace vertical interne */
+  padding: min(14px, 2.1svh) min(22px, 3svh);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -35,7 +34,7 @@
 .account-info {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Un peu plus d'espace entre les textes */
+  gap: 4px;
   text-align: left;
 }
 
@@ -72,19 +71,18 @@
   transform: scale(0.97);
 }
 
-/* --- GRILLE DE BOUTONS --- */
 .menu-grid {
   display: inline-grid;
   grid-template-columns: auto auto;
   grid-template-rows: auto auto;
-  gap: min(20px, 2.8svh); /* Espace plus aéré entre les boutons */
+  gap: min(20px, 2.8svh);
 }
 
 .menu-card-wrapper {
   position: relative;
   cursor: pointer;
   transition: transform 0.15s ease;
-  height: min(190px, 26svh); /* Agrandit les cartes pour remplir le vide */
+  height: min(190px, 26svh);
   aspect-ratio: 1.32;
   background-color: #e2e3e5;
   border-radius: min(34px, 4.8svh);
@@ -149,19 +147,18 @@
 @media (max-width: 650px) {
   .app-container {
     padding: min(20px, 3svh) 1rem;
-    gap: min(16px, 2.4svh); /* Augmentation de l'écart vertical global */
+    gap: min(16px, 2.4svh);
     justify-content: flex-start;
   }
 
   .app-logo {
-    height: min(85px, 12svh); /* Taille d'origine conservée */
+    height: min(85px, 12svh);
   }
 
-  /* --- BANNIÈRE : OCCUPATION DE L'ESPACE VIDE --- */
   .account-card {
     max-width: 400px;
-    padding: min(16px, 2.4svh) 16px; /* Rembourrage interne plus généreux */
-    margin: min(10px, 1.5svh) 0; /* Consomme le vide au-dessus et en-dessous */
+    padding: min(16px, 2.4svh) 16px;
+    margin: min(10px, 1.5svh) 0;
     border-radius: min(16px, 2.2svh);
   }
 
@@ -178,7 +175,6 @@
     padding: 8px 14px;
   }
 
-  /* --- GRILLE / LISTE --- */
   .menu-grid {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
@@ -189,7 +185,7 @@
   }
 
   .menu-card-wrapper {
-    height: min(64px, 8.8svh); /* Taille d'origine conservée */
+    height: min(64px, 8.8svh);
     aspect-ratio: unset;
     border-radius: min(18px, 2.5svh);
     display: flex;
