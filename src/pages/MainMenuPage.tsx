@@ -17,12 +17,13 @@ const mainMenuItems = [
 
 function MainMenuPage() {
   const navigate = useNavigate();
-  const isLoggedIn = true;
+  const isLoggedIn = true; // Remplacez par votre logique d'authentification réelle
 
   return (
     <div className="app-container">
       <img src={logo_img} alt="Plat de la Semaine" className="app-logo" />
 
+      {/* --- CARTE COMPTE (PROPOSITION 1) --- */}
       <div className="account-card">
         <div className="account-info">
           <span className="account-title">
