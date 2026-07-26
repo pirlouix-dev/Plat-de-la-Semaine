@@ -43,11 +43,10 @@ html {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100dvh;
-  padding-bottom: 10vh;
+  padding-top: 5dvh;
+  padding-bottom: 5dvh;
   background-color: var(--bg-dark);
 }
 
