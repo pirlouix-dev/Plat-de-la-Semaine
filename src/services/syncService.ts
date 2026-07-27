@@ -138,11 +138,18 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
   return anyFailed;
 }
 
+const STALE_SYNC_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
+
+function isSyncStale(lastSyncAt: string): boolean {
+  return Date.now() - new Date(lastSyncAt).getTime() > STALE_SYNC_THRESHOLD_MS;
+}
+
 async function pullAndMerge(db: AppDatabase): Promise<void> {
   const lastSyncAt = await getLastSyncAt(db);
   const syncStartTime = new Date().toISOString();
+  const needsFullSync = !lastSyncAt || isSyncStale(lastSyncAt);
 
-  const result = await getDishes({ since: lastSyncAt ?? undefined });
+  const result = await getDishes({ since: needsFullSync ? undefined : lastSyncAt });
   if (!result.ok) return;
 
   const remoteDishes = result.data;
@@ -200,7 +207,7 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
     }
   }
 
-  if (!lastSyncAt) {
+  if (needsFullSync) {
     const remoteServerIds = new Set(
       remoteDishes.map((d) => String(d.id))
     );

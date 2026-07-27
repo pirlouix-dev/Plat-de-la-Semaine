@@ -613,10 +613,13 @@ describe("sync", () => {
   });
 
   it("subsequent sync passes stored lastSyncAt as since param", async () => {
+    const recentDate = new Date(
+      Date.now() - 24 * 60 * 60 * 1000
+    ).toISOString();
     await db.preferences.upsert({
       key: "lastSyncAt",
-      value: "2026-07-20T10:00:00.000Z",
-      updatedAt: "2026-07-20T10:00:00.000Z",
+      value: recentDate,
+      updatedAt: recentDate,
     });
 
     mockGetDishes.mockResolvedValue({ ok: true, data: [] });
@@ -624,8 +627,25 @@ describe("sync", () => {
     await sync(db);
 
     expect(mockGetDishes).toHaveBeenCalledWith({
-      since: "2026-07-20T10:00:00.000Z",
+      since: recentDate,
     });
+  });
+
+  it("does a full pull when lastSyncAt is older than 30 days", async () => {
+    const staleDate = new Date(
+      Date.now() - 31 * 24 * 60 * 60 * 1000
+    ).toISOString();
+    await db.preferences.upsert({
+      key: "lastSyncAt",
+      value: staleDate,
+      updatedAt: staleDate,
+    });
+
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    expect(mockGetDishes).toHaveBeenCalledWith({});
   });
 
   it("persists lastSyncAt after successful pull", async () => {
@@ -644,10 +664,13 @@ describe("sync", () => {
   });
 
   it("skips orphan removal during incremental sync", async () => {
+    const recentDate = new Date(
+      Date.now() - 24 * 60 * 60 * 1000
+    ).toISOString();
     await db.preferences.upsert({
       key: "lastSyncAt",
-      value: "2026-07-20T10:00:00.000Z",
-      updatedAt: "2026-07-20T10:00:00.000Z",
+      value: recentDate,
+      updatedAt: recentDate,
     });
 
     await insertDish(
@@ -684,6 +707,34 @@ describe("sync", () => {
   });
 
   it("performs orphan removal during first full sync", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "orphan-local",
+        serverId: "orphan-server",
+        name: "Orphan Dish",
+        syncStatus: "synced",
+      })
+    );
+
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("orphan-local").exec();
+    expect(doc).toBeNull();
+  });
+
+  it("performs orphan removal when lastSyncAt is stale", async () => {
+    const staleDate = new Date(
+      Date.now() - 31 * 24 * 60 * 60 * 1000
+    ).toISOString();
+    await db.preferences.upsert({
+      key: "lastSyncAt",
+      value: staleDate,
+      updatedAt: staleDate,
+    });
+
     await insertDish(
       db,
       makeDish({
