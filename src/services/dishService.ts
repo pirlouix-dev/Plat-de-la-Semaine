@@ -18,12 +18,17 @@ type UpdateDishPayload = components["schemas"]["UpdateDishPayload"];
 
 /**
  * Fetch all dishes for the current user.
+ * When `since` is provided, only dishes modified after that timestamp are returned.
  * The backend returns dishes sorted alphabetically by name.
  */
 export async function getDishes(
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal; since?: string }
 ): Promise<ApiResult<Dish[]>> {
-  const result = await apiGet<DishListResponse>("/api/dishes", options);
+  const params = options?.since ? { since: options.since } : undefined;
+  const result = await apiGet<DishListResponse>("/api/dishes", {
+    signal: options?.signal,
+    params,
+  });
   if (result.ok) {
     return { ok: true, data: result.data.data };
   }

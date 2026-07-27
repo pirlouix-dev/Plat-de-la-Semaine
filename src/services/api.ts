@@ -91,7 +91,7 @@ async function parseJsonSafe(
 /** Perform a GET request */
 export async function apiGet<T>(
   path: string,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal; params?: Record<string, string> }
 ): Promise<ApiResult<T>> {
   return request<T>("GET", path, undefined, options);
 }
@@ -128,7 +128,7 @@ async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal; params?: Record<string, string> }
 ): Promise<ApiResult<T>> {
   if (!baseUrl) {
     return {
@@ -142,7 +142,11 @@ async function request<T>(
     };
   }
 
-  const url = `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  let url = `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  if (options?.params) {
+    const searchParams = new URLSearchParams(options.params);
+    url += `?${searchParams.toString()}`;
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
