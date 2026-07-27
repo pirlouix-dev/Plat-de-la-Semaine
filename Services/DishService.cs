@@ -16,9 +16,9 @@ public class DishService : IDishService
     }
 
     /// <inheritdoc />
-    public async Task<DishListResponse> GetAllDishesAsync(string userId)
+    public async Task<DishListResponse> GetAllDishesAsync(string userId, DateTimeOffset? since)
     {
-        var dishes = await _firestore.GetDishesByUserIdAsync(userId);
+        var dishes = await _firestore.GetDishesByUserIdAsync(userId, since);
         return new DishListResponse
         {
             Data = dishes,
@@ -96,7 +96,7 @@ public class DishService : IDishService
     /// </summary>
     public async Task CreateBackupAsync(string userId)
     {
-        var currentDishes = await _firestore.GetDishesByUserIdAsync(userId);
+        var currentDishes = await _firestore.GetDishesByUserIdAsync(userId, null);
 
         var backup = new Backup
         {

@@ -95,7 +95,7 @@ public class BackupServiceTests
         var user = new User { Id = userId, BackupIds = [] };
 
         _firestore.GetBackupByIdAsync(backupId).Returns(backup);
-        _firestore.GetDishesByUserIdAsync(userId).Returns(currentDishes);
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(currentDishes);
         _firestore.GetUserByIdAsync(userId).Returns(user);
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
         _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci =>

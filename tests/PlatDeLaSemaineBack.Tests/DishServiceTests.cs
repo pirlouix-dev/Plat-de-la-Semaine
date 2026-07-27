@@ -27,10 +27,10 @@ public class DishServiceTests
             new() { Id = "d1", UserId = userId, Name = "Dish 1" },
             new() { Id = "d2", UserId = userId, Name = "Dish 2" }
         };
-        _firestore.GetDishesByUserIdAsync(userId).Returns(dishes);
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(dishes);
 
         // Act
-        var result = await _service.GetAllDishesAsync(userId);
+        var result = await _service.GetAllDishesAsync(userId, null);
 
         // Assert
         Assert.Equal(2, result.Total);
@@ -41,10 +41,46 @@ public class DishServiceTests
     public async Task GetAllDishes_EmptyList_ReturnsZeroTotal()
     {
         // Arrange
-        _firestore.GetDishesByUserIdAsync("user1").Returns(new List<Dish>());
+        _firestore.GetDishesByUserIdAsync("user1", null).Returns(new List<Dish>());
 
         // Act
-        var result = await _service.GetAllDishesAsync("user1");
+        var result = await _service.GetAllDishesAsync("user1", null);
+
+        // Assert
+        Assert.Equal(0, result.Total);
+        Assert.Empty(result.Data);
+    }
+
+    [Fact]
+    public async Task GetAllDishes_WithSince_PassesSinceToFirestore()
+    {
+        // Arrange
+        var userId = "user1";
+        var since = new DateTimeOffset(2025, 6, 1, 0, 0, 0, TimeSpan.Zero);
+        var dishes = new List<Dish>
+        {
+            new() { Id = "d1", UserId = userId, Name = "Recent Dish", UpdatedAt = since.AddDays(10) }
+        };
+        _firestore.GetDishesByUserIdAsync(userId, since).Returns(dishes);
+
+        // Act
+        var result = await _service.GetAllDishesAsync(userId, since);
+
+        // Assert
+        Assert.Equal(1, result.Total);
+        Assert.Equal("Recent Dish", result.Data[0].Name);
+    }
+
+    [Fact]
+    public async Task GetAllDishes_WithSince_NoMatches_ReturnsEmpty()
+    {
+        // Arrange
+        var userId = "user1";
+        var since = DateTimeOffset.UtcNow;
+        _firestore.GetDishesByUserIdAsync(userId, since).Returns(new List<Dish>());
+
+        // Act
+        var result = await _service.GetAllDishesAsync(userId, since);
 
         // Assert
         Assert.Equal(0, result.Total);
@@ -56,7 +92,7 @@ public class DishServiceTests
     {
         // Arrange
         var userId = "user1";
-        _firestore.GetDishesByUserIdAsync(userId).Returns(new List<Dish>());
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, CreatedAt = DateTimeOffset.UtcNow });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
         _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci =>
@@ -90,7 +126,7 @@ public class DishServiceTests
     {
         // Arrange
         var userId = "new-user";
-        _firestore.GetDishesByUserIdAsync(userId).Returns(new List<Dish>());
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
         _firestore.GetUserByIdAsync(userId).ReturnsNull();
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
 
@@ -110,7 +146,7 @@ public class DishServiceTests
     public async Task CreateBackup_UserNotFound_ThrowsKeyNotFoundException()
     {
         // Arrange
-        _firestore.GetDishesByUserIdAsync("user1").Returns(new List<Dish>());
+        _firestore.GetDishesByUserIdAsync("user1", null).Returns(new List<Dish>());
         _firestore.GetUserByIdAsync("user1").ReturnsNull();
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
 
@@ -135,7 +171,7 @@ public class DishServiceTests
             Seasons = [0]
         };
         _firestore.GetDishByIdAsync(dishId).Returns(existing);
-        _firestore.GetDishesByUserIdAsync(userId).Returns(new List<Dish> { existing });
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish> { existing });
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
 
@@ -184,7 +220,7 @@ public class DishServiceTests
         var dishId = "dish1";
         var dish = new Dish { Id = dishId, UserId = userId, Name = "Dish" };
         _firestore.GetDishByIdAsync(dishId).Returns(dish);
-        _firestore.GetDishesByUserIdAsync(userId).Returns(new List<Dish> { dish });
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish> { dish });
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
 
@@ -228,7 +264,7 @@ public class DishServiceTests
         var userId = "user1";
         var existingIds = new List<string> { "b1", "b2", "b3", "b4", "b5" };
         var user = new User { Id = userId, CreatedAt = DateTimeOffset.UtcNow, BackupIds = existingIds };
-        _firestore.GetDishesByUserIdAsync(userId).Returns(new List<Dish>());
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
         _firestore.GetUserByIdAsync(userId).Returns(user);
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(new Backup
         {

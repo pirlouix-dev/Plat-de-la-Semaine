@@ -63,12 +63,14 @@ public class FirestoreService : IFirestoreService
     }
 
     /// <inheritdoc />
-    public async Task<List<Dish>> GetDishesByUserIdAsync(string userId)
+    public async Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since)
     {
         if (!IsConnected) return new List<Dish>();
-        var snapshot = await _db!.Collection("Dishes")
-            .WhereEqualTo("UserId", userId)
-            .GetSnapshotAsync();
+        var query = _db!.Collection("Dishes")
+            .WhereEqualTo("UserId", userId) as Query;
+        if (since.HasValue)
+            query = query.WhereGreaterThanOrEqualTo("UpdatedAt", since.Value);
+        var snapshot = await query.GetSnapshotAsync();
         return snapshot.Documents.Select(doc => doc.ConvertTo<Dish>()).ToList();
     }
 

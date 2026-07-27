@@ -26,10 +26,10 @@ public class DishesController : BaseController
     [EndpointSummary("Fetch all dishes for the current user")]
     [ProducesResponseType(typeof(DishListResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] DateTimeOffset? since)
     {
         var userId = await GetUserIdAsync();
-        var response = await _dishService.GetAllDishesAsync(userId);
+        var response = await _dishService.GetAllDishesAsync(userId, since);
         return Ok(response);
     }
 

@@ -66,7 +66,7 @@ public class BackupService : IBackupService
         await _dishService.CreateBackupAsync(userId);
         var safetyBackupCreatedAt = DateTimeOffset.UtcNow;
 
-        var currentDishes = await _firestore.GetDishesByUserIdAsync(userId);
+        var currentDishes = await _firestore.GetDishesByUserIdAsync(userId, null);
         foreach (var dish in currentDishes)
         {
             if (dish.Id != null)

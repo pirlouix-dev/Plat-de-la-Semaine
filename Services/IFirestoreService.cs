@@ -25,9 +25,9 @@ public interface IFirestoreService
     Task<List<Dish>> GetAllDishesAsync();
 
     /// <summary>
-    /// Retrieves all dishes for a given user.
+    /// Retrieves all dishes for a given user, optionally filtered by a minimum UpdatedAt timestamp.
     /// </summary>
-    Task<List<Dish>> GetDishesByUserIdAsync(string userId);
+    Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since);
 
     /// <summary>
     /// Retrieves a single dish by its ID.

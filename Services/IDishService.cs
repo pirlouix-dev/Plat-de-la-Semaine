@@ -8,9 +8,9 @@ namespace PlatDeLaSemaineBack.Services;
 public interface IDishService
 {
     /// <summary>
-    /// Fetches all dishes for a user.
+    /// Fetches all dishes for a user, optionally filtered by a minimum UpdatedAt timestamp.
     /// </summary>
-    Task<DishListResponse> GetAllDishesAsync(string userId);
+    Task<DishListResponse> GetAllDishesAsync(string userId, DateTimeOffset? since);
 
     /// <summary>
     /// Creates a new dish after validation and backup.
