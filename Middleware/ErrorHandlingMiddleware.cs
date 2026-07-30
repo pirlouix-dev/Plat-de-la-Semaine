@@ -27,7 +27,11 @@ public class ErrorHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred during request processing.");
+            if (ex is UnauthorizedAccessException)
+                _logger.LogWarning("Authorization failed.");
+            else
+                _logger.LogError(ex, "An unhandled exception occurred during request processing.");
+
             await HandleExceptionAsync(context, ex);
         }
     }
