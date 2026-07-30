@@ -1,0 +1,93 @@
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.popup-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 36px 28px 28px;
+  max-width: 380px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: popup-in 0.25s ease;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.popup-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.popup-close:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.popup-close:active {
+  transform: scale(0.93);
+}
+
+.popup-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.popup-card h2 {
+  color: #1a1a1a;
+  font-size: clamp(18px, 3svh, 22px);
+  margin: 0;
+  font-weight: 700;
+}
+
+.popup-card p {
+  color: #555;
+  font-size: clamp(13px, 2svh, 15px);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.popup-card .popup-hint {
+  color: #777;
+  font-size: clamp(12px, 1.8svh, 13.5px);
+}
+
+.popup-card .btn {
+  width: 100%;
+  margin-top: 8px;
+}
