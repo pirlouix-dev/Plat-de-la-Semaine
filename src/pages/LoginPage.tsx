@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { apiPost } from "../services/api";
 import type { components } from "../schema";
+import { MailIcon } from "../components/Icons";
 import logo_img from "../../assets/logo.png";
 import "./RegisterPage.css";
 import "./LoginPage.css";
@@ -19,7 +20,7 @@ function LoginPage() {
 
   const [showPopup, setShowPopup] = useState(!!location.state?.justRegistered);
   const [idToken] = useState<string | null>(location.state?.idToken ?? null);
-  const [cooldown, setCooldown] = useState(0);
+  const [cooldown, setCooldown] = useState(location.state?.justRegistered ? 10 : 0);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -37,7 +38,9 @@ function LoginPage() {
   const handleResend = async () => {
     if (cooldown > 0 || sending || !idToken) return;
     setSending(true);
-    const result = await apiPost<undefined>("/api/auth/send-verification", { idToken });
+    const result = await apiPost<undefined>("/api/auth/send-verification", {
+      idToken,
+    });
     if (result.ok) {
       setCooldown(10);
     } else {
@@ -51,7 +54,10 @@ function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const result = await apiPost<AuthResponse>("/api/auth/login", { email, password });
+    const result = await apiPost<AuthResponse>("/api/auth/login", {
+      email,
+      password,
+    });
 
     if (result.ok) {
       localStorage.setItem("auth_token", result.data.idToken);
@@ -65,6 +71,7 @@ function LoginPage() {
       navigate("/");
     } else if (result.error.code === "EMAIL_NOT_VERIFIED") {
       setShowPopup(true);
+      setCooldown(10);
     } else {
       setError(result.error.message ?? "Une erreur est survenue.");
     }
@@ -72,31 +79,51 @@ function LoginPage() {
   };
 
   return (
-    <div className="create-dish-container">
+    <div className="auth-container">
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup-card">
-            <button className="popup-close" onClick={() => setShowPopup(false)} aria-label="Fermer">
+            <button
+              className="popup-close"
+              onClick={() => setShowPopup(false)}
+              aria-label="Fermer"
+            >
               ✕
             </button>
-            <div className="popup-icon">📧</div>
+            <div className="popup-icon">
+              <MailIcon size={56} />
+            </div>
             <h2>Vérifiez votre email</h2>
-            <p>Un email de vérification a été envoyé à <strong>{email}</strong>.</p>
-            <p className="popup-hint">Cliquez sur le lien dans l'email pour activer votre compte.</p>
+            <p>
+              Un email de vérification a été envoyé à <strong>{email}</strong>.
+            </p>
+            <p className="popup-hint">
+              <strong>Il se situe probablement dans vos spams.</strong>
+            </p>
             <button
               className="btn btn-primary"
               onClick={handleResend}
               disabled={cooldown > 0 || sending || !idToken}
             >
-              {sending ? "Envoi..." : cooldown > 0 ? `Renvoyer (${cooldown}s)` : "Renvoyer l'email"}
+              {sending
+                ? "Envoi..."
+                : cooldown > 0
+                  ? `Renvoyer (${cooldown}s)`
+                  : "Renvoyer l'email"}
             </button>
           </div>
         </div>
       )}
 
       <div className="register-logo-wrapper">
-        <img src={logo_img} alt="Plat de la Semaine" className="register-logo" />
+        <img
+          src={logo_img}
+          alt="Plat de la Semaine"
+          className="register-logo"
+        />
       </div>
+
+      <h1 className="auth-title">Connexion</h1>
 
       <form className="dish-form" onSubmit={handleLogin}>
         <div className="input-group">
@@ -127,10 +154,18 @@ function LoginPage() {
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "Connexion..." : "Se connecter"}
           </button>
-          <button type="button" className="register-link-btn" onClick={() => navigate("/register")}>
+          <button
+            type="button"
+            className="btn btn-green"
+            onClick={() => navigate("/register")}
+          >
             Créer un compte
           </button>
-          <button type="button" className="register-link-btn" onClick={() => navigate("/")}>
+          <button
+            type="button"
+            className="register-link-btn"
+            onClick={() => navigate("/")}
+          >
             Continuer sans compte
           </button>
         </div>

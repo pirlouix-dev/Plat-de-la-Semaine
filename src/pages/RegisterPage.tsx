@@ -20,7 +20,11 @@ function RegisterPage() {
     setError(null);
     setLoading(true);
 
-    const result = await apiPost<AuthResponse>("/api/auth/register", { username, email, password });
+    const result = await apiPost<AuthResponse>("/api/auth/register", {
+      username,
+      email,
+      password,
+    });
 
     if (!result.ok) {
       setError(result.error.message);
@@ -34,10 +38,16 @@ function RegisterPage() {
   };
 
   return (
-    <div className="create-dish-container">
+    <div className="auth-container">
       <div className="register-logo-wrapper">
-        <img src={logo_img} alt="Plat de la Semaine" className="register-logo" />
+        <img
+          src={logo_img}
+          alt="Plat de la Semaine"
+          className="register-logo"
+        />
       </div>
+
+      <h1 className="auth-title">Inscription</h1>
 
       <form className="dish-form" onSubmit={handleRegister}>
         <div className="input-group">
@@ -80,10 +90,18 @@ function RegisterPage() {
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "Inscription..." : "S'inscrire"}
           </button>
-          <button type="button" className="register-link-btn" onClick={() => navigate("/login")}>
+          <button
+            type="button"
+            className="btn btn-green"
+            onClick={() => navigate("/login")}
+          >
             Se connecter
           </button>
-          <button type="button" className="register-link-btn" onClick={() => navigate("/")}>
+          <button
+            type="button"
+            className="register-link-btn"
+            onClick={() => navigate("/")}
+          >
             Continuer sans compte
           </button>
         </div>

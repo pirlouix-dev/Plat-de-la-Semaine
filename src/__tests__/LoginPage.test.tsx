@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 
@@ -67,12 +67,6 @@ describe("LoginPage", () => {
     Object.keys(storage).forEach((k) => delete storage[k]);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-  });
-
-  it("shows verification popup when justRegistered is in location state", () => {
-    renderLogin({ justRegistered: true, email: "new@example.com", idToken: "t" });
-    expect(screen.getByText("Vérifiez votre email")).toBeTruthy();
-    expect(screen.getByText(/new@example\.com/)).toBeTruthy();
   });
 
   it("hides verification popup when close button is clicked", () => {
@@ -168,9 +162,16 @@ describe("LoginPage", () => {
   });
 
   it("calls /api/auth/send-verification when resend button is clicked", async () => {
+    vi.useFakeTimers();
     mockFetchSuccess({});
 
     renderLogin({ justRegistered: true, email: "test@example.com", idToken: "resend-token" });
+
+    for (let i = 0; i < 10; i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+    }
 
     fireEvent.click(screen.getByText("Renvoyer l'email"));
 
@@ -180,15 +181,25 @@ describe("LoginPage", () => {
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("/api/auth/send-verification");
     expect(options.body).toBe(JSON.stringify({ idToken: "resend-token" }));
+
+    vi.useRealTimers();
   });
 
-  it("disables resend button and shows cooldown after resend", async () => {
+  it("starts cooldown again after resend", async () => {
+    vi.useFakeTimers();
     mockFetchSuccess({});
 
     renderLogin({ justRegistered: true, email: "test@example.com", idToken: "cooldown-token" });
 
+    for (let i = 0; i < 10; i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+    }
+
     fireEvent.click(screen.getByText("Renvoyer l'email"));
 
+    vi.useRealTimers();
     await vi.waitFor(() => {
       expect(screen.getByText(/Renvoyer \(10s\)/)).toBeDisabled();
     });

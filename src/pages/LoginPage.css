@@ -23,6 +23,7 @@
   text-align: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   animation: popup-in 0.25s ease;
+  margin-top: -8vh;
 }
 
 @keyframes popup-in {
@@ -66,25 +67,25 @@
 .popup-icon {
   font-size: 40px;
   line-height: 1;
+  color: #2d2d2d;
 }
 
 .popup-card h2 {
   color: #1a1a1a;
-  font-size: clamp(18px, 3svh, 22px);
+  font-size: 20px;
   margin: 0;
   font-weight: 700;
 }
 
 .popup-card p {
   color: #555;
-  font-size: clamp(13px, 2svh, 15px);
+  font-size: 14px;
   line-height: 1.5;
   margin: 0;
 }
 
 .popup-card .popup-hint {
-  color: #777;
-  font-size: clamp(12px, 1.8svh, 13.5px);
+  color: #ca6f0d;
 }
 
 .popup-card .btn {
