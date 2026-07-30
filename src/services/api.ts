@@ -144,7 +144,7 @@ export async function apiDelete<T>(
 
 // ── Auth helpers ─────────────────────────────────────────────────────────────
 
-function clearAuth(): void {
+export function clearAuth(): void {
   try {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("refresh_token");
