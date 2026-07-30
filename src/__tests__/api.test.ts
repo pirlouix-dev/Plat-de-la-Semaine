@@ -1,18 +1,39 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { apiGet, apiPost, apiPut, apiDelete, setBaseUrl } from "../services/api";
+import {
+  apiGet,
+  apiPost,
+  apiPut,
+  apiDelete,
+  setBaseUrl,
+  _resetRefreshState,
+} from "../services/api";
 import type { ApiResult } from "../services/api";
 
 // ── Mock setup ───────────────────────────────────────────────────────────────
 
 const FAKE_BASE_URL = "http://test.local:5126";
 
+const storage: Record<string, string> = {};
+
 beforeEach(() => {
   setBaseUrl(FAKE_BASE_URL);
   vi.useFakeTimers();
+  Object.keys(storage).forEach((k) => delete storage[k]);
+
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => storage[key] ?? null,
+    setItem: (key: string, value: string) => { storage[key] = value; },
+    removeItem: (key: string) => { delete storage[key]; },
+    clear: () => { Object.keys(storage).forEach((k) => delete storage[k]); },
+    get length() { return Object.keys(storage).length; },
+    key: (i: number) => Object.keys(storage)[i] ?? null,
+  });
 });
 
 afterEach(() => {
+  Object.keys(storage).forEach((k) => delete storage[k]);
   setBaseUrl(undefined);
+  _resetRefreshState();
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -290,6 +311,178 @@ describe("AbortSignal forwarding", () => {
     const fetchMock = vi.mocked(fetch);
     const options = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(options.signal).toBeDefined();
+  });
+});
+
+// ── Token refresh behaviour ───────────────────────────────────────────────────
+
+describe("token refresh", () => {
+  function mockRefreshResponse(ok: boolean, body?: unknown): Response {
+    return {
+      ok,
+      status: ok ? 200 : 401,
+      json: vi.fn().mockResolvedValue(body ?? {}),
+    } as unknown as Response;
+  }
+
+  function mockRequestResponse(body: unknown) {
+    return {
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(body),
+    } as unknown as Response;
+  }
+
+  it("skips refresh when token is still valid", async () => {
+    localStorage.setItem("token_expiry", String(Date.now() + 120_000));
+    localStorage.setItem("auth_token", "still-valid");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(mockRequestResponse({ ok: true })),
+    );
+
+    const result = await apiGet("/api/test");
+    expect(result).toEqual({ ok: true, data: { ok: true } });
+    // Only one fetch call — no refresh
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes token when expired and proceeds with the request", async () => {
+    localStorage.setItem("token_expiry", "0");
+    localStorage.setItem("auth_token", "old-token");
+    localStorage.setItem("refresh_token", "refresh-abc");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          mockRefreshResponse(true, {
+            idToken: "new-token",
+            refreshToken: "new-refresh",
+            expiresIn: "3600",
+          }),
+        )
+        .mockResolvedValueOnce(mockRequestResponse({ ok: true })),
+    );
+
+    const result = await apiGet("/api/test");
+    expect(result).toEqual({ ok: true, data: { ok: true } });
+
+    // Tokens updated
+    expect(localStorage.getItem("auth_token")).toBe("new-token");
+    expect(localStorage.getItem("refresh_token")).toBe("new-refresh");
+
+    const newExpiry = Number(localStorage.getItem("token_expiry"));
+    expect(newExpiry).toBeGreaterThan(Date.now());
+  });
+
+  it("clears auth and redirects when refresh is rejected", async () => {
+    localStorage.setItem("token_expiry", "0");
+    localStorage.setItem("auth_token", "old-token");
+    localStorage.setItem("refresh_token", "bad-refresh");
+    localStorage.setItem("user_id", "user-42");
+    localStorage.setItem("user_username", "Mathéo");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          mockRefreshResponse(false, { code: "UNAUTHORIZED" }),
+        ),
+    );
+
+    const result = await apiGet("/api/test");
+
+    // Auth data cleared
+    expect(localStorage.getItem("auth_token")).toBeNull();
+    expect(localStorage.getItem("refresh_token")).toBeNull();
+    expect(localStorage.getItem("token_expiry")).toBeNull();
+    expect(localStorage.getItem("user_id")).toBeNull();
+    expect(localStorage.getItem("user_username")).toBeNull();
+
+    // Error returned
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "UNAUTHORIZED", message: "Session expired" },
+    });
+  });
+
+  it("proceeds normally when no token_expiry is stored", async () => {
+    localStorage.setItem("auth_token", "some-token");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(mockRequestResponse({ ok: true })),
+    );
+
+    const result = await apiGet("/api/test");
+    expect(result).toEqual({ ok: true, data: { ok: true } });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips refresh check for unauthenticated paths", async () => {
+    localStorage.setItem("token_expiry", "0");
+    localStorage.setItem("auth_token", "old-token");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(mockRequestResponse({ ok: true })),
+    );
+
+    await apiPost("/api/auth/login", { email: "a@b.com", password: "pw" });
+
+    // Only one fetch call — no refresh attempt
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("only calls refresh once for concurrent requests", async () => {
+    localStorage.setItem("token_expiry", "0");
+    localStorage.setItem("auth_token", "old-token");
+    localStorage.setItem("refresh_token", "refresh-abc");
+
+    // One refresh + any number of actual requests
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        mockRefreshResponse(true, {
+          idToken: "new-token",
+          refreshToken: "new-refresh",
+          expiresIn: "3600",
+        }),
+      )
+      .mockResolvedValue(mockRequestResponse({ ok: true }));
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await Promise.all([
+      apiGet("/api/a"),
+      apiGet("/api/b"),
+      apiGet("/api/c"),
+    ]);
+
+    // 1 refresh + 3 actual requests = 4 total calls
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("recovers from network error during refresh", async () => {
+    localStorage.setItem("token_expiry", "0");
+    localStorage.setItem("auth_token", "old-token");
+    localStorage.setItem("refresh_token", "refresh-abc");
+
+    // First call (refresh) throws network error
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new Error("Network error"))
+      // Second call (actual request) succeeds
+      .mockResolvedValueOnce(mockRequestResponse({ ok: true }));
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await apiGet("/api/test");
+    expect(result).toEqual({ ok: true, data: { ok: true } });
+
+    // Auth data preserved (not cleared)
+    expect(localStorage.getItem("auth_token")).toBe("old-token");
+    expect(localStorage.getItem("refresh_token")).toBe("refresh-abc");
   });
 });
 

@@ -123,6 +123,9 @@ describe("LoginPage", () => {
       expect(localStorage.getItem("refresh_token")).toBe("refresh-abc");
       expect(localStorage.getItem("user_id")).toBe("user-42");
       expect(localStorage.getItem("user_username")).toBe("Mathéo");
+      const tokenExpiry = localStorage.getItem("token_expiry");
+      expect(tokenExpiry).toBeTruthy();
+      expect(Number(tokenExpiry)).toBeGreaterThan(Date.now());
     });
   });
 

@@ -58,6 +58,10 @@ function LoginPage() {
       localStorage.setItem("refresh_token", result.data.refreshToken);
       localStorage.setItem("user_id", result.data.userId);
       localStorage.setItem("user_username", result.data.username);
+      localStorage.setItem(
+        "token_expiry",
+        String(Date.now() + Number(result.data.expiresIn) * 1000),
+      );
       navigate("/");
     } else if (result.error.code === "EMAIL_NOT_VERIFIED") {
       setShowPopup(true);

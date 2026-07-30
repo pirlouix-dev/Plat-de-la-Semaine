@@ -40,6 +40,26 @@ export function setBaseUrl(url: string | undefined): void {
 /** Default request timeout in milliseconds */
 const REQUEST_TIMEOUT_MS = 15_000;
 
+/**
+ * Paths that interact with authentication or are accessible without a valid session.
+ * Requests to these paths skip the token freshness check so the user can reach the
+ * auth flow when their token is expired.
+ */
+const AUTH_PATHS = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/refresh",
+  "/api/auth/send-verification",
+  "/api/Status",
+  "/api/version",
+];
+
+/** Buffer (ms) before token expiry to proactively refresh */
+const REFRESH_BUFFER_MS = 60_000;
+
+/** Shared promise to deduplicate concurrent refresh calls */
+let refreshPromise: Promise<boolean> | null = null;
+
 // ── Public types ─────────────────────────────────────────────────────────────
 
 /**
@@ -122,6 +142,101 @@ export async function apiDelete<T>(
   return request<T>("DELETE", path, undefined, options);
 }
 
+// ── Auth helpers ─────────────────────────────────────────────────────────────
+
+function clearAuth(): void {
+  try {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("token_expiry");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("user_username");
+  } catch {
+    // localStorage unavailable (e.g. in tests or SSR)
+  }
+}
+
+function redirectToLogin(): void {
+  window.location.href = "/login";
+}
+
+/** Attempt to refresh the auth token via the refresh endpoint. */
+async function doRefresh(): Promise<boolean> {
+  let refreshToken: string | null;
+  try {
+    refreshToken = localStorage.getItem("refresh_token");
+  } catch {
+    // localStorage unavailable
+    return false;
+  }
+  if (!refreshToken || !baseUrl) return false;
+
+  const baseUrlClean = baseUrl.replace(/\/+$/, "");
+
+  try {
+    const response = await fetch(`${baseUrlClean}/api/auth/refresh`, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) return false;
+
+    const data = (await response.json()) as {
+      idToken: string;
+      refreshToken: string;
+      expiresIn: string;
+    };
+
+    localStorage.setItem("auth_token", data.idToken);
+    localStorage.setItem("refresh_token", data.refreshToken);
+    localStorage.setItem(
+      "token_expiry",
+      String(Date.now() + Number(data.expiresIn) * 1000),
+    );
+    return true;
+  } catch {
+    // Network error — let the original request use the old token
+    return true;
+  }
+}
+
+/**
+ * Check token freshness before a request; refresh if stale.
+ * Concurrent calls share a single refresh promise.
+ */
+async function ensureValidToken(): Promise<boolean> {
+  try {
+    const expiry = localStorage.getItem("token_expiry");
+    if (!expiry) return true;
+
+    const timeUntilExpiry = Number(expiry) - Date.now();
+    if (timeUntilExpiry > REFRESH_BUFFER_MS) return true;
+  } catch {
+    // localStorage unavailable (e.g. in tests or SSR)
+    return true;
+  }
+
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = doRefresh();
+
+  try {
+    const ok = await refreshPromise;
+    if (!ok) {
+      clearAuth();
+      redirectToLogin();
+      return false;
+    }
+    return true;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
 // ── Core request function ────────────────────────────────────────────────────
 
 async function request<T>(
@@ -146,6 +261,17 @@ async function request<T>(
   if (options?.params) {
     const searchParams = new URLSearchParams(options.params);
     url += `?${searchParams.toString()}`;
+  }
+
+  // Ensure a fresh token for authenticated requests
+  if (!AUTH_PATHS.includes(path)) {
+    const valid = await ensureValidToken();
+    if (!valid) {
+      return {
+        ok: false,
+        error: { code: "UNAUTHORIZED", message: "Session expired" },
+      };
+    }
   }
 
   const controller = new AbortController();
@@ -214,6 +340,11 @@ async function request<T>(
 }
 
 // ── Utility: combine two AbortSignals into one ───────────────────────────────
+
+/** @internal Reset module-level refresh state. Only for use in tests. */
+export function _resetRefreshState(): void {
+  refreshPromise = null;
+}
 
 function combineAbortSignals(
   s1: AbortSignal,
