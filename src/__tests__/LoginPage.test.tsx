@@ -21,6 +21,7 @@ const AUTH_RESPONSE = {
   refreshToken: "refresh-abc",
   expiresIn: "3600",
   userId: "user-42",
+  username: "Mathéo",
 };
 
 function mockFetchSuccess(body: unknown) {
@@ -121,6 +122,7 @@ describe("LoginPage", () => {
       expect(localStorage.getItem("auth_token")).toBe("token-123");
       expect(localStorage.getItem("refresh_token")).toBe("refresh-abc");
       expect(localStorage.getItem("user_id")).toBe("user-42");
+      expect(localStorage.getItem("user_username")).toBe("Mathéo");
     });
   });
 

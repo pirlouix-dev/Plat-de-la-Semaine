@@ -826,6 +826,7 @@ export interface components {
             refreshToken: string;
             expiresIn: string;
             userId: string;
+            username: string;
         };
         BackupListResponse: {
             data: components["schemas"]["BackupSummary"][];

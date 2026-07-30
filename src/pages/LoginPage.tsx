@@ -57,6 +57,7 @@ function LoginPage() {
       localStorage.setItem("auth_token", result.data.idToken);
       localStorage.setItem("refresh_token", result.data.refreshToken);
       localStorage.setItem("user_id", result.data.userId);
+      localStorage.setItem("user_username", result.data.username);
       navigate("/");
     } else if (result.error.code === "EMAIL_NOT_VERIFIED") {
       setShowPopup(true);
