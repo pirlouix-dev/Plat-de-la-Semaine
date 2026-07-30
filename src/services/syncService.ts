@@ -14,10 +14,12 @@ const INITIAL_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
 const MAX_RETRIES = 5;
 const LAST_SYNC_KEY = "lastSyncAt";
+const SYNC_INTERVAL_MS = 3_600_000;
 
 let syncRunning = false;
 let retryCount = 0;
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
+let syncInterval: ReturnType<typeof setInterval> | null = null;
 
 /** Reset module-level sync state. Only for use in tests. */
 export function _resetSyncState(): void {
@@ -26,6 +28,10 @@ export function _resetSyncState(): void {
   if (syncTimer) {
     clearTimeout(syncTimer);
     syncTimer = null;
+  }
+  if (syncInterval) {
+    clearInterval(syncInterval);
+    syncInterval = null;
   }
 }
 
@@ -259,30 +265,37 @@ function scheduleRetry(db: AppDatabase, delayMs: number): void {
   }, delayMs);
 }
 
+function scheduleNextSync(db: AppDatabase): void {
+  if (syncInterval) {
+    clearInterval(syncInterval);
+  }
+  syncInterval = setInterval(() => {
+    void sync(db);
+  }, SYNC_INTERVAL_MS);
+}
+
 export function startAutoSync(db: AppDatabase): () => void {
   const onOnline = () => {
-    void sync(db);
-  };
-
-  const onVisibilityChange = () => {
-    if (document.visibilityState === "visible" && isOnline()) {
-      void sync(db);
-    }
+    void sync(db).then(() => scheduleNextSync(db));
   };
 
   window.addEventListener("online", onOnline);
-  document.addEventListener("visibilitychange", onVisibilityChange);
+
+  scheduleNextSync(db);
 
   if (isOnline()) {
-    void sync(db);
+    void sync(db).then(() => scheduleNextSync(db));
   }
 
   return () => {
     window.removeEventListener("online", onOnline);
-    document.removeEventListener("visibilitychange", onVisibilityChange);
     if (syncTimer) {
       clearTimeout(syncTimer);
       syncTimer = null;
+    }
+    if (syncInterval) {
+      clearInterval(syncInterval);
+      syncInterval = null;
     }
   };
 }
