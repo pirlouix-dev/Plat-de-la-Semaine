@@ -21,7 +21,7 @@ let retryCount = 0;
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 
-/** Reset module-level sync state. Only for use in tests. */
+/** @internal Reset module-level sync state. Only for use in tests. */
 export function _resetSyncState(): void {
   syncRunning = false;
   retryCount = 0;
