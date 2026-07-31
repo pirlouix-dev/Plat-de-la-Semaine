@@ -44,6 +44,7 @@ public class BackupsController : BaseController
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Restore(string backupId)
     {
         var userId = await GetUserIdAsync();

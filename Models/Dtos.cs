@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
 
@@ -6,24 +7,91 @@ namespace PlatDeLaSemaineBack.Models;
 /// <summary>
 /// Request payload for creating a new dish.
 /// </summary>
-public class CreateDishPayload
+public class CreateDishPayload : IValidatableObject
 {
     public string? Id { get; set; }
+
+    [Required]
+    [StringLength(200, ErrorMessage = "Name must not exceed 200 characters.")]
     public required string Name { get; set; } = string.Empty;
+
+    [StringLength(5000, ErrorMessage = "Description must not exceed 5000 characters.")]
     public string Description { get; set; } = string.Empty;
+
+    [Range(0, 2, ErrorMessage = "Course must be between 0 and 2.")]
     public required int Course { get; set; }
+
+    [Required]
     public required int[] Seasons { get; set; } = Array.Empty<int>();
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Seasons.Length == 0)
+        {
+            yield return new ValidationResult("Seasons must contain at least one value.", [nameof(Seasons)]);
+        }
+
+        if (Seasons.Length > 4)
+        {
+            yield return new ValidationResult("Seasons must contain at most four values.", [nameof(Seasons)]);
+        }
+
+        if (Seasons.Distinct().Count() != Seasons.Length)
+        {
+            yield return new ValidationResult("Seasons must not contain duplicate values.", [nameof(Seasons)]);
+        }
+
+        foreach (var season in Seasons)
+        {
+            if (season < 0 || season > 3)
+            {
+                yield return new ValidationResult($"Season value {season} is invalid. Valid values are 0-3.", [nameof(Seasons)]);
+                break;
+            }
+        }
+    }
 }
 
 /// <summary>
 /// Request payload for updating an existing dish.
 /// </summary>
-public class UpdateDishPayload
+public class UpdateDishPayload : IValidatableObject
 {
+    [StringLength(200, ErrorMessage = "Name must not exceed 200 characters.")]
     public string? Name { get; set; }
+
+    [StringLength(5000, ErrorMessage = "Description must not exceed 5000 characters.")]
     public string? Description { get; set; }
+
+    [Range(0, 2, ErrorMessage = "Course must be between 0 and 2.")]
     public int? Course { get; set; }
+
     public int[]? Seasons { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Seasons is { Length: > 0 })
+        {
+            if (Seasons.Length > 4)
+            {
+                yield return new ValidationResult("Seasons must contain at most four values.", [nameof(Seasons)]);
+            }
+
+            if (Seasons.Distinct().Count() != Seasons.Length)
+            {
+                yield return new ValidationResult("Seasons must not contain duplicate values.", [nameof(Seasons)]);
+            }
+
+            foreach (var season in Seasons)
+            {
+                if (season < 0 || season > 3)
+                {
+                    yield return new ValidationResult($"Season value {season} is invalid. Valid values are 0-3.", [nameof(Seasons)]);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 /// <summary>
@@ -114,7 +182,11 @@ public class VersionInfo
 /// </summary>
 public class FeedbackPayload
 {
+    [Required]
+    [StringLength(2000, ErrorMessage = "Message must not exceed 2000 characters.")]
     public required string Message { get; set; } = string.Empty;
+
+    [Required]
     public required string AppVersion { get; set; } = string.Empty;
 }
 

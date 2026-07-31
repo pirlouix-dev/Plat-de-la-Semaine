@@ -60,6 +60,7 @@ public class DishesController : BaseController
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateDishPayload payload)
     {
         var userId = await GetUserIdAsync();
@@ -76,6 +77,7 @@ public class DishesController : BaseController
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(string id)
     {
         var userId = await GetUserIdAsync();
