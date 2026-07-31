@@ -212,7 +212,6 @@
   transform: scale(0.97);
 }
 
-/* Boutons d'action */
 .action-buttons {
   display: flex;
   gap: 16px;
@@ -234,7 +233,6 @@
   justify-content: center;
 }
 
-/* Bouton principal : Sauvegarder */
 .btn-primary {
   background-color: #1d61e7;
   color: #ffffff;
@@ -251,7 +249,6 @@
   cursor: not-allowed;
 }
 
-/* Bouton secondaire : Quitter (Style discret / Ghost) */
 .btn-secondary {
   background: rgb(223, 33, 20);
   border: 2px solid rgb(174, 33, 24);
