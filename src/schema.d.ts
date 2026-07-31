@@ -145,9 +145,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["AuthResponse"];
-                        "application/json": components["schemas"]["AuthResponse"];
-                        "text/json": components["schemas"]["AuthResponse"];
+                        "text/plain": components["schemas"]["RefreshResponse"];
+                        "application/json": components["schemas"]["RefreshResponse"];
+                        "text/json": components["schemas"]["RefreshResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -871,6 +871,11 @@ export interface components {
         };
         RefreshPayload: {
             refreshToken: string;
+        };
+        RefreshResponse: {
+            idToken: string;
+            refreshToken: string;
+            expiresIn: string;
         };
         RegisterPayload: {
             email: string;
