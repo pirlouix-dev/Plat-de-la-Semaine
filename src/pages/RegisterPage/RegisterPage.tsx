@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiPost } from "../services/api";
-import type { components } from "../schema";
-import logo_img from "../../assets/logo.png";
+import { apiPost } from "../../services/api";
+import type { components } from "../../schema";
+import logo_img from "../../../assets/logo.png";
 import "./RegisterPage.css";
 
 type AuthResponse = components["schemas"]["AuthResponse"];

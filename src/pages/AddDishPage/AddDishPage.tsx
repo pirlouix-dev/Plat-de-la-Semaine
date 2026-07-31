@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BackArrowIcon } from "../components/Icons";
-import { useDishes } from "../hooks/useDishes";
-import { Course, Season } from "../types/dish";
-import type { DishDocType } from "../db/schemas/dishes";
+import { BackArrowIcon } from "../../components/Icons";
+import { useDishes } from "../../hooks/useDishes";
+import { Course, Season } from "../../types/dish";
+import type { DishDocType } from "../../db/schemas/dishes";
 import "./AddDishPage.css";
 
 type DishType = "Entrée" | "Plat" | "Dessert";

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import MainMenuPage from "../pages/MainMenuPage";
+import MainMenuPage from "../pages/MainMenuPage/MainMenuPage";
 
 const storage: Record<string, string> = {};
 

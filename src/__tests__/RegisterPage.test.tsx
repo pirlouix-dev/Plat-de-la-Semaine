@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import RegisterPage from "../pages/RegisterPage";
+import RegisterPage from "../pages/RegisterPage/RegisterPage";
 
 function mockFetchSuccess(body: unknown) {
   vi.stubGlobal(
