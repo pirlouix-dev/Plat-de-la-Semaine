@@ -26,15 +26,10 @@ let baseUrl: string | undefined = import.meta.env.VITE_SERVER_URL as
   | string
   | undefined;
 
-/**
- * Override the API base URL. Useful in tests.
- * Pass `undefined` to explicitly unset the base URL.
- */
 export function setBaseUrl(url: string | undefined): void {
   baseUrl = url;
 }
 
-/** Default request timeout in milliseconds */
 const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
@@ -101,7 +96,6 @@ async function parseJsonSafe(res: Response): Promise<unknown> {
 
 // ── Public request builders ──────────────────────────────────────────────────
 
-/** Perform a GET request */
 export async function apiGet<T>(
   path: string,
   options?: { signal?: AbortSignal; params?: Record<string, string> },
@@ -109,7 +103,6 @@ export async function apiGet<T>(
   return request<T>("GET", path, undefined, options);
 }
 
-/** Perform a POST request with an optional JSON body */
 export async function apiPost<T>(
   path: string,
   body?: unknown,
@@ -118,7 +111,6 @@ export async function apiPost<T>(
   return request<T>("POST", path, body, options);
 }
 
-/** Perform a PUT request with a JSON body */
 export async function apiPut<T>(
   path: string,
   body: unknown,
@@ -127,7 +119,6 @@ export async function apiPut<T>(
   return request<T>("PUT", path, body, options);
 }
 
-/** Perform a DELETE request */
 export async function apiDelete<T>(
   path: string,
   options?: { signal?: AbortSignal },
