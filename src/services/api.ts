@@ -13,6 +13,7 @@
  * Mock `globalThis.fetch` to simulate API responses.
  */
 
+import type { components } from "../schema";
 import type { ApiErrorDetail, ApiFieldError } from "../types";
 
 // ── Mutable config (overridable for tests) ────────────────────────────────────
@@ -169,11 +170,7 @@ async function doRefresh(): Promise<boolean> {
 
     if (!response.ok) return false;
 
-    const data = (await response.json()) as {
-      idToken: string;
-      refreshToken: string;
-      expiresIn: string;
-    };
+    const data = (await response.json()) as components["schemas"]["RefreshResponse"];
 
     localStorage.setItem("auth_token", data.idToken);
     localStorage.setItem("refresh_token", data.refreshToken);
