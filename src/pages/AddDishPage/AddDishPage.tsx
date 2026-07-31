@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
@@ -27,14 +27,80 @@ const SEASONS: { label: string; icon: string; season: Season }[] = [
   { label: "Hiver", icon: "❄️", season: Season.Winter },
 ];
 
+const DRAFT_KEY = "add-dish-draft";
+const DRAFT_SAVE_DELAY_MS = 400;
+
+type DishDraft = {
+  name: string;
+  dishType: DishType | null;
+  selectedSeasons: Season[];
+  description: string;
+};
+
+const EMPTY_DRAFT: DishDraft = {
+  name: "",
+  dishType: null,
+  selectedSeasons: [],
+  description: "",
+};
+
+function loadDraft(): DishDraft {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return EMPTY_DRAFT;
+    const parsed = JSON.parse(raw) as Partial<DishDraft>;
+    return {
+      name: typeof parsed.name === "string" ? parsed.name : "",
+      dishType: DISH_TYPES.some((t) => t.label === parsed.dishType)
+        ? (parsed.dishType as DishType)
+        : null,
+      selectedSeasons: Array.isArray(parsed.selectedSeasons)
+        ? parsed.selectedSeasons.filter(
+            (s): s is Season =>
+              typeof s === "number" && SEASONS.some(({ season }) => season === s),
+          )
+        : [],
+      description: typeof parsed.description === "string" ? parsed.description : "",
+    };
+  } catch {
+    return EMPTY_DRAFT;
+  }
+}
+
+function isEmptyDraft(draft: DishDraft): boolean {
+  return (
+    draft.name === "" &&
+    draft.dishType === null &&
+    draft.selectedSeasons.length === 0 &&
+    draft.description === ""
+  );
+}
+
 function AddDishPage() {
   const navigate = useNavigate();
   const { addDish } = useDishes();
 
-  const [name, setName] = useState("");
-  const [dishType, setDishType] = useState<DishType>("Plat");
-  const [selectedSeasons, setSelectedSeasons] = useState<Season[]>([]);
-  const [description, setDescription] = useState("");
+  const [initialDraft] = useState(loadDraft);
+  const [name, setName] = useState(initialDraft.name);
+  const [dishType, setDishType] = useState<DishType | null>(initialDraft.dishType);
+  const [selectedSeasons, setSelectedSeasons] = useState<Season[]>(
+    initialDraft.selectedSeasons,
+  );
+  const [description, setDescription] = useState(initialDraft.description);
+
+  const isFormValid = name.trim() !== "" && dishType !== null && selectedSeasons.length > 0;
+
+  useEffect(() => {
+    const draft: DishDraft = { name, dishType, selectedSeasons, description };
+    const timer = setTimeout(() => {
+      if (isEmptyDraft(draft)) {
+        localStorage.removeItem(DRAFT_KEY);
+      } else {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      }
+    }, DRAFT_SAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [name, dishType, selectedSeasons, description]);
 
   const toggleSeason = (season: Season) => {
     setSelectedSeasons((prev) =>
@@ -48,6 +114,7 @@ function AddDishPage() {
     e.preventDefault();
     const typeEntry = DISH_TYPES.find((t) => t.label === dishType);
     if (!typeEntry) return;
+    const course = typeEntry.course;
 
     const now = new Date().toISOString();
     const dish: DishDocType = {
@@ -55,7 +122,7 @@ function AddDishPage() {
       serverId: "",
       name,
       description,
-      course: typeEntry.course,
+      course,
       seasons: selectedSeasons,
       updatedAt: now,
       isDeleted: false,
@@ -63,6 +130,7 @@ function AddDishPage() {
     };
 
     await addDish(dish);
+    localStorage.removeItem(DRAFT_KEY);
     navigate("/");
   };
 
@@ -101,7 +169,9 @@ function AddDishPage() {
                 type="button"
                 key={label}
                 className={`type-option ${dishType === label ? "active" : ""}`}
-                onClick={() => setDishType(label)}
+                onClick={() =>
+                  setDishType((prev) => (prev === label ? null : label))
+                }
               >
                 <span className="type-icon">{icon}</span>
                 <span className="type-label">{label}</span>
@@ -146,7 +216,7 @@ function AddDishPage() {
           >
             Quitter
           </button>
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={!isFormValid}>
             Sauvegarder
           </button>
         </div>
