@@ -51,6 +51,23 @@ export const ALL_SEASONS: Season[] = [
   Season.Winter,
 ];
 
+// ── Field length limits (mirror backend StringLength attributes) ─────────────
+
+/** Max length of a dish name (backend: 200) */
+export const MAX_NAME_LENGTH = 200;
+
+/** Max length of a dish description (backend: 5000) */
+export const MAX_DESCRIPTION_LENGTH = 5000;
+
+/** Max length of a feedback message (backend: 2000) */
+export const MAX_FEEDBACK_LENGTH = 2000;
+
+/** Max length of a user username (backend: 100) */
+export const MAX_USERNAME_LENGTH = 100;
+
+/** Remaining-characters threshold at which the limit counter appears */
+export const CHAR_LIMIT_THRESHOLD = 20;
+
 // ── Core Types (from OpenAPI schema) ─────────────────────────────────────────
 
 export type Dish = components["schemas"]["Dish"];

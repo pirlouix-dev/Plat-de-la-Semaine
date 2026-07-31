@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import CharacterCounter from "../../components/CharacterCounter";
 import { apiPost } from "../../services/api";
+import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
 import logo_img from "../../../assets/logo.png";
 import "./RegisterPage.css";
@@ -50,15 +52,17 @@ function RegisterPage() {
       <h1 className="auth-title">Inscription</h1>
 
       <form className="dish-form" onSubmit={handleRegister}>
-        <div className="input-group">
+        <div className="input-group char-counter-field">
           <input
             type="text"
             className="modern-input"
             placeholder="Nom d'utilisateur"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            maxLength={MAX_USERNAME_LENGTH}
             required
           />
+          <CharacterCounter value={username} maxLength={MAX_USERNAME_LENGTH} />
         </div>
 
         <div className="input-group">
