@@ -67,10 +67,6 @@
   transform: scale(1.03);
 }
 
-.account-btn:active {
-  transform: scale(0.97);
-}
-
 .menu-grid {
   display: inline-grid;
   grid-template-columns: auto auto;
@@ -96,10 +92,6 @@
 
 .menu-card-wrapper:hover {
   transform: scale(1.02);
-}
-
-.menu-card-wrapper:active {
-  transform: scale(0.98);
 }
 
 .card-icon {

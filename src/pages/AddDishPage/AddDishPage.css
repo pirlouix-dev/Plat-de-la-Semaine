@@ -259,11 +259,6 @@
   background: rgb(232, 35, 21);
 }
 
-.btn-secondary:active {
-  transform: translateY(0) scale(0.98);
-  background: rgba(255, 255, 255, 0.05);
-}
-
 /* Accessibilité pour le clavier */
 .btn:focus-visible {
   outline: 2px solid #1d61e7;
