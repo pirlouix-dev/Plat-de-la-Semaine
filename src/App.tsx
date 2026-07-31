@@ -3,14 +3,14 @@ import { DatabaseProvider, useDatabase } from "./db/DatabaseContext";
 import { useSync } from "./hooks/useSync";
 
 import "./App.css";
-import MainMenuPage from "./pages/MainMenuPage";
-import ChooseMenuPage from "./pages/ChooseMenuPage";
-import AddDishPage from "./pages/AddDishPage";
-import EditDishPage from "./pages/EditDishPage";
-import SettingsPage from "./pages/SettingsPage";
-import RegisterPage from "./pages/RegisterPage";
-import LoginPage from "./pages/LoginPage";
-import LogoutPage from "./pages/LogoutPage";
+import MainMenuPage from "./pages/MainMenuPage/MainMenuPage";
+import ChooseMenuPage from "./pages/ChooseMenuPage/ChooseMenuPage";
+import AddDishPage from "./pages/AddDishPage/AddDishPage";
+import EditDishPage from "./pages/EditDishPage/EditDishPage";
+import SettingsPage from "./pages/SettingsPage/SettingsPage";
+import RegisterPage from "./pages/RegisterPage/RegisterPage";
+import LoginPage from "./pages/LoginPage/LoginPage";
+import LogoutPage from "./pages/LogoutPage/LogoutPage";
 
 function DatabaseError({ message }: { message: string }) {
   return (

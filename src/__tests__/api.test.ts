@@ -13,25 +13,14 @@ import type { ApiResult } from "../services/api";
 
 const FAKE_BASE_URL = "http://test.local:5126";
 
-const storage: Record<string, string> = {};
-
 beforeEach(() => {
   setBaseUrl(FAKE_BASE_URL);
   vi.useFakeTimers();
-  Object.keys(storage).forEach((k) => delete storage[k]);
-
-  vi.stubGlobal("localStorage", {
-    getItem: (key: string) => storage[key] ?? null,
-    setItem: (key: string, value: string) => { storage[key] = value; },
-    removeItem: (key: string) => { delete storage[key]; },
-    clear: () => { Object.keys(storage).forEach((k) => delete storage[k]); },
-    get length() { return Object.keys(storage).length; },
-    key: (i: number) => Object.keys(storage)[i] ?? null,
-  });
+  localStorage.clear();
 });
 
 afterEach(() => {
-  Object.keys(storage).forEach((k) => delete storage[k]);
+  localStorage.clear();
   setBaseUrl(undefined);
   _resetRefreshState();
   vi.useRealTimers();

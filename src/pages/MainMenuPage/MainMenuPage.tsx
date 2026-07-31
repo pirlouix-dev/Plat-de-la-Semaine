@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import "./MainMenuPage.css";
 
-import logo_img from "../../assets/logo.png";
-import book_img from "../../assets/book.webp";
-import add_img from "../../assets/add.webp";
-import pencil_img from "../../assets/pencil.webp";
-import wheel_img from "../../assets/wheel.webp";
-import textbox_img from "../../assets/textbox.webp";
+import logo_img from "../../../assets/logo.png";
+import book_img from "../../../assets/book.webp";
+import add_img from "../../../assets/add.webp";
+import pencil_img from "../../../assets/pencil.webp";
+import wheel_img from "../../../assets/wheel.webp";
+import textbox_img from "../../../assets/textbox.webp";
 
 const mainMenuItems = [
   { id: 1, text: "Choisir le menu", icon: book_img, route: "/choose" },
