@@ -758,6 +758,7 @@ describe("sync", () => {
 
 describe("startAutoSync", () => {
   it("returns a cleanup function", () => {
+    vi.stubGlobal("navigator", { onLine: false });
     const cleanup = startAutoSync(db);
     expect(typeof cleanup).toBe("function");
     cleanup();
@@ -778,6 +779,7 @@ describe("startAutoSync", () => {
   });
 
   it("sets up hourly sync interval", () => {
+    vi.stubGlobal("navigator", { onLine: false });
     const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
     mockGetDishes.mockResolvedValue({ ok: true, data: [] });
 
@@ -790,6 +792,7 @@ describe("startAutoSync", () => {
   });
 
   it("cleanup removes event listeners and clears interval", () => {
+    vi.stubGlobal("navigator", { onLine: false });
     const cleanup = startAutoSync(db);
 
     const onlineSpy = vi.spyOn(window, "removeEventListener");

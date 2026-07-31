@@ -19,7 +19,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const [showPopup, setShowPopup] = useState(!!location.state?.justRegistered);
-  const [idToken] = useState<string | null>(location.state?.idToken ?? null);
+  const [idToken, setIdToken] = useState<string | null>(location.state?.idToken ?? null);
   const [cooldown, setCooldown] = useState(location.state?.justRegistered ? 10 : 0);
   const [sending, setSending] = useState(false);
 
@@ -59,7 +59,11 @@ function LoginPage() {
       password,
     });
 
-    if (result.ok) {
+    if (result.ok && result.data.emailVerified === false) {
+      setIdToken(result.data.idToken);
+      setShowPopup(true);
+      setCooldown(10);
+    } else if (result.ok) {
       localStorage.setItem("auth_token", result.data.idToken);
       localStorage.setItem("refresh_token", result.data.refreshToken);
       localStorage.setItem("user_id", result.data.userId);
@@ -69,9 +73,6 @@ function LoginPage() {
         String(Date.now() + Number(result.data.expiresIn) * 1000),
       );
       navigate("/");
-    } else if (result.error.code === "EMAIL_NOT_VERIFIED") {
-      setShowPopup(true);
-      setCooldown(10);
     } else {
       setError(result.error.message ?? "Une erreur est survenue.");
     }

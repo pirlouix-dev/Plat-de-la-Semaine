@@ -142,11 +142,8 @@ describe("LoginPage", () => {
     expect(await screen.findByText("Email ou mot de passe incorrect")).toBeTruthy();
   });
 
-  it("shows verification popup on EMAIL_NOT_VERIFIED error", async () => {
-    mockFetchError(403, {
-      code: "EMAIL_NOT_VERIFIED",
-      message: "Email not verified",
-    });
+  it("shows verification popup when login returns emailVerified false", async () => {
+    mockFetchSuccess({ ...AUTH_RESPONSE, emailVerified: false });
 
     renderLogin();
 
@@ -159,6 +156,53 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByText("Se connecter"));
 
     expect(await screen.findByText("Vérifiez votre email")).toBeTruthy();
+  });
+
+  it("enables resend after cooldown and sends verification with the login idToken", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: vi
+          .fn()
+          .mockResolvedValue({ ...AUTH_RESPONSE, idToken: "login-id-token", emailVerified: false }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({}),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "unverified@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "pwd" },
+    });
+    fireEvent.click(screen.getByText("Se connecter"));
+
+    await act(async () => {});
+
+    for (let i = 0; i < 10; i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+    }
+
+    fireEvent.click(screen.getByText("Renvoyer l'email"));
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const [url, options] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toContain("/api/auth/send-verification");
+    expect(options.body).toBe(JSON.stringify({ idToken: "login-id-token" }));
+
+    vi.useRealTimers();
   });
 
   it("calls /api/auth/send-verification when resend button is clicked", async () => {

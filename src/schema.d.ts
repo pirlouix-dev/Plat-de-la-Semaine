@@ -106,17 +106,6 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
             };
         };
         delete?: never;
@@ -827,6 +816,7 @@ export interface components {
             expiresIn: string;
             userId: string;
             username: string;
+            emailVerified?: boolean;
         };
         BackupListResponse: {
             data: components["schemas"]["BackupSummary"][];
