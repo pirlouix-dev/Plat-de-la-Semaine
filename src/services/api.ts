@@ -13,10 +13,7 @@
  * Mock `globalThis.fetch` to simulate API responses.
  */
 
-import type {
-  ApiErrorDetail,
-  ApiFieldError,
-} from "../types";
+import type { ApiErrorDetail, ApiFieldError } from "../types";
 
 // ── Mutable config (overridable for tests) ────────────────────────────────────
 
@@ -45,7 +42,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
  * Requests to these paths skip the token freshness check so the user can reach the
  * auth flow when their token is expired.
  */
-const AUTH_PATHS = [
+const NO_REFRESH_PATHS = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/refresh",
@@ -90,15 +87,11 @@ function buildErrorDetail(status: number, body: unknown): ApiErrorDetail {
 
 function buildNetworkError(cause: unknown): ApiErrorDetail {
   const message =
-    cause instanceof Error
-      ? cause.message
-      : "Network request failed";
+    cause instanceof Error ? cause.message : "Network request failed";
   return { code: "NETWORK_ERROR", message };
 }
 
-async function parseJsonSafe(
-  res: Response
-): Promise<unknown> {
+async function parseJsonSafe(res: Response): Promise<unknown> {
   try {
     return (await res.json()) as unknown;
   } catch {
@@ -111,7 +104,7 @@ async function parseJsonSafe(
 /** Perform a GET request */
 export async function apiGet<T>(
   path: string,
-  options?: { signal?: AbortSignal; params?: Record<string, string> }
+  options?: { signal?: AbortSignal; params?: Record<string, string> },
 ): Promise<ApiResult<T>> {
   return request<T>("GET", path, undefined, options);
 }
@@ -120,7 +113,7 @@ export async function apiGet<T>(
 export async function apiPost<T>(
   path: string,
   body?: unknown,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal },
 ): Promise<ApiResult<T>> {
   return request<T>("POST", path, body, options);
 }
@@ -129,7 +122,7 @@ export async function apiPost<T>(
 export async function apiPut<T>(
   path: string,
   body: unknown,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal },
 ): Promise<ApiResult<T>> {
   return request<T>("PUT", path, body, options);
 }
@@ -137,7 +130,7 @@ export async function apiPut<T>(
 /** Perform a DELETE request */
 export async function apiDelete<T>(
   path: string,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal },
 ): Promise<ApiResult<T>> {
   return request<T>("DELETE", path, undefined, options);
 }
@@ -243,7 +236,7 @@ async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  options?: { signal?: AbortSignal; params?: Record<string, string> }
+  options?: { signal?: AbortSignal; params?: Record<string, string> },
 ): Promise<ApiResult<T>> {
   if (!baseUrl) {
     return {
@@ -264,7 +257,7 @@ async function request<T>(
   }
 
   // Ensure a fresh token for authenticated requests
-  if (!AUTH_PATHS.includes(path)) {
+  if (!NO_REFRESH_PATHS.includes(path)) {
     const valid = await ensureValidToken();
     if (!valid) {
       return {
@@ -346,10 +339,7 @@ export function _resetRefreshState(): void {
   refreshPromise = null;
 }
 
-function combineAbortSignals(
-  s1: AbortSignal,
-  s2: AbortSignal
-): AbortSignal {
+function combineAbortSignals(s1: AbortSignal, s2: AbortSignal): AbortSignal {
   const controller = new AbortController();
 
   const onAbort = () => controller.abort();
