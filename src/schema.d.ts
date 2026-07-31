@@ -356,6 +356,17 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -568,6 +579,17 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
             };
         };
         post?: never;
@@ -614,6 +636,17 @@ export interface paths {
                 };
                 /** @description Forbidden */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
