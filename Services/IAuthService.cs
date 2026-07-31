@@ -10,7 +10,7 @@ public interface IAuthService
     /// <summary>
     /// Registers a new user and returns authentication tokens.
     /// </summary>
-    Task<AuthResponse> RegisterAsync(string email, string password);
+    Task<AuthResponse> RegisterAsync(string email, string password, string username);
 
     /// <summary>
     /// Authenticates a user and returns authentication tokens.
@@ -18,7 +18,12 @@ public interface IAuthService
     Task<AuthResponse> LoginAsync(string email, string password);
 
     /// <summary>
-    /// Refreshes an expired token and returns new authentication tokens.
+    /// Refreshes an expired token and returns a new id token, refresh token and its expiration.
     /// </summary>
-    Task<AuthResponse> RefreshTokenAsync(string refreshToken);
+    Task<RefreshResponse> RefreshTokenAsync(string refreshToken);
+
+    /// <summary>
+    /// Sends an email verification message to the user associated with the given ID token.
+    /// </summary>
+    Task SendVerificationEmailAsync(string idToken);
 }

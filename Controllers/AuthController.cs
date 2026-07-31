@@ -28,7 +28,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterPayload payload)
     {
-        var response = await _authService.RegisterAsync(payload.Email, payload.Password);
+        var response = await _authService.RegisterAsync(payload.Email, payload.Password, payload.Username);
         return Ok(response);
     }
 
@@ -50,11 +50,24 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("refresh")]
     [EndpointSummary("Refresh an expired token")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RefreshResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Refresh([FromBody] RefreshPayload payload)
     {
         var response = await _authService.RefreshTokenAsync(payload.RefreshToken);
         return Ok(response);
+    }
+
+    /// <summary>
+    /// Send an email verification to the authenticated user.
+    /// </summary>
+    [HttpPost("send-verification")]
+    [EndpointSummary("Send email verification")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SendVerificationEmail([FromBody] SendVerificationPayload payload)
+    {
+        await _authService.SendVerificationEmailAsync(payload.IdToken);
+        return Ok();
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using NSubstitute;
 using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 using Xunit;
@@ -9,7 +10,7 @@ namespace PlatDeLaSemaineBack.Tests;
 
 public class AuthServiceTests
 {
-    private static (AuthService service, TestHttpMessageHandler handler) CreateService(
+    private static (AuthService service, TestHttpMessageHandler handler, IFirestoreService firestore) CreateService(
         string? apiKey = "test-api-key")
     {
         var previousApiKey = Environment.GetEnvironmentVariable("FIREBASE_API_KEY");
@@ -20,14 +21,15 @@ public class AuthServiceTests
 
         var handler = new TestHttpMessageHandler();
         var httpClient = new HttpClient(handler);
-        var service = new AuthService(httpClient);
+        var firestore = Substitute.For<IFirestoreService>();
+        var service = new AuthService(httpClient, firestore);
 
         if (previousApiKey != null)
             Environment.SetEnvironmentVariable("FIREBASE_API_KEY", previousApiKey);
         else
             Environment.SetEnvironmentVariable("FIREBASE_API_KEY", null);
 
-        return (service, handler);
+        return (service, handler, firestore);
     }
 
     [Fact]
@@ -41,9 +43,10 @@ public class AuthServiceTests
         {
             var handler = new TestHttpMessageHandler();
             var httpClient = new HttpClient(handler);
+            var firestore = Substitute.For<IFirestoreService>();
 
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => new AuthService(httpClient));
+            Assert.Throws<InvalidOperationException>(() => new AuthService(httpClient, firestore));
         }
         finally
         {
@@ -53,24 +56,81 @@ public class AuthServiceTests
     }
 
     [Fact]
+    public async Task SendVerificationEmailAsync_Success_DoesNotThrow()
+    {
+        // Arrange
+        var (service, handler, _) = CreateService();
+        handler.OnSend = (req, ct) =>
+        {
+            var body = new { kind = "identitytoolkit#GetOobConfirmationCodeResponse", email = "test@example.com" };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(body)
+            });
+        };
+
+        // Act & Assert
+        await service.SendVerificationEmailAsync("fake-id-token");
+    }
+
+    [Fact]
+    public async Task SendVerificationEmailAsync_Failure_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var (service, handler, _) = CreateService();
+        handler.OnSend = (req, ct) =>
+        {
+            var body = new { error = new { message = "INVALID_ID_TOKEN" } };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = JsonContent.Create(body)
+            });
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.SendVerificationEmailAsync("fake-id-token"));
+        Assert.Contains("INVALID_ID_TOKEN", ex.Message);
+    }
+
+    [Fact]
     public async Task LoginAsync_Success_ReturnsAuthResponse()
     {
         // Arrange
-        var (service, handler) = CreateService();
+        var (service, handler, firestore) = CreateService();
         handler.OnSend = (req, ct) =>
         {
+            if (req.RequestUri!.AbsoluteUri.Contains("lookup"))
+            {
+                var lookupBody = new
+                {
+                    users = new[]
+                    {
+                        new { emailVerified = true }
+                    }
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(lookupBody)
+                });
+            }
+
             var body = new
             {
                 idToken = "fake-id-token",
                 refreshToken = "fake-refresh-token",
                 expiresIn = "3600",
-                localId = "user-uid-123"
+                localId = "user-uid-123",
+                emailVerified = true
             };
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = JsonContent.Create(body)
             });
         };
+
+        var user = new User { Username = "testuser" };
+        firestore.GetUserByIdAsync("user-uid-123").Returns(user);
 
         // Act
         var result = await service.LoginAsync("test@example.com", "password123");
@@ -80,13 +140,15 @@ public class AuthServiceTests
         Assert.Equal("fake-refresh-token", result.RefreshToken);
         Assert.Equal("3600", result.ExpiresIn);
         Assert.Equal("user-uid-123", result.UserId);
+        Assert.Equal("testuser", result.Username);
+        Assert.True(result.EmailVerified);
     }
 
     [Fact]
     public async Task LoginAsync_InvalidCredentials_ThrowsUnauthorizedAccessException()
     {
         // Arrange
-        var (service, handler) = CreateService();
+        var (service, handler, _) = CreateService();
         handler.OnSend = (req, ct) =>
         {
             var body = new { error = new { message = "INVALID_PASSWORD" } };
@@ -103,10 +165,70 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshTokenAsync_Success_ReturnsAuthResponse()
+    public async Task LoginAsync_EmailNotVerified_ReturnsAuthResponseWithEmailVerifiedFalseAndSendsVerification()
     {
         // Arrange
-        var (service, handler) = CreateService();
+        var (service, handler, firestore) = CreateService();
+        var requestedUrls = new List<string>();
+        handler.OnSend = (req, ct) =>
+        {
+            requestedUrls.Add(req.RequestUri!.AbsoluteUri);
+            if (req.RequestUri.AbsoluteUri.Contains("lookup"))
+            {
+                var lookupBody = new
+                {
+                    users = new[]
+                    {
+                        new { emailVerified = false }
+                    }
+                };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(lookupBody)
+                });
+            }
+
+            if (req.RequestUri.AbsoluteUri.Contains("sendOobCode"))
+            {
+                var body = new { kind = "identitytoolkit#GetOobConfirmationCodeResponse", email = "test@example.com" };
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(body)
+                });
+            }
+
+            var signInBody = new
+            {
+                idToken = "fake-id-token",
+                refreshToken = "fake-refresh-token",
+                expiresIn = "3600",
+                localId = "user-uid-123",
+                emailVerified = false
+            };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(signInBody)
+            });
+        };
+
+        var user = new User { Username = "testuser" };
+        firestore.GetUserByIdAsync("user-uid-123").Returns(user);
+
+        // Act
+        var result = await service.LoginAsync("test@example.com", "password123");
+
+        // Assert
+        Assert.Equal("fake-id-token", result.IdToken);
+        Assert.Equal("user-uid-123", result.UserId);
+        Assert.False(result.EmailVerified);
+        Assert.Contains(requestedUrls, url => url.Contains("sendOobCode"));
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_Success_ReturnsRefreshResponse()
+    {
+        // Arrange
+        var (service, handler, _) = CreateService();
         handler.OnSend = (req, ct) =>
         {
             var body = new
@@ -129,14 +251,13 @@ public class AuthServiceTests
         Assert.Equal("new-id-token", result.IdToken);
         Assert.Equal("new-refresh-token", result.RefreshToken);
         Assert.Equal("3600", result.ExpiresIn);
-        Assert.Equal("user-uid-123", result.UserId);
     }
 
     [Fact]
     public async Task RefreshTokenAsync_InvalidToken_ThrowsHttpRequestException()
     {
         // Arrange
-        var (service, handler) = CreateService();
+        var (service, handler, _) = CreateService();
         handler.OnSend = (req, ct) =>
         {
             var body = new { error = new { message = "INVALID_REFRESH_TOKEN" } };

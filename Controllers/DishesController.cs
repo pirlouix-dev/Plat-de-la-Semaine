@@ -26,6 +26,8 @@ public class DishesController : BaseController
     [EndpointSummary("Fetch all dishes for the current user")]
     [ProducesResponseType(typeof(DishListResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAll([FromQuery] DateTimeOffset? since)
     {
         var userId = await GetUserIdAsync();
@@ -40,6 +42,8 @@ public class DishesController : BaseController
     [EndpointSummary("Create a new dish")]
     [ProducesResponseType(typeof(DishSingleResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] CreateDishPayload payload)
     {
         var userId = await GetUserIdAsync();
@@ -54,6 +58,8 @@ public class DishesController : BaseController
     [EndpointSummary("Update an existing dish")]
     [ProducesResponseType(typeof(DishSingleResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateDishPayload payload)
     {
         var userId = await GetUserIdAsync();
@@ -68,6 +74,8 @@ public class DishesController : BaseController
     [EndpointSummary("Delete a dish")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(string id)
     {
         var userId = await GetUserIdAsync();

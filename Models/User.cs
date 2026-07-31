@@ -12,5 +12,8 @@ public class User
     public DateTimeOffset CreatedAt { get; set; }
 
     [FirestoreProperty]
+    public string Username { get; set; } = string.Empty;
+
+    [FirestoreProperty]
     public List<string> BackupIds { get; set; } = new();
 }

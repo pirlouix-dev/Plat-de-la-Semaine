@@ -26,6 +26,8 @@ public class BackupsController : BaseController
     [EndpointSummary("Fetch all backups for the current user (max 5, newest first)")]
     [ProducesResponseType(typeof(BackupListResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAll()
     {
         var userId = await GetUserIdAsync();
@@ -40,6 +42,8 @@ public class BackupsController : BaseController
     [EndpointSummary("Restore the dish list from a specific backup")]
     [ProducesResponseType(typeof(BackupRestoreResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Restore(string backupId)
     {
         var userId = await GetUserIdAsync();

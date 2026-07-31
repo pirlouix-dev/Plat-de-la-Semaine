@@ -92,12 +92,14 @@ public class ModelTests
         {
             Id = id,
             CreatedAt = now,
+            Username = "testuser",
             BackupIds = ["b1", "b2"]
         };
 
         // Assert
         Assert.Equal(id, user.Id);
         Assert.Equal(now, user.CreatedAt);
+        Assert.Equal("testuser", user.Username);
         Assert.Equal(2, user.BackupIds.Count);
         Assert.Equal("b1", user.BackupIds[0]);
     }

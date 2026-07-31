@@ -44,7 +44,9 @@ public class ErrorHandlingMiddleware
         {
             KeyNotFoundException => (HttpStatusCode.NotFound, "NOT_FOUND", "The requested resource was not found."),
             ArgumentException => (HttpStatusCode.BadRequest, "BAD_REQUEST", exception.Message),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", "Access denied."),
+            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),
+            FirebaseAdmin.Auth.FirebaseAuthException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),
+            EmailNotVerifiedException => (HttpStatusCode.Forbidden, "EMAIL_NOT_VERIFIED", exception.Message),
             InvalidOperationException => (HttpStatusCode.BadRequest, "INVALID_OPERATION", exception.Message),
             _ => (HttpStatusCode.InternalServerError, "INTERNAL_ERROR", "An unexpected error occurred.")
         };

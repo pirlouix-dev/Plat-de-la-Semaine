@@ -26,6 +26,8 @@ public class FeedbackController : BaseController
     [EndpointSummary("Submit a bug report or feedback message")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Submit([FromBody] FeedbackPayload payload)
     {
