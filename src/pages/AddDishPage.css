@@ -223,6 +223,12 @@
   transform: translateY(-1px);
 }
 
+.btn-primary:disabled {
+  background: #999;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-secondary {
   background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
   color: #ffffff;

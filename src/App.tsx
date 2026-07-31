@@ -8,6 +8,9 @@ import ChooseMenuPage from "./pages/ChooseMenuPage";
 import AddDishPage from "./pages/AddDishPage";
 import EditDishPage from "./pages/EditDishPage";
 import SettingsPage from "./pages/SettingsPage";
+import RegisterPage from "./pages/RegisterPage";
+import LoginPage from "./pages/LoginPage";
+import LogoutPage from "./pages/LogoutPage";
 
 function DatabaseError({ message }: { message: string }) {
   return (
@@ -34,6 +37,9 @@ function AppContent() {
       <Route path="/add" element={<AddDishPage />} />
       <Route path="/edit" element={<EditDishPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/logout" element={<LogoutPage />} />
     </Routes>
   );
 }

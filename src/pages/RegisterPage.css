@@ -1,0 +1,108 @@
+.auth-container {
+  width: 100%;
+  max-width: min(420px, 90vw);
+  margin: 0 auto;
+  padding: min(24px, 3svh) min(20px, 4vw);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  color: #ffffff;
+}
+
+.register-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: min(28px, 4svh);
+}
+
+.register-logo {
+  height: min(115px, 15svh);
+  width: auto;
+  max-height: 140px;
+  object-fit: contain;
+}
+
+@media (max-height: 550px) {
+  .register-logo-wrapper {
+    display: none;
+  }
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: min(16px, 2svh);
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.register-error {
+  background: rgba(255, 82, 82, 0.15);
+  color: #ff5252;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.auth-container .dish-form {
+  gap: 8px;
+}
+
+.auth-container .modern-input,
+.auth-container .btn {
+  font-size: 16px;
+}
+
+.register-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: min(10px, 1.5svh);
+}
+
+.btn-green {
+  flex: 1;
+  border: none;
+  height: min(54px, 7svh);
+  min-height: 48px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: #ffffff;
+}
+
+.btn-green:hover {
+  transform: translateY(-1px);
+}
+
+.btn-green:active {
+  transform: scale(0.98);
+}
+
+.register-link-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 12px 0;
+  transition: color 0.2s ease;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.register-link-btn:hover {
+  color: #ffffff;
+}
+
+.register-link-btn:active {
+  opacity: 0.8;
+}

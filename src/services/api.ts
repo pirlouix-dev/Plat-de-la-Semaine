@@ -13,10 +13,8 @@
  * Mock `globalThis.fetch` to simulate API responses.
  */
 
-import type {
-  ApiErrorDetail,
-  ApiFieldError,
-} from "../types";
+import type { components } from "../schema";
+import type { ApiErrorDetail, ApiFieldError } from "../types";
 
 // ── Mutable config (overridable for tests) ────────────────────────────────────
 
@@ -29,16 +27,31 @@ let baseUrl: string | undefined = import.meta.env.VITE_SERVER_URL as
   | string
   | undefined;
 
-/**
- * Override the API base URL. Useful in tests.
- * Pass `undefined` to explicitly unset the base URL.
- */
 export function setBaseUrl(url: string | undefined): void {
   baseUrl = url;
 }
 
-/** Default request timeout in milliseconds */
 const REQUEST_TIMEOUT_MS = 15_000;
+
+/**
+ * Paths that interact with authentication or are accessible without a valid session.
+ * Requests to these paths skip the token freshness check so the user can reach the
+ * auth flow when their token is expired.
+ */
+const NO_REFRESH_PATHS = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/refresh",
+  "/api/auth/send-verification",
+  "/api/Status",
+  "/api/version",
+];
+
+/** Buffer (ms) before token expiry to proactively refresh */
+const REFRESH_BUFFER_MS = 60_000;
+
+/** Shared promise to deduplicate concurrent refresh calls */
+let refreshPromise: Promise<boolean> | null = null;
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -70,15 +83,11 @@ function buildErrorDetail(status: number, body: unknown): ApiErrorDetail {
 
 function buildNetworkError(cause: unknown): ApiErrorDetail {
   const message =
-    cause instanceof Error
-      ? cause.message
-      : "Network request failed";
+    cause instanceof Error ? cause.message : "Network request failed";
   return { code: "NETWORK_ERROR", message };
 }
 
-async function parseJsonSafe(
-  res: Response
-): Promise<unknown> {
+async function parseJsonSafe(res: Response): Promise<unknown> {
   try {
     return (await res.json()) as unknown;
   } catch {
@@ -88,38 +97,125 @@ async function parseJsonSafe(
 
 // ── Public request builders ──────────────────────────────────────────────────
 
-/** Perform a GET request */
 export async function apiGet<T>(
   path: string,
-  options?: { signal?: AbortSignal; params?: Record<string, string> }
+  options?: { signal?: AbortSignal; params?: Record<string, string> },
 ): Promise<ApiResult<T>> {
   return request<T>("GET", path, undefined, options);
 }
 
-/** Perform a POST request with an optional JSON body */
 export async function apiPost<T>(
   path: string,
   body?: unknown,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal },
 ): Promise<ApiResult<T>> {
   return request<T>("POST", path, body, options);
 }
 
-/** Perform a PUT request with a JSON body */
 export async function apiPut<T>(
   path: string,
   body: unknown,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal },
 ): Promise<ApiResult<T>> {
   return request<T>("PUT", path, body, options);
 }
 
-/** Perform a DELETE request */
 export async function apiDelete<T>(
   path: string,
-  options?: { signal?: AbortSignal }
+  options?: { signal?: AbortSignal },
 ): Promise<ApiResult<T>> {
   return request<T>("DELETE", path, undefined, options);
+}
+
+// ── Auth helpers ─────────────────────────────────────────────────────────────
+
+export function clearAuth(): void {
+  try {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("token_expiry");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("user_username");
+  } catch {
+    // localStorage unavailable (e.g. in tests or SSR)
+  }
+}
+
+function redirectToLogin(): void {
+  window.location.href = "/login";
+}
+
+/** Attempt to refresh the auth token via the refresh endpoint. */
+async function doRefresh(): Promise<boolean> {
+  let refreshToken: string | null;
+  try {
+    refreshToken = localStorage.getItem("refresh_token");
+  } catch {
+    // localStorage unavailable
+    return false;
+  }
+  if (!refreshToken || !baseUrl) return false;
+
+  const baseUrlClean = baseUrl.replace(/\/+$/, "");
+
+  try {
+    const response = await fetch(`${baseUrlClean}/api/auth/refresh`, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) return false;
+
+    const data = (await response.json()) as components["schemas"]["RefreshResponse"];
+
+    localStorage.setItem("auth_token", data.idToken);
+    localStorage.setItem("refresh_token", data.refreshToken);
+    localStorage.setItem(
+      "token_expiry",
+      String(Date.now() + Number(data.expiresIn) * 1000),
+    );
+    return true;
+  } catch {
+    // Network error — let the original request use the old token
+    return true;
+  }
+}
+
+/**
+ * Check token freshness before a request; refresh if stale.
+ * Concurrent calls share a single refresh promise.
+ */
+async function ensureValidToken(): Promise<boolean> {
+  try {
+    const expiry = localStorage.getItem("token_expiry");
+    if (!expiry) return true;
+
+    const timeUntilExpiry = Number(expiry) - Date.now();
+    if (timeUntilExpiry > REFRESH_BUFFER_MS) return true;
+  } catch {
+    // localStorage unavailable (e.g. in tests or SSR)
+    return true;
+  }
+
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = doRefresh();
+
+  try {
+    const ok = await refreshPromise;
+    if (!ok) {
+      clearAuth();
+      redirectToLogin();
+      return false;
+    }
+    return true;
+  } finally {
+    refreshPromise = null;
+  }
 }
 
 // ── Core request function ────────────────────────────────────────────────────
@@ -128,7 +224,7 @@ async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  options?: { signal?: AbortSignal; params?: Record<string, string> }
+  options?: { signal?: AbortSignal; params?: Record<string, string> },
 ): Promise<ApiResult<T>> {
   if (!baseUrl) {
     return {
@@ -146,6 +242,17 @@ async function request<T>(
   if (options?.params) {
     const searchParams = new URLSearchParams(options.params);
     url += `?${searchParams.toString()}`;
+  }
+
+  // Ensure a fresh token for authenticated requests
+  if (!NO_REFRESH_PATHS.includes(path)) {
+    const valid = await ensureValidToken();
+    if (!valid) {
+      return {
+        ok: false,
+        error: { code: "UNAUTHORIZED", message: "Session expired" },
+      };
+    }
   }
 
   const controller = new AbortController();
@@ -215,10 +322,12 @@ async function request<T>(
 
 // ── Utility: combine two AbortSignals into one ───────────────────────────────
 
-function combineAbortSignals(
-  s1: AbortSignal,
-  s2: AbortSignal
-): AbortSignal {
+/** @internal Reset module-level refresh state. Only for use in tests. */
+export function _resetRefreshState(): void {
+  refreshPromise = null;
+}
+
+function combineAbortSignals(s1: AbortSignal, s2: AbortSignal): AbortSignal {
   const controller = new AbortController();
 
   const onAbort = () => controller.abort();

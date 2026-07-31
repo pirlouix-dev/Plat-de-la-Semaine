@@ -1,7 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import MainMenuPage from "../pages/MainMenuPage";
+
+const storage: Record<string, string> = {};
+
+beforeEach(() => {
+  Object.keys(storage).forEach((k) => delete storage[k]);
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => storage[key] ?? null,
+    setItem: (key: string, value: string) => { storage[key] = value; },
+    removeItem: (key: string) => { delete storage[key]; },
+    clear: () => { Object.keys(storage).forEach((k) => delete storage[k]); },
+    get length() { return Object.keys(storage).length; },
+    key: (i: number) => Object.keys(storage)[i] ?? null,
+  });
+});
 
 describe("MainMenuPage component", () => {
   it("renders without crashing", () => {
@@ -71,5 +85,19 @@ describe("MainMenuPage component", () => {
     );
     const cards = screen.getAllByRole("button");
     expect(cards.length).toBe(5);
+  });
+
+  it("shows user info when logged in", () => {
+    storage["user_id"] = "user-42";
+    storage["user_username"] = "Mathéo";
+
+    render(
+      <MemoryRouter>
+        <MainMenuPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByText("Bonjour, Mathéo !")).toBeTruthy();
+    expect(screen.getByText("Vos plats sont synchronisés")).toBeTruthy();
+    expect(screen.getByText("Mon compte")).toBeTruthy();
   });
 });

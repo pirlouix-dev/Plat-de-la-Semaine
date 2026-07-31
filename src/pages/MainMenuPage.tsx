@@ -17,7 +17,9 @@ const mainMenuItems = [
 
 function MainMenuPage() {
   const navigate = useNavigate();
-  const isLoggedIn = true;
+  const userId = localStorage.getItem("user_id");
+  const username = localStorage.getItem("user_username");
+  const isLoggedIn = !!userId;
 
   return (
     <div className="app-container">
@@ -26,7 +28,7 @@ function MainMenuPage() {
       <div className="account-card">
         <div className="account-info">
           <span className="account-title">
-            {isLoggedIn ? "Bonjour, Mathéo !" : "Mode Invité"}
+            {isLoggedIn ? `Bonjour, ${username} !` : "Mode Invité"}
           </span>
           <span className="account-subtitle">
             {isLoggedIn

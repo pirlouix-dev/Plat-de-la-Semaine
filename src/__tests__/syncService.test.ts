@@ -758,6 +758,7 @@ describe("sync", () => {
 
 describe("startAutoSync", () => {
   it("returns a cleanup function", () => {
+    vi.stubGlobal("navigator", { onLine: false });
     const cleanup = startAutoSync(db);
     expect(typeof cleanup).toBe("function");
     cleanup();
@@ -777,38 +778,32 @@ describe("startAutoSync", () => {
     cleanup();
   });
 
-  it("triggers sync on visibility change to visible", async () => {
+  it("sets up hourly sync interval", () => {
+    vi.stubGlobal("navigator", { onLine: false });
+    const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
     mockGetDishes.mockResolvedValue({ ok: true, data: [] });
 
     const cleanup = startAutoSync(db);
 
-    Object.defineProperty(document, "visibilityState", {
-      value: "visible",
-      configurable: true,
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-    await new Promise((r) => setTimeout(r, 50));
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 3_600_000);
 
-    expect(mockGetDishes).toHaveBeenCalled();
-
+    setIntervalSpy.mockRestore();
     cleanup();
   });
 
-  it("cleanup removes event listeners", () => {
+  it("cleanup removes event listeners and clears interval", () => {
+    vi.stubGlobal("navigator", { onLine: false });
     const cleanup = startAutoSync(db);
 
     const onlineSpy = vi.spyOn(window, "removeEventListener");
-    const visibilitySpy = vi.spyOn(document, "removeEventListener");
+    const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
 
     cleanup();
 
     expect(onlineSpy).toHaveBeenCalledWith("online", expect.any(Function));
-    expect(visibilitySpy).toHaveBeenCalledWith(
-      "visibilitychange",
-      expect.any(Function)
-    );
+    expect(clearIntervalSpy).toHaveBeenCalled();
 
     onlineSpy.mockRestore();
-    visibilitySpy.mockRestore();
+    clearIntervalSpy.mockRestore();
   });
 });
