@@ -1,20 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import MainMenuPage from "../pages/MainMenuPage/MainMenuPage";
 
-const storage: Record<string, string> = {};
-
 beforeEach(() => {
-  Object.keys(storage).forEach((k) => delete storage[k]);
-  vi.stubGlobal("localStorage", {
-    getItem: (key: string) => storage[key] ?? null,
-    setItem: (key: string, value: string) => { storage[key] = value; },
-    removeItem: (key: string) => { delete storage[key]; },
-    clear: () => { Object.keys(storage).forEach((k) => delete storage[k]); },
-    get length() { return Object.keys(storage).length; },
-    key: (i: number) => Object.keys(storage)[i] ?? null,
-  });
+  localStorage.clear();
 });
 
 describe("MainMenuPage component", () => {
@@ -88,8 +78,8 @@ describe("MainMenuPage component", () => {
   });
 
   it("shows user info when logged in", () => {
-    storage["user_id"] = "user-42";
-    storage["user_username"] = "Mathéo";
+    localStorage.setItem("user_id", "user-42");
+    localStorage.setItem("user_username", "Mathéo");
 
     render(
       <MemoryRouter>

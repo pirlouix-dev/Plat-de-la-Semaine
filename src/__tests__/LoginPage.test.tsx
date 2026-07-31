@@ -3,17 +3,8 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import LoginPage from "../pages/LoginPage/LoginPage";
 
-const storage: Record<string, string> = {};
-
 beforeEach(() => {
-  vi.stubGlobal("localStorage", {
-    getItem: (key: string) => storage[key] ?? null,
-    setItem: (key: string, value: string) => { storage[key] = value; },
-    removeItem: (key: string) => { delete storage[key]; },
-    clear: () => { Object.keys(storage).forEach((k) => delete storage[k]); },
-    get length() { return Object.keys(storage).length; },
-    key: (i: number) => Object.keys(storage)[i] ?? null,
-  });
+  localStorage.clear();
 });
 
 const AUTH_RESPONSE = {
@@ -64,7 +55,7 @@ function renderLogin(options?: { justRegistered?: boolean; email?: string; idTok
 
 describe("LoginPage", () => {
   afterEach(() => {
-    Object.keys(storage).forEach((k) => delete storage[k]);
+    localStorage.clear();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
