@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import RegisterPage from "../pages/RegisterPage/RegisterPage";
+import { MAX_USERNAME_LENGTH } from "../types";
 
 function mockFetchSuccess(body: unknown) {
   vi.stubGlobal(
@@ -37,6 +38,27 @@ describe("RegisterPage", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("caps the username input at MAX_USERNAME_LENGTH", () => {
+    renderPage();
+    expect(screen.getByPlaceholderText("Nom d'utilisateur")).toHaveAttribute(
+      "maxLength",
+      String(MAX_USERNAME_LENGTH),
+    );
+  });
+
+  it("shows the character counter only when the username nears the limit", () => {
+    renderPage();
+    const usernameInput = screen.getByPlaceholderText("Nom d'utilisateur");
+
+    expect(screen.queryByText(/^\d+\/100$/)).toBeNull();
+
+    fireEvent.change(usernameInput, { target: { value: "a".repeat(80) } });
+    expect(screen.getByText("80/100")).toBeTruthy();
+
+    fireEvent.change(usernameInput, { target: { value: "a".repeat(50) } });
+    expect(screen.queryByText(/^\d+\/100$/)).toBeNull();
   });
 
   it("calls /api/auth/register with username, email, password on submit", async () => {

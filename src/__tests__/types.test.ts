@@ -5,6 +5,11 @@ import {
   COURSE_LABELS,
   SEASON_LABELS,
   ALL_SEASONS,
+  MAX_NAME_LENGTH,
+  MAX_DESCRIPTION_LENGTH,
+  MAX_FEEDBACK_LENGTH,
+  MAX_USERNAME_LENGTH,
+  CHAR_LIMIT_THRESHOLD,
   isValidCourse,
   isValidSeason,
   isApiError,
@@ -419,6 +424,14 @@ describe("Barrel exports (src/types/index.ts)", () => {
   it("exports ALL_SEASONS", () => {
     expect(ALL_SEASONS).toBeDefined();
     expect(Array.isArray(ALL_SEASONS)).toBe(true);
+  });
+
+  it("exports field length limits", () => {
+    expect(MAX_NAME_LENGTH).toBe(200);
+    expect(MAX_DESCRIPTION_LENGTH).toBe(5000);
+    expect(MAX_FEEDBACK_LENGTH).toBe(2000);
+    expect(MAX_USERNAME_LENGTH).toBe(100);
+    expect(CHAR_LIMIT_THRESHOLD).toBe(20);
   });
 
   it("exports isValidCourse and isValidSeason", () => {

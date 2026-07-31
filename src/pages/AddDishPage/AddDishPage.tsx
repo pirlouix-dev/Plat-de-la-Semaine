@@ -1,8 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "../../components/Icons";
+import CharacterCounter from "../../components/CharacterCounter";
 import { useDishes } from "../../hooks/useDishes";
-import { Course, Season } from "../../types/dish";
+import {
+  Course,
+  Season,
+  MAX_NAME_LENGTH,
+  MAX_DESCRIPTION_LENGTH,
+} from "../../types/dish";
 import type { DishDocType } from "../../db/schemas/dishes";
 import "./AddDishPage.css";
 
@@ -75,15 +81,17 @@ function AddDishPage() {
       </header>
 
       <form className="dish-form" onSubmit={handleSubmit}>
-        <div className="input-group">
+        <div className="input-group char-counter-field">
           <input
             type="text"
             className="modern-input name-input"
             placeholder="Nom du plat"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            maxLength={MAX_NAME_LENGTH}
             required
           />
+          <CharacterCounter value={name} maxLength={MAX_NAME_LENGTH} />
         </div>
 
         <div className="form-section-row">
@@ -119,13 +127,15 @@ function AddDishPage() {
           </div>
         </div>
 
-        <div className="input-group">
+        <div className="input-group char-counter-field">
           <textarea
             className="modern-input description-input"
             placeholder="Description, conseils de préparation ou ingrédients..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            maxLength={MAX_DESCRIPTION_LENGTH}
           />
+          <CharacterCounter value={description} maxLength={MAX_DESCRIPTION_LENGTH} />
         </div>
 
         <div className="action-buttons">
