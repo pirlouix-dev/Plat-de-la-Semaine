@@ -248,13 +248,13 @@
   cursor: not-allowed;
 }
 
-.btn-secondary {
+.btn-cancel {
   background: rgb(223, 33, 20);
   border: 2px solid rgb(174, 33, 24);
   backdrop-filter: blur(8px);
 }
 
-.btn-secondary:hover {
+.btn-cancel:hover {
   background: rgb(232, 35, 21);
 }
 

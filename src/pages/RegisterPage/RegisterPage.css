@@ -63,29 +63,14 @@
   margin-top: min(10px, 1.5svh);
 }
 
-.btn-green {
-  flex: 1;
-  border: none;
-  height: min(54px, 7svh);
-  min-height: 48px;
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+.btn-success {
+  background-color: #179340;
   color: #ffffff;
+  border: 2px solid rgb(20, 119, 53);
 }
 
-.btn-green:hover {
-  transform: translateY(-1px);
-}
-
-.btn-green:active {
-  transform: scale(0.98);
+.btn-success:hover {
+  background-color: #179d43;
 }
 
 .register-link-btn {

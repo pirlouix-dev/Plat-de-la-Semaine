@@ -158,7 +158,7 @@ function LoginPage() {
           </button>
           <button
             type="button"
-            className="btn btn-green"
+            className="btn btn-success"
             onClick={() => navigate("/register")}
           >
             Créer un compte

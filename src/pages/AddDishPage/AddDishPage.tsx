@@ -211,7 +211,7 @@ function AddDishPage() {
         <div className="action-buttons">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-cancel"
             onClick={() => navigate("/")}
           >
             Quitter
