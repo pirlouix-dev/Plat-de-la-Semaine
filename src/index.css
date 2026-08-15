@@ -62,3 +62,9 @@ textarea,
 select {
   touch-action: manipulation;
 }
+
+/* Consistent keyboard focus indicator for all interactive elements */
+:focus-visible {
+  outline: 2px solid #1d61e7;
+  outline-offset: 2px;
+}

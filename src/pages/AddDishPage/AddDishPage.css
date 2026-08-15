@@ -87,17 +87,12 @@
   padding: 16px 22px;
   font-size: clamp(14px, 2.4svh, 18px);
   color: #1a1a1a;
-  outline: none;
   box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
 .modern-input::placeholder {
   color: #8e8e93;
-}
-
-.modern-input:focus {
-  border-color: #1d61e7;
 }
 
 .name-input {
@@ -226,7 +221,9 @@
   font-size: clamp(14px, 2.2svh, 16px);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-tap-highlight-color: transparent;
   display: flex;
   align-items: center;
@@ -257,12 +254,6 @@
 
 .btn-secondary:hover {
   background: rgb(232, 35, 21);
-}
-
-/* Accessibilité pour le clavier */
-.btn:focus-visible {
-  outline: 2px solid #1d61e7;
-  outline-offset: 2px;
 }
 
 @media (max-width: 800px) {
