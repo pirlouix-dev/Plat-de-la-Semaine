@@ -38,7 +38,9 @@
   align-items: center;
   vertical-align: middle;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -88,7 +90,7 @@
   font-size: clamp(14px, 2.4svh, 18px);
   color: #1a1a1a;
   box-sizing: border-box;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .modern-input::placeholder {
