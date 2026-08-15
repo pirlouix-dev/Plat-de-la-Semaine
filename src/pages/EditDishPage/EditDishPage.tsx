@@ -38,14 +38,24 @@ const INITIAL_MOCK_DISHES: MockDish[] = [
     id: "1",
     name: "Colin d'Alaska & riz",
     dishType: "Plat",
-    selectedSeasons: [Season.Spring, Season.Summer, Season.Autumn, Season.Winter],
+    selectedSeasons: [
+      Season.Spring,
+      Season.Summer,
+      Season.Autumn,
+      Season.Winter,
+    ],
     description: "Colin d'Alaska, riz à la vapeur",
   },
   {
     id: "2",
     name: "Courgette & semoule",
     dishType: "Plat",
-    selectedSeasons: [Season.Spring, Season.Summer, Season.Autumn, Season.Winter],
+    selectedSeasons: [
+      Season.Spring,
+      Season.Summer,
+      Season.Autumn,
+      Season.Winter,
+    ],
     description: "Courgettes poêlées, Semoule, Sauce soja",
   },
   {
@@ -66,7 +76,12 @@ const INITIAL_MOCK_DISHES: MockDish[] = [
     id: "5",
     name: "Galettes bretonnes",
     dishType: "Plat",
-    selectedSeasons: [Season.Spring, Season.Summer, Season.Autumn, Season.Winter],
+    selectedSeasons: [
+      Season.Spring,
+      Season.Summer,
+      Season.Autumn,
+      Season.Winter,
+    ],
     description: "Galettes, Beurre, Œufs, Gruyère râpé, Jambon",
   },
 ];
@@ -121,7 +136,9 @@ function EditDishPage() {
 
   const toggleFilterSeason = (season: Season) => {
     setFilterSeasons((prev) =>
-      prev.includes(season) ? prev.filter((s) => s !== season) : [...prev, season],
+      prev.includes(season)
+        ? prev.filter((s) => s !== season)
+        : [...prev, season],
     );
   };
 
@@ -396,7 +413,10 @@ function EditDishPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   maxLength={MAX_DESCRIPTION_LENGTH}
                 />
-                <CharacterCounter value={description} maxLength={MAX_DESCRIPTION_LENGTH} />
+                <CharacterCounter
+                  value={description}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
+                />
               </div>
 
               <div className="action-buttons">
@@ -422,7 +442,8 @@ function EditDishPage() {
             <div className="empty-icon">🍽️</div>
             <h3>Aucun plat sélectionné</h3>
             <p>
-              Choisissez un plat dans la liste de gauche pour modifier ses ingrédients, sa saison ou sa catégorie.
+              Choisissez un plat dans la liste de gauche pour modifier ses
+              ingrédients, sa saison ou sa catégorie.
             </p>
           </div>
         )}
@@ -430,11 +451,15 @@ function EditDishPage() {
 
       {/* --- MODALE DE CONFIRMATION DE SUPPRESSION --- */}
       {showDeleteModal && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowDeleteModal(false)}
+        >
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <h3>Supprimer le plat ?</h3>
             <p>
-              Voulez-vous vraiment supprimer « {selectedDish?.name} » ? Cette action est irréversible.
+              Voulez-vous vraiment supprimer « {selectedDish?.name} » ? Cette
+              action est irréversible.
             </p>
             <div className="modal-actions">
               <button
