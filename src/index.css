@@ -27,7 +27,6 @@
   }
 }
 
-/* Global reset — moved from App.css to avoid conflicts */
 *,
 *::before,
 *::after {
@@ -61,4 +60,9 @@ input,
 textarea,
 select {
   touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid #1d61e7;
+  outline-offset: 2px;
 }

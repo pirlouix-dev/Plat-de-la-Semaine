@@ -89,6 +89,7 @@ beforeEach(async () => {
   }
   vi.resetAllMocks();
   _resetSyncState();
+  localStorage.setItem("user_id", "test-user");
   mockGetDishes.mockResolvedValue({ ok: true, data: [] });
   vi.stubGlobal("navigator", { onLine: true });
 });
@@ -111,6 +112,14 @@ describe("sync", () => {
   it("skips when db has no dishes collection", async () => {
     const fakeDb = {} as AppDatabase;
     await sync(fakeDb);
+
+    expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
+  it("skips when not logged in", async () => {
+    localStorage.removeItem("user_id");
+
+    await sync(db);
 
     expect(mockGetDishes).not.toHaveBeenCalled();
   });
@@ -761,6 +770,20 @@ describe("startAutoSync", () => {
     vi.stubGlobal("navigator", { onLine: false });
     const cleanup = startAutoSync(db);
     expect(typeof cleanup).toBe("function");
+    cleanup();
+  });
+
+  it("does not set up sync when not logged in", () => {
+    localStorage.removeItem("user_id");
+    vi.stubGlobal("navigator", { onLine: false });
+    const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
+
+    const cleanup = startAutoSync(db);
+
+    expect(setIntervalSpy).not.toHaveBeenCalled();
+    expect(mockGetDishes).not.toHaveBeenCalled();
+
+    setIntervalSpy.mockRestore();
     cleanup();
   });
 

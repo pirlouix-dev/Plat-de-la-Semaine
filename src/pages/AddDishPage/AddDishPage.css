@@ -38,7 +38,9 @@
   align-items: center;
   vertical-align: middle;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -87,17 +89,12 @@
   padding: 16px 22px;
   font-size: clamp(14px, 2.4svh, 18px);
   color: #1a1a1a;
-  outline: none;
   box-sizing: border-box;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .modern-input::placeholder {
   color: #8e8e93;
-}
-
-.modern-input:focus {
-  border-color: #1d61e7;
 }
 
 .name-input {
@@ -212,53 +209,53 @@
   transform: scale(0.97);
 }
 
-/* Boutons d'action */
 .action-buttons {
   display: flex;
   gap: 16px;
-  margin-top: min(10px, 1.5svh);
+  margin-top: min(12px, 2svh);
 }
 
 .btn {
   flex: 1;
-  border: none;
-  height: min(54px, 7svh);
+  height: min(52px, 7svh);
   min-height: 48px;
   border-radius: 16px;
-  font-size: clamp(14px, 2.4svh, 18px);
-  font-weight: 700;
+  font-size: clamp(14px, 2.2svh, 16px);
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-tap-highlight-color: transparent;
-}
-
-.btn:active {
-  transform: scale(0.98);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #1d61e7 0%, #1542a8 100%);
+  background-color: #1d61e7;
   color: #ffffff;
+  border: 2px solid #1955ce;
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
+  background-color: rgb(40, 106, 238);
 }
 
 .btn-primary:disabled {
-  background: #999;
+  background: rgb(141, 141, 141);
+  border: 2px solid rgb(128, 128, 128);
   cursor: not-allowed;
-  transform: none;
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
-  color: #ffffff;
-  border: none;
+  background: rgb(223, 33, 20);
+  border: 2px solid rgb(174, 33, 24);
+  backdrop-filter: blur(8px);
 }
 
 .btn-secondary:hover {
-  transform: translateY(-1px);
+  background: rgb(232, 35, 21);
 }
 
 @media (max-width: 800px) {

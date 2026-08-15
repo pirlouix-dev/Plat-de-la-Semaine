@@ -129,6 +129,24 @@ export async function apiDelete<T>(
 
 // ── Auth helpers ─────────────────────────────────────────────────────────────
 
+/** Window event fired whenever the login state changes. */
+export const AUTH_CHANGED_EVENT = "auth:changed";
+
+/** Whether the current user is logged in (guest mode is not logged in). */
+export function isLoggedIn(): boolean {
+  try {
+    return !!localStorage.getItem("user_id");
+  } catch {
+    // localStorage unavailable (e.g. in tests or SSR)
+    return false;
+  }
+}
+
+/** Notify subscribers (e.g. hooks) that the login state may have changed. */
+export function notifyAuthChange(): void {
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
 export function clearAuth(): void {
   try {
     localStorage.removeItem("auth_token");
@@ -139,6 +157,7 @@ export function clearAuth(): void {
   } catch {
     // localStorage unavailable (e.g. in tests or SSR)
   }
+  notifyAuthChange();
 }
 
 function redirectToLogin(): void {
