@@ -27,7 +27,6 @@
   }
 }
 
-/* Global reset — moved from App.css to avoid conflicts */
 *,
 *::before,
 *::after {
@@ -63,7 +62,6 @@ select {
   touch-action: manipulation;
 }
 
-/* Consistent keyboard focus indicator for all interactive elements */
 :focus-visible {
   outline: 2px solid #1d61e7;
   outline-offset: 2px;
