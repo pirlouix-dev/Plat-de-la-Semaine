@@ -6,6 +6,9 @@ import {
   apiDelete,
   setBaseUrl,
   _resetRefreshState,
+  isLoggedIn,
+  clearAuth,
+  AUTH_CHANGED_EVENT,
 } from "../services/api";
 import type { ApiResult } from "../services/api";
 
@@ -472,6 +475,32 @@ describe("token refresh", () => {
     // Auth data preserved (not cleared)
     expect(localStorage.getItem("auth_token")).toBe("old-token");
     expect(localStorage.getItem("refresh_token")).toBe("refresh-abc");
+  });
+});
+
+// ── Auth state helpers ───────────────────────────────────────────────────────
+
+describe("isLoggedIn", () => {
+  it("returns false when no user is stored", () => {
+    expect(isLoggedIn()).toBe(false);
+  });
+
+  it("returns true when a user_id is stored", () => {
+    localStorage.setItem("user_id", "user-42");
+    expect(isLoggedIn()).toBe(true);
+  });
+});
+
+describe("clearAuth", () => {
+  it("dispatches the auth-changed event", () => {
+    const listener = vi.fn();
+    window.addEventListener(AUTH_CHANGED_EVENT, listener);
+    localStorage.setItem("user_id", "user-42");
+
+    clearAuth();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener(AUTH_CHANGED_EVENT, listener);
   });
 });
 

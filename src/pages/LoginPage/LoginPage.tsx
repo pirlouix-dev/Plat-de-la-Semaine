@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { apiPost } from "../../services/api";
+import { apiPost, notifyAuthChange } from "../../services/api";
 import type { components } from "../../schema";
 import { MailIcon } from "../../components/Icons";
 import logo_img from "../../../assets/logo.png";
@@ -72,6 +72,7 @@ function LoginPage() {
         "token_expiry",
         String(Date.now() + Number(result.data.expiresIn) * 1000),
       );
+      notifyAuthChange();
       navigate("/");
     } else {
       setError(result.error.message ?? "Une erreur est survenue.");

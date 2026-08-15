@@ -7,6 +7,7 @@ import {
   deleteDish,
 } from "./dishService";
 import type { components } from "../schema";
+import { isLoggedIn } from "./api";
 
 type ApiDish = components["schemas"]["Dish"];
 
@@ -236,6 +237,7 @@ export async function sync(db: AppDatabase): Promise<void> {
   if (syncRunning) return;
   if (!isOnline()) return;
   if (!db?.dishes) return;
+  if (!isLoggedIn()) return;
 
   syncRunning = true;
   try {
@@ -275,6 +277,10 @@ function scheduleNextSync(db: AppDatabase): void {
 }
 
 export function startAutoSync(db: AppDatabase): () => void {
+  if (!isLoggedIn()) {
+    return () => {};
+  }
+
   const onOnline = () => {
     void sync(db).then(() => scheduleNextSync(db));
   };
