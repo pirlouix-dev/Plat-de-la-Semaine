@@ -209,13 +209,6 @@ function AddDishPage() {
         </div>
 
         <div className="action-buttons">
-          <button
-            type="button"
-            className="btn btn-cancel"
-            onClick={() => navigate("/")}
-          >
-            Quitter
-          </button>
           <button type="submit" className="btn btn-primary" disabled={!isFormValid}>
             Sauvegarder
           </button>
