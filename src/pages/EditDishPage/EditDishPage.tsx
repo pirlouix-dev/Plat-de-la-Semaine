@@ -421,13 +421,6 @@ function EditDishPage() {
 
               <div className="action-buttons">
                 <button
-                  type="button"
-                  className="btn btn-cancel"
-                  onClick={handleDeselectDish}
-                >
-                  Fermer
-                </button>
-                <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={!isFormValid}
