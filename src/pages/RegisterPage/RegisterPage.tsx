@@ -96,7 +96,7 @@ function RegisterPage() {
           </button>
           <button
             type="button"
-            className="btn btn-green"
+            className="btn btn-success"
             onClick={() => navigate("/login")}
           >
             Se connecter
