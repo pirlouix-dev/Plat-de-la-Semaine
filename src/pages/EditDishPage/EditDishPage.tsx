@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BackArrowIcon } from "../../components/Icons";
+import { BackArrowIcon, FilterIcon, TrashIcon } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
 import {
   Course,
@@ -245,7 +245,7 @@ function EditDishPage() {
             onClick={() => setShowFilters(!showFilters)}
             title="Afficher/masquer les filtres"
           >
-            <span>🎛️</span>
+            <FilterIcon size={27} />
             {activeFiltersCount > 0 && (
               <span className="filters-count-badge">{activeFiltersCount}</span>
             )}
@@ -256,7 +256,6 @@ function EditDishPage() {
         {showFilters && (
           <div className="filters-container">
             <div className="filter-group">
-              <span className="filter-group-label">Types</span>
               <div className="filter-row">
                 {DISH_TYPES.map(({ label, icon }) => {
                   const isSelected = filterTypes.includes(label);
@@ -275,7 +274,6 @@ function EditDishPage() {
             </div>
 
             <div className="filter-group">
-              <span className="filter-group-label">Saisons</span>
               <div className="filter-row">
                 {SEASONS.map(({ label, icon, season }) => {
                   const isSelected = filterSeasons.includes(season);
@@ -352,7 +350,7 @@ function EditDishPage() {
                 onClick={() => setShowDeleteModal(true)}
                 title="Supprimer ce plat"
               >
-                🗑️
+                <TrashIcon size={22} color="rgb(220, 57, 41)" />
               </button>
             </header>
 
@@ -450,10 +448,8 @@ function EditDishPage() {
         >
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <h3>Supprimer le plat ?</h3>
-            <p>
-              Voulez-vous vraiment supprimer « {selectedDish?.name} » ? Cette
-              action est irréversible.
-            </p>
+            <p>Voulez-vous vraiment supprimer « {selectedDish?.name} » ?</p>
+            <p>Cette action est irréversible.</p>
             <div className="modal-actions">
               <button
                 className="btn btn-cancel-modal"
