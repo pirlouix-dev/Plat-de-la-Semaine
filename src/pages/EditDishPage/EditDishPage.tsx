@@ -2,25 +2,19 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon, FilterIcon, TrashIcon } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
+import { useToast } from "../../components/toastContext";
+import { useDishes } from "../../hooks/useDishes";
+import type { DishDocType } from "../../db/schemas/dishes";
 import {
   Course,
   Season,
+  COURSE_LABELS,
   MAX_NAME_LENGTH,
   MAX_DESCRIPTION_LENGTH,
 } from "../../types/dish";
 import "./EditDishPage.css";
 
-type DishType = "Entrée" | "Plat" | "Dessert";
-
-interface MockDish {
-  id: string;
-  name: string;
-  dishType: DishType;
-  selectedSeasons: Season[];
-  description: string;
-}
-
-const DISH_TYPES: { label: DishType; icon: string; course: Course }[] = [
+const DISH_TYPES: { label: string; icon: string; course: Course }[] = [
   { label: "Entrée", icon: "🥗", course: Course.Starter },
   { label: "Plat", icon: "🍽️", course: Course.Main },
   { label: "Dessert", icon: "🍰", course: Course.Dessert },
@@ -33,85 +27,34 @@ const SEASONS: { label: string; icon: string; season: Season }[] = [
   { label: "Hiver", icon: "❄️", season: Season.Winter },
 ];
 
-const INITIAL_MOCK_DISHES: MockDish[] = [
-  {
-    id: "1",
-    name: "Colin d'Alaska & riz",
-    dishType: "Plat",
-    selectedSeasons: [
-      Season.Spring,
-      Season.Summer,
-      Season.Autumn,
-      Season.Winter,
-    ],
-    description: "Colin d'Alaska, riz à la vapeur",
-  },
-  {
-    id: "2",
-    name: "Courgette & semoule",
-    dishType: "Plat",
-    selectedSeasons: [
-      Season.Spring,
-      Season.Summer,
-      Season.Autumn,
-      Season.Winter,
-    ],
-    description: "Courgettes poêlées, Semoule, Sauce soja",
-  },
-  {
-    id: "3",
-    name: "Crevettes & riz",
-    dishType: "Plat",
-    selectedSeasons: [Season.Summer, Season.Spring],
-    description: "Crevettes sautées, Riz basmati",
-  },
-  {
-    id: "4",
-    name: "Falafels & semoule",
-    dishType: "Entrée",
-    selectedSeasons: [Season.Autumn, Season.Winter],
-    description: "Falafels de pois chiches, Semoule épicée",
-  },
-  {
-    id: "5",
-    name: "Galettes bretonnes",
-    dishType: "Plat",
-    selectedSeasons: [
-      Season.Spring,
-      Season.Summer,
-      Season.Autumn,
-      Season.Winter,
-    ],
-    description: "Galettes, Beurre, Œufs, Gruyère râpé, Jambon",
-  },
-];
-
 function EditDishPage() {
   const navigate = useNavigate();
-  const [dishes, setDishes] = useState<MockDish[]>(INITIAL_MOCK_DISHES);
+  const { dishes, editDish, removeDish } = useDishes();
+  const { showToast } = useToast();
+
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
 
-  // Recherche et filtres
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filterTypes, setFilterTypes] = useState<DishType[]>([]);
+  const [filterTypes, setFilterTypes] = useState<Course[]>([]);
   const [filterSeasons, setFilterSeasons] = useState<Season[]>([]);
 
-  // Modale de confirmation
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Formulaire d'édition
-  const selectedDish = dishes.find((d) => d.id === selectedDishId) || null;
+  const selectedDish =
+    (dishes.find((d) => d.id === selectedDishId) as DishDocType | undefined) ||
+    null;
   const [name, setName] = useState("");
-  const [dishType, setDishType] = useState<DishType | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
   const [selectedSeasons, setSelectedSeasons] = useState<Season[]>([]);
   const [description, setDescription] = useState("");
 
-  const handleSelectDish = (dish: MockDish) => {
+  const handleSelectDish = (dish: DishDocType) => {
     setSelectedDishId(dish.id);
     setName(dish.name);
-    setDishType(dish.dishType);
-    setSelectedSeasons(dish.selectedSeasons);
+    setCourse(dish.course as Course);
+    setSelectedSeasons(dish.seasons as Season[]);
     setDescription(dish.description);
   };
 
@@ -127,8 +70,7 @@ function EditDishPage() {
     );
   };
 
-  // Toggle filtres multiples
-  const toggleFilterType = (type: DishType) => {
+  const toggleFilterType = (type: Course) => {
     setFilterTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
@@ -144,7 +86,6 @@ function EditDishPage() {
 
   const activeFiltersCount = filterTypes.length + filterSeasons.length;
 
-  // Recherche + Filtrage multiple
   const filteredDishes = dishes.filter((dish) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
@@ -153,43 +94,49 @@ function EditDishPage() {
       dish.description.toLowerCase().includes(q);
 
     const matchesType =
-      filterTypes.length === 0 || filterTypes.includes(dish.dishType);
+      filterTypes.length === 0 || filterTypes.includes(dish.course as Course);
 
     const matchesSeason =
       filterSeasons.length === 0 ||
-      dish.selectedSeasons.some((s) => filterSeasons.includes(s));
+      dish.seasons.some((s) => filterSeasons.includes(s as Season));
 
     return matchesSearch && matchesType && matchesSeason;
   });
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDishId) return;
+    if (!selectedDishId || course === null) return;
 
-    setDishes((prev) =>
-      prev.map((dish) =>
-        dish.id === selectedDishId
-          ? {
-              ...dish,
-              name,
-              dishType: dishType || "Plat",
-              selectedSeasons,
-              description,
-            }
-          : dish,
-      ),
-    );
+    setSaving(true);
+    try {
+      await editDish(selectedDishId, {
+        name,
+        description,
+        course,
+        seasons: selectedSeasons,
+      });
+      showToast("Plat sauvegardé", "success");
+    } catch {
+      showToast("Erreur lors de la sauvegarde", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!selectedDishId) return;
-    setDishes((prev) => prev.filter((d) => d.id !== selectedDishId));
-    setSelectedDishId(null);
-    setShowDeleteModal(false);
+
+    try {
+      await removeDish(selectedDishId);
+      setSelectedDishId(null);
+      setShowDeleteModal(false);
+      showToast("Plat supprimé", "success");
+    } catch {
+      showToast("Erreur lors de la suppression", "error");
+    }
   };
 
-  // Badges des saisons sur la carte
-  const renderSeasonsBadges = (dishSeasons: Season[]) => {
+  const renderSeasonsBadges = (dishSeasons: number[]) => {
     if (dishSeasons.length === SEASONS.length) {
       return <span className="dish-card-season-badge">🗓️ Toutes saisons</span>;
     }
@@ -206,7 +153,7 @@ function EditDishPage() {
   };
 
   const isFormValid =
-    name.trim() !== "" && dishType !== null && selectedSeasons.length > 0;
+    name.trim() !== "" && course !== null && selectedSeasons.length > 0;
 
   return (
     <div
@@ -214,7 +161,6 @@ function EditDishPage() {
         selectedDishId ? "has-selection" : ""
       }`}
     >
-      {/* --- PANNEAU GAUCHE : LISTE & FILTRES (MASTER) --- */}
       <section className="master-panel">
         <header className="panel-header">
           <button
@@ -228,7 +174,6 @@ function EditDishPage() {
           <div className="header-spacer" />
         </header>
 
-        {/* Recherche et bouton Filtres */}
         <div className="search-and-filter-bar">
           <input
             type="text"
@@ -252,19 +197,18 @@ function EditDishPage() {
           </button>
         </div>
 
-        {/* Filtres avancés rétractables */}
         {showFilters && (
           <div className="filters-container">
             <div className="filter-group">
               <div className="filter-row">
-                {DISH_TYPES.map(({ label, icon }) => {
-                  const isSelected = filterTypes.includes(label);
+                {DISH_TYPES.map(({ label, icon, course: c }) => {
+                  const isSelected = filterTypes.includes(c);
                   return (
                     <button
                       key={label}
                       type="button"
                       className={`filter-chip ${isSelected ? "active" : ""}`}
-                      onClick={() => toggleFilterType(label)}
+                      onClick={() => toggleFilterType(c)}
                     >
                       {icon} {label}
                     </button>
@@ -293,11 +237,12 @@ function EditDishPage() {
           </div>
         )}
 
-        {/* Liste scrollable des cartes */}
         <div className="dishes-list">
           {filteredDishes.map((dish) => {
             const isSelected = dish.id === selectedDishId;
-            const typeInfo = DISH_TYPES.find((t) => t.label === dish.dishType);
+            const typeInfo = DISH_TYPES.find(
+              (t) => t.course === (dish.course as Course),
+            );
 
             return (
               <div
@@ -308,12 +253,13 @@ function EditDishPage() {
                 <div className="dish-card-header">
                   <h3 className="dish-card-title">{dish.name}</h3>
                   <span className="dish-card-type-badge">
-                    {typeInfo?.icon} {dish.dishType}
+                    {typeInfo?.icon}{" "}
+                    {COURSE_LABELS[dish.course as keyof typeof COURSE_LABELS]}
                   </span>
                 </div>
 
                 <div className="dish-card-seasons-row">
-                  {renderSeasonsBadges(dish.selectedSeasons)}
+                  {renderSeasonsBadges(dish.seasons)}
                 </div>
 
                 {dish.description && (
@@ -331,7 +277,6 @@ function EditDishPage() {
         </div>
       </section>
 
-      {/* --- PANNEAU DROIT : FORMULAIRE D'ÉDITION (DETAIL) --- */}
       <section className="detail-panel">
         {selectedDish ? (
           <div className="edit-form-wrapper">
@@ -370,13 +315,13 @@ function EditDishPage() {
 
               <div className="form-section-row">
                 <div className="type-segmented-control">
-                  {DISH_TYPES.map(({ label, icon }) => (
+                  {DISH_TYPES.map(({ label, icon, course: c }) => (
                     <button
                       type="button"
                       key={label}
-                      className={`type-option ${dishType === label ? "active" : ""}`}
+                      className={`type-option ${course === c ? "active" : ""}`}
                       onClick={() =>
-                        setDishType((prev) => (prev === label ? null : label))
+                        setCourse((prev) => (prev === c ? null : c))
                       }
                     >
                       <span className="type-icon">{icon}</span>
@@ -421,9 +366,9 @@ function EditDishPage() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={!isFormValid}
+                  disabled={!isFormValid || saving}
                 >
-                  Sauvegarder
+                  {saving ? "Sauvegarde..." : "Sauvegarder"}
                 </button>
               </div>
             </form>
@@ -440,7 +385,6 @@ function EditDishPage() {
         )}
       </section>
 
-      {/* --- MODALE DE CONFIRMATION DE SUPPRESSION --- */}
       {showDeleteModal && (
         <div
           className="modal-overlay"

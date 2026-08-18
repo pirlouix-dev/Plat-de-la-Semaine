@@ -85,7 +85,12 @@ export async function getPendingDishes(
 }
 
 export function observeDishes(db: AppDatabase) {
-  return db.dishes.find({ sort: [{ name: "asc" }] }).$;
+  return db.dishes
+    .find({
+      selector: { isDeleted: false },
+      sort: [{ name: "asc" }],
+    })
+    .$;
 }
 
 export function observeDishById(db: AppDatabase, id: string) {

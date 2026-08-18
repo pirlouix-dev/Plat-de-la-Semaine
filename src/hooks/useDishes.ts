@@ -2,6 +2,8 @@ import { useDatabase } from "../db/DatabaseContext";
 import type { DishDocType } from "../db/schemas/dishes";
 import {
   insertDish,
+  editDish as repoEditDish,
+  softDeleteDish,
   observeDishes,
 } from "../repositories/dishRepository";
 import { useMemo, useState, useEffect } from "react";
@@ -37,5 +39,18 @@ export function useDishes() {
     await insertDish(db, dish);
   }
 
-  return { dishes, addDish };
+  async function editDish(
+    id: string,
+    fields: { name: string; description: string; course: number; seasons: number[] }
+  ): Promise<void> {
+    if (!db) throw new Error("Database not ready");
+    await repoEditDish(db, id, fields);
+  }
+
+  async function removeDish(id: string): Promise<void> {
+    if (!db) throw new Error("Database not ready");
+    await softDeleteDish(db, id);
+  }
+
+  return { dishes, addDish, editDish, removeDish };
 }
