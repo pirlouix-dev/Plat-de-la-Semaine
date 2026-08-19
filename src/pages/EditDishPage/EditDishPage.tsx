@@ -115,7 +115,7 @@ function EditDishPage() {
         course,
         seasons: selectedSeasons,
       });
-      showToast("Plat sauvegardé", "success");
+      showToast("Plat modifié avec succès", "success");
     } catch {
       showToast("Erreur lors de la sauvegarde", "error");
     } finally {

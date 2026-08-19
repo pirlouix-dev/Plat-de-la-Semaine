@@ -20,9 +20,24 @@ function makeDish(overrides: Partial<DishDocType> = {}): DishDocType {
 }
 
 const dishes: DishDocType[] = [
-  makeDish({ id: "d1", name: "Colin d'Alaska & riz", course: 1, seasons: [0, 1, 2, 3] }),
-  makeDish({ id: "d2", name: "Courgette & semoule", course: 1, seasons: [0, 1, 2, 3] }),
-  makeDish({ id: "d3", name: "Falafels & semoule", course: 0, seasons: [2, 3] }),
+  makeDish({
+    id: "d1",
+    name: "Colin d'Alaska & riz",
+    course: 1,
+    seasons: [0, 1, 2, 3],
+  }),
+  makeDish({
+    id: "d2",
+    name: "Courgette & semoule",
+    course: 1,
+    seasons: [0, 1, 2, 3],
+  }),
+  makeDish({
+    id: "d3",
+    name: "Falafels & semoule",
+    course: 0,
+    seasons: [2, 3],
+  }),
   makeDish({ id: "d4", name: "Tarte aux pommes", course: 2, seasons: [2] }),
 ];
 
@@ -71,10 +86,16 @@ describe("EditDishPage", () => {
 
     it("displays course badges for each dish type", () => {
       renderPage();
-      const badges = screen.getAllByText(/Plat/, { selector: ".dish-card-type-badge" });
+      const badges = screen.getAllByText(/Plat/, {
+        selector: ".dish-card-type-badge",
+      });
       expect(badges).toHaveLength(2);
-      expect(screen.getByText(/Entrée/, { selector: ".dish-card-type-badge" })).toBeTruthy();
-      expect(screen.getByText(/Dessert/, { selector: ".dish-card-type-badge" })).toBeTruthy();
+      expect(
+        screen.getByText(/Entrée/, { selector: ".dish-card-type-badge" }),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/Dessert/, { selector: ".dish-card-type-badge" }),
+      ).toBeTruthy();
     });
 
     it("shows 'Toutes saisons' badge when dish has all 4 seasons", () => {
@@ -102,7 +123,8 @@ describe("EditDishPage", () => {
         (screen.getByPlaceholderText("Nom du plat") as HTMLInputElement).value,
       ).toBe("Colin d'Alaska & riz");
       expect(
-        (screen.getByPlaceholderText(/Description/) as HTMLTextAreaElement).value,
+        (screen.getByPlaceholderText(/Description/) as HTMLTextAreaElement)
+          .value,
       ).toBe("Colin d'Alaska, riz à la vapeur");
     });
 
@@ -110,9 +132,7 @@ describe("EditDishPage", () => {
       renderPage();
       fireEvent.click(screen.getByText("Falafels & semoule"));
 
-      const starterBtn = screen
-        .getByText("Entrée")
-        .closest(".type-option");
+      const starterBtn = screen.getByText("Entrée").closest(".type-option");
       expect(starterBtn?.className).toContain("active");
     });
 
@@ -140,7 +160,9 @@ describe("EditDishPage", () => {
       renderPage();
       fireEvent.click(screen.getByTitle("Afficher/masquer les filtres"));
 
-      const filterChips = screen.getAllByText(/Entrée/, { selector: ".filter-chip" });
+      const filterChips = screen.getAllByText(/Entrée/, {
+        selector: ".filter-chip",
+      });
       fireEvent.click(filterChips[0]);
 
       expect(screen.getByText("Falafels & semoule")).toBeTruthy();
@@ -151,7 +173,9 @@ describe("EditDishPage", () => {
       renderPage();
       fireEvent.click(screen.getByTitle("Afficher/masquer les filtres"));
 
-      const filterChips = screen.getAllByText(/Hiver/, { selector: ".filter-chip" });
+      const filterChips = screen.getAllByText(/Hiver/, {
+        selector: ".filter-chip",
+      });
       fireEvent.click(filterChips[0]);
 
       expect(screen.getByText("Colin d'Alaska & riz")).toBeTruthy();
@@ -199,7 +223,7 @@ describe("EditDishPage", () => {
       });
 
       expect(showToastMock).toHaveBeenCalledWith(
-        "Plat sauvegardé",
+        "Plat modifié avec succès",
         "success",
       );
     });
@@ -238,9 +262,7 @@ describe("EditDishPage", () => {
       fireEvent.click(screen.getByTitle("Supprimer ce plat"));
 
       expect(screen.getByText("Supprimer le plat ?")).toBeTruthy();
-      expect(
-        screen.getByText(/Voulez-vous vraiment supprimer/),
-      ).toBeTruthy();
+      expect(screen.getByText(/Voulez-vous vraiment supprimer/)).toBeTruthy();
     });
 
     it("closes modal when cancel is clicked", () => {
@@ -262,10 +284,7 @@ describe("EditDishPage", () => {
       });
 
       expect(removeDishMock).toHaveBeenCalledWith("d1");
-      expect(showToastMock).toHaveBeenCalledWith(
-        "Plat supprimé",
-        "success",
-      );
+      expect(showToastMock).toHaveBeenCalledWith("Plat supprimé", "success");
     });
 
     it("deselects dish after successful delete", async () => {
