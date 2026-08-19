@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { DatabaseProvider, useDatabase } from "./db/DatabaseContext";
 import { useSync } from "./hooks/useSync";
+import { ToastProvider } from "./components/Toast";
 
 import "./App.css";
 import MainMenuPage from "./pages/MainMenuPage/MainMenuPage";
@@ -47,7 +48,9 @@ function AppContent() {
 function App() {
   return (
     <DatabaseProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </DatabaseProvider>
   );
 }

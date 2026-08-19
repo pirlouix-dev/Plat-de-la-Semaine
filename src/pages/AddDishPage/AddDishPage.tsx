@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
+import { useToast } from "../../components/toastContext";
 import { useDishes } from "../../hooks/useDishes";
 import {
   Course,
@@ -79,6 +80,7 @@ function isEmptyDraft(draft: DishDraft): boolean {
 function AddDishPage() {
   const navigate = useNavigate();
   const { addDish } = useDishes();
+  const { showToast } = useToast();
 
   const [initialDraft] = useState(loadDraft);
   const [name, setName] = useState(initialDraft.name);
@@ -129,9 +131,13 @@ function AddDishPage() {
       syncStatus: "pending_create",
     };
 
-    await addDish(dish);
-    localStorage.removeItem(DRAFT_KEY);
-    navigate("/");
+    try {
+      await addDish(dish);
+      localStorage.removeItem(DRAFT_KEY);
+      showToast("Plat ajouté avec succès", "success");
+    } catch {
+      showToast("Erreur lors de la création", "error");
+    }
   };
 
   return (
@@ -209,13 +215,6 @@ function AddDishPage() {
         </div>
 
         <div className="action-buttons">
-          <button
-            type="button"
-            className="btn btn-cancel"
-            onClick={() => navigate("/")}
-          >
-            Quitter
-          </button>
           <button type="submit" className="btn btn-primary" disabled={!isFormValid}>
             Sauvegarder
           </button>

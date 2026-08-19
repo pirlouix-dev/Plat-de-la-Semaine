@@ -3,10 +3,17 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AddDishPage from "../pages/AddDishPage/AddDishPage";
 
-const { addDishMock } = vi.hoisted(() => ({ addDishMock: vi.fn() }));
+const { addDishMock, showToastMock } = vi.hoisted(() => ({
+  addDishMock: vi.fn(),
+  showToastMock: vi.fn(),
+}));
 
 vi.mock("../hooks/useDishes", () => ({
   useDishes: () => ({ addDish: addDishMock, dishes: [] }),
+}));
+
+vi.mock("../components/toastContext", () => ({
+  useToast: () => ({ showToast: showToastMock }),
 }));
 
 const DRAFT_KEY = "add-dish-draft";
@@ -30,6 +37,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   localStorage.clear();
   addDishMock.mockReset();
+  showToastMock.mockReset();
 });
 
 afterEach(() => {
@@ -146,5 +154,45 @@ describe("AddDishPage draft persistence", () => {
 
     expect(addDishMock).toHaveBeenCalledTimes(1);
     expect(getDraft()).toBeNull();
+  });
+
+  it("shows success toast on successful save", async () => {
+    addDishMock.mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Lasagnes" },
+    });
+    fireEvent.click(screen.getByText("Plat"));
+    fireEvent.click(screen.getByText("Automne"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Sauvegarder"));
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(
+      "Plat ajouté avec succès",
+      "success",
+    );
+  });
+
+  it("shows error toast when addDish throws", async () => {
+    addDishMock.mockRejectedValue(new Error("fail"));
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Lasagnes" },
+    });
+    fireEvent.click(screen.getByText("Plat"));
+    fireEvent.click(screen.getByText("Automne"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Sauvegarder"));
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(
+      "Erreur lors de la création",
+      "error",
+    );
   });
 });
