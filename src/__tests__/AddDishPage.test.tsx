@@ -3,10 +3,17 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AddDishPage from "../pages/AddDishPage/AddDishPage";
 
-const { addDishMock } = vi.hoisted(() => ({ addDishMock: vi.fn() }));
+const { addDishMock, showToastMock } = vi.hoisted(() => ({
+  addDishMock: vi.fn(),
+  showToastMock: vi.fn(),
+}));
 
 vi.mock("../hooks/useDishes", () => ({
   useDishes: () => ({ addDish: addDishMock, dishes: [] }),
+}));
+
+vi.mock("../components/toastContext", () => ({
+  useToast: () => ({ showToast: showToastMock }),
 }));
 
 const DRAFT_KEY = "add-dish-draft";
@@ -30,6 +37,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   localStorage.clear();
   addDishMock.mockReset();
+  showToastMock.mockReset();
 });
 
 afterEach(() => {
