@@ -155,4 +155,44 @@ describe("AddDishPage draft persistence", () => {
     expect(addDishMock).toHaveBeenCalledTimes(1);
     expect(getDraft()).toBeNull();
   });
+
+  it("shows success toast on successful save", async () => {
+    addDishMock.mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Lasagnes" },
+    });
+    fireEvent.click(screen.getByText("Plat"));
+    fireEvent.click(screen.getByText("Automne"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Sauvegarder"));
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(
+      "Plat ajouté avec succès",
+      "success",
+    );
+  });
+
+  it("shows error toast when addDish throws", async () => {
+    addDishMock.mockRejectedValue(new Error("fail"));
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Lasagnes" },
+    });
+    fireEvent.click(screen.getByText("Plat"));
+    fireEvent.click(screen.getByText("Automne"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Sauvegarder"));
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(
+      "Erreur lors de la création",
+      "error",
+    );
+  });
 });
