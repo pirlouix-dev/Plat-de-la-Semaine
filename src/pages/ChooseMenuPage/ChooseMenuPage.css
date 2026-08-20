@@ -1,0 +1,427 @@
+/* Container Général */
+.choose-menu-container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: min(24px, 3svh) min(20px, 4vw);
+  padding-bottom: 90px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  color: #ffffff;
+}
+
+.icon-header-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.icon-header-btn:hover {
+  background: rgba(255, 82, 82, 0.2);
+  border-color: rgba(255, 82, 82, 0.4);
+  transform: scale(1.05);
+}
+
+/* Compteurs mobiles */
+.counters-bar-mobile {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  justify-content: space-between;
+}
+
+.counter-chip {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 8px 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ffffff;
+}
+
+/* Grille 2 colonnes (Édition) */
+.choose-menu-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 800px) {
+  .choose-menu-container {
+    padding-bottom: min(24px, 3svh);
+  }
+
+  .counters-bar-mobile {
+    display: none;
+  }
+
+  .choose-menu-layout {
+    grid-template-columns: 1fr 280px;
+  }
+}
+
+/* Cartes de plats */
+.dish-card {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.22s ease;
+  box-sizing: border-box;
+}
+
+.active-card {
+  border: 2px solid #1d61e7;
+}
+
+@keyframes card-accept {
+  to {
+    transform: translateY(40px) scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes card-reject {
+  to {
+    transform: translateX(-80px) rotate(-4deg);
+    opacity: 0;
+  }
+}
+
+.active-card.anim-accept {
+  animation: card-accept 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.active-card.anim-reject {
+  animation: card-reject 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.type-badge {
+  font-size: 13px;
+  font-weight: 600;
+  background: #f0f2f5;
+  color: #333333;
+  padding: 4px 10px;
+  border-radius: 10px;
+}
+
+.seasons-badges {
+  display: flex;
+  gap: 4px;
+}
+
+.season-mini-tag {
+  font-size: 14px;
+}
+
+.dish-name {
+  font-size: clamp(18px, 2.5svh, 22px);
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: #1a1a1a;
+}
+
+.dish-description {
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Boutons de décision */
+.card-decision-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.decision-btn {
+  flex: 1;
+  height: 48px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.15s ease,
+    background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.decision-btn:active {
+  transform: scale(0.97);
+}
+
+.btn-reject {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-reject:hover {
+  background-color: #fca5a5;
+}
+
+.btn-accept {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.btn-accept:hover {
+  background-color: #86efac;
+}
+
+/* Plats sélectionnés (Mode Édition) */
+.selected-dishes-section {
+  margin-top: 24px;
+}
+
+.selected-dishes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.selected-card {
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.empty-queue-card,
+.empty-selected-placeholder {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  padding: 24px;
+  text-align: center;
+  color: #8e8e93;
+  font-size: 14px;
+}
+
+/* Sidebar Desktop */
+.menu-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 14px 0;
+  color: #ffffff;
+}
+
+.counters-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.counters-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* MODE RÉCAPITULATIF */
+.recap-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.recap-status-banner {
+  background: rgba(29, 97, 231, 0.15);
+  border: 1px solid rgba(29, 97, 231, 0.4);
+  border-radius: 18px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.status-badge {
+  font-size: 14px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.recap-status-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+.recap-dishes-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.category-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 12px 4px;
+}
+
+.category-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.recap-card {
+  padding: 16px;
+}
+
+.recap-bottom-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.recap-bottom-actions .btn {
+  flex: 1;
+}
+
+/* Modale de réinitialisation */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+}
+
+.modal-card {
+  background: #242426;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 22px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  color: #ffffff;
+}
+
+.modal-text {
+  font-size: 14px;
+  color: #a0a5b1;
+  margin: 0 0 20px 0;
+  line-height: 1.4;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+/* Boutons secondaires / Danger */
+.btn-danger {
+  background-color: #dc2626;
+  color: #ffffff;
+  border: 1px solid #b91c1c;
+}
+
+.btn-danger:hover {
+  background-color: #ef4444;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  color: #f87171;
+}
+
+.btn-danger-outline:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* Fixed Mobile Bottom Bar */
+.mobile-bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1a1a1a;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 20px max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 12px;
+  z-index: 100;
+}
+
+.mobile-bottom-actions .btn {
+  flex: 1;
+}
+
+@media (min-width: 800px) {
+  .mobile-bottom-actions {
+    display: none;
+  }
+}
