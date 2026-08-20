@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BackArrowIcon } from "../../components/Icons";
+import { BackArrowIcon, TrashIcon } from "../../components/Icons";
 import { Course, Season } from "../../types/dish";
 import "./ChooseMenuPage.css";
 
@@ -195,33 +195,17 @@ export function ChooseMenuPage() {
         </h1>
         {selectedDishes.length > 0 || history.length > 0 ? (
           <button
-            className="icon-header-btn"
+            className="icon-delete-btn"
             onClick={() => setShowResetModal(true)}
             title="Réinitialiser"
             aria-label="Réinitialiser le menu"
           >
-            🗑️
+            <TrashIcon size={22} color="rgb(220, 57, 41)" />
           </button>
         ) : (
           <div className="header-spacer" />
         )}
       </header>
-
-      {/* Résumé compact des compteurs (Mobile) */}
-      <div className="counters-bar-mobile">
-        <div className="counter-chip">
-          <span>🥗</span> <strong>{counts.starters}</strong> Entrée
-          {counts.starters > 1 ? "s" : ""}
-        </div>
-        <div className="counter-chip">
-          <span>🍽️</span> <strong>{counts.mains}</strong> Plat
-          {counts.mains > 1 ? "s" : ""}
-        </div>
-        <div className="counter-chip">
-          <span>🍰</span> <strong>{counts.desserts}</strong> Dessert
-          {counts.desserts > 1 ? "s" : ""}
-        </div>
-      </div>
 
       {/* MODE ÉDITION */}
       {mode === "editing" && (
@@ -263,16 +247,10 @@ export function ChooseMenuPage() {
                   )}
 
                   <div className="card-decision-actions">
-                    <button
-                      className="decision-btn btn-reject"
-                      onClick={handleReject}
-                    >
+                    <button className="btn btn-danger" onClick={handleReject}>
                       ✕ Refuser
                     </button>
-                    <button
-                      className="decision-btn btn-accept"
-                      onClick={handleAccept}
-                    >
+                    <button className="btn btn-success" onClick={handleAccept}>
                       ✓ Accepter
                     </button>
                   </div>
@@ -337,7 +315,7 @@ export function ChooseMenuPage() {
 
             <div className="sidebar-actions">
               <button
-                className="btn btn-secondary"
+                className="btn btn-revert"
                 onClick={handleUndo}
                 disabled={history.length === 0}
               >
@@ -394,38 +372,18 @@ export function ChooseMenuPage() {
           {/* Barre d'action fixe ou latérale du mode récapitulatif */}
           <div className="recap-bottom-actions">
             <button
-              className="btn btn-secondary"
+              className="btn btn-primary"
               onClick={() => setMode("editing")}
             >
-              ✏️ Modifier le menu
+              Modifier le menu
             </button>
             <button
-              className="btn btn-danger-outline"
+              className="btn btn-danger"
               onClick={() => setShowResetModal(true)}
             >
-              🗑️ Réinitialiser
+              Réinitialiser
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Barre fixe mobile (en mode édition) */}
-      {mode === "editing" && (
-        <div className="mobile-bottom-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={handleUndo}
-            disabled={history.length === 0}
-          >
-            Annuler
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => setMode("recap")}
-            disabled={selectedDishes.length === 0}
-          >
-            Terminer ({counts.total})
-          </button>
         </div>
       )}
 
@@ -440,7 +398,7 @@ export function ChooseMenuPage() {
             </p>
             <div className="modal-actions">
               <button
-                className="btn btn-secondary"
+                className="btn btn-revert"
                 onClick={() => setShowResetModal(false)}
               >
                 Annuler

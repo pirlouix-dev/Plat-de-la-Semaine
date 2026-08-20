@@ -11,35 +11,8 @@
   color: #ffffff;
 }
 
-.icon-header-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-
-.icon-header-btn:hover {
-  background: rgba(255, 82, 82, 0.2);
-  border-color: rgba(255, 82, 82, 0.4);
-  transform: scale(1.05);
-}
-
-/* Compteurs mobiles */
-.counters-bar-mobile {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  justify-content: space-between;
+.section-subtitle {
+  margin-bottom: 12px;
 }
 
 .counter-chip {
@@ -66,10 +39,6 @@
 @media (min-width: 800px) {
   .choose-menu-container {
     padding-bottom: min(24px, 3svh);
-  }
-
-  .counters-bar-mobile {
-    display: none;
   }
 
   .choose-menu-layout {
@@ -165,41 +134,40 @@
 
 .decision-btn {
   flex: 1;
-  height: 48px;
+  height: min(52px, 7svh);
+  min-height: 48px;
   border: none;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 700;
+  border-radius: 16px;
+  font-size: clamp(14px, 2.2svh, 16px);
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition:
-    transform 0.15s ease,
-    background-color 0.2s ease;
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   -webkit-tap-highlight-color: transparent;
 }
 
-.decision-btn:active {
-  transform: scale(0.97);
-}
-
 .btn-reject {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: #dc2626;
+  color: #ffffff;
+  border: 2px solid #b91c1c;
 }
 
 .btn-reject:hover {
-  background-color: #fca5a5;
+  background-color: #ef4444;
 }
 
 .btn-accept {
-  background-color: #dcfce7;
-  color: #16a34a;
+  background-color: #16a34a;
+  color: #ffffff;
+  border: 2px solid #15803d;
 }
 
 .btn-accept:hover {
-  background-color: #86efac;
+  background-color: #22c55e;
 }
 
 /* Plats sélectionnés (Mode Édition) */
@@ -382,46 +350,38 @@
 }
 
 /* Boutons secondaires / Danger */
+.btn-revert {
+  background-color: rgb(96, 96, 96);
+  color: #ffffff;
+  border: 2px solid rgb(60, 60, 60);
+}
+
+.btn-revert:hover {
+  background-color: rgb(105, 105, 105);
+}
+
+.btn-revert:disabled {
+  background: rgb(141, 141, 141);
+  border: 2px solid rgb(128, 128, 128);
+  cursor: not-allowed;
+}
+
 .btn-danger {
   background-color: #dc2626;
   color: #ffffff;
-  border: 1px solid #b91c1c;
+  border: 2px solid #b91c1c;
 }
 
 .btn-danger:hover {
-  background-color: #ef4444;
+  background-color: #e32f2f;
 }
 
-.btn-danger-outline {
-  background: transparent;
-  border: 1px solid rgba(220, 38, 38, 0.5);
-  color: #f87171;
+.btn-success {
+  background-color: #16a34a;
+  color: #ffffff;
+  border: 2px solid #15803d;
 }
 
-.btn-danger-outline:hover {
-  background: rgba(220, 38, 38, 0.1);
-}
-
-/* Fixed Mobile Bottom Bar */
-.mobile-bottom-actions {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #1a1a1a;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 20px max(12px, env(safe-area-inset-bottom));
-  display: flex;
-  gap: 12px;
-  z-index: 100;
-}
-
-.mobile-bottom-actions .btn {
-  flex: 1;
-}
-
-@media (min-width: 800px) {
-  .mobile-bottom-actions {
-    display: none;
-  }
+.btn-success:hover {
+  background-color: #22c55e;
 }
