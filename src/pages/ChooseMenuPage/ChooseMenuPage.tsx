@@ -114,6 +114,9 @@ export function ChooseMenuPage() {
     "accept" | "reject" | "accept-undo" | "reject-undo" | null
   >(null);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [expandedDishIds, setExpandedDishIds] = useState<
+    Record<string, boolean>
+  >({});
 
   const currentDish = queue[0] || null;
 
@@ -134,6 +137,39 @@ export function ChooseMenuPage() {
     mains: selectedDishes.filter((d) => d.course === Course.Main).length,
     desserts: selectedDishes.filter((d) => d.course === Course.Dessert).length,
     total: selectedDishes.length,
+  };
+
+  const toggleExpand = (dishId: string) => {
+    setExpandedDishIds((prev) => ({
+      ...prev,
+      [dishId]: !prev[dishId],
+    }));
+  };
+
+  const renderDescription = (dish: DishPlaceholder) => {
+    if (!dish.description) return null;
+    const isExpanded = !!expandedDishIds[dish.id];
+    const isLong = dish.description.length > 90;
+
+    return (
+      <div className="description-wrapper">
+        <p className={`dish-description ${isExpanded ? "expanded" : ""}`}>
+          {dish.description}
+        </p>
+        {isLong && (
+          <button
+            type="button"
+            className="see-more-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpand(dish.id);
+            }}
+          >
+            {isExpanded ? "Voir moins" : "Voir plus"}
+          </button>
+        )}
+      </div>
+    );
   };
 
   // Actions d'édition
@@ -181,6 +217,7 @@ export function ChooseMenuPage() {
     setHistory([]);
     setMode("editing");
     setShowResetModal(false);
+    setExpandedDishIds({});
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -245,11 +282,7 @@ export function ChooseMenuPage() {
                   </div>
 
                   <h3 className="dish-name">{currentDish.name}</h3>
-                  {currentDish.description && (
-                    <p className="dish-description">
-                      {currentDish.description}
-                    </p>
-                  )}
+                  {renderDescription(currentDish)}
 
                   <div className="card-decision-actions">
                     <button className="btn btn-refuse" onClick={handleReject}>
@@ -288,9 +321,7 @@ export function ChooseMenuPage() {
                           {DISH_TYPE_INFO[dish.course].label}
                         </span>
                       </div>
-                      {dish.description && (
-                        <p className="dish-description">{dish.description}</p>
-                      )}
+                      {renderDescription(dish)}
                     </div>
                   ))}
                 </div>
@@ -363,9 +394,7 @@ export function ChooseMenuPage() {
                     {courseDishes.map((dish) => (
                       <div key={dish.id} className="dish-card recap-card">
                         <h4 className="dish-name">{dish.name}</h4>
-                        {dish.description && (
-                          <p className="dish-description">{dish.description}</p>
-                        )}
+                        {renderDescription(dish)}
                       </div>
                     ))}
                   </div>

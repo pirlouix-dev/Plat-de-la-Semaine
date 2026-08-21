@@ -237,11 +237,10 @@
 }
 
 .btn-primary:disabled {
-  background: rgb(141, 141, 141);
-  border: 2px solid rgb(128, 128, 128);
+  background-color: rgb(141, 141, 141);
+  border: 2px solid rgb(100, 100, 100);
   cursor: not-allowed;
 }
-
 
 @media (max-width: 800px) {
   .dish-form {

@@ -149,6 +149,11 @@
   color: #1a1a1a;
 }
 
+.description-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 .dish-description {
   font-size: 14px;
   color: #666666;
@@ -171,6 +176,28 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.dish-description.expanded {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+}
+
+.see-more-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.see-more-btn:hover {
+  text-decoration: underline;
 }
 
 /* Boutons de décision */
@@ -409,8 +436,8 @@
 }
 
 .btn-revert:disabled {
-  background: rgb(141, 141, 141);
-  border: 2px solid rgb(128, 128, 128);
+  background-color: rgb(141, 141, 141);
+  border: 2px solid rgb(100, 100, 100);
   cursor: not-allowed;
 }
 
