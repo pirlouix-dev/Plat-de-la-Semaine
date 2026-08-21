@@ -146,6 +146,18 @@ export function ChooseMenuPage() {
     }));
   };
 
+  const renderSeasonsBadges = (dishSeasons: Season[]) => {
+    if (dishSeasons.length === Object.keys(SEASON_INFO).length) {
+      return <span className="season-mini-tag">🗓️ Toutes saisons</span>;
+    }
+
+    return dishSeasons.map((s) => (
+      <span key={s} className="season-mini-tag">
+        {SEASON_INFO[s].icon} {SEASON_INFO[s].label}
+      </span>
+    ));
+  };
+
   const renderDescription = (dish: DishPlaceholder) => {
     if (!dish.description) return null;
     const isExpanded = !!expandedDishIds[dish.id];
@@ -264,24 +276,17 @@ export function ChooseMenuPage() {
                   }`}
                 >
                   <div className="card-header-row">
+                    <h3 className="dish-name">{currentDish.name}</h3>
                     <span className="type-badge">
                       {DISH_TYPE_INFO[currentDish.course].icon}{" "}
                       {DISH_TYPE_INFO[currentDish.course].label}
                     </span>
-                    <div className="seasons-badges">
-                      {currentDish.seasons.map((s) => (
-                        <span
-                          key={s}
-                          className="season-mini-tag"
-                          title={SEASON_INFO[s].label}
-                        >
-                          {SEASON_INFO[s].icon}
-                        </span>
-                      ))}
-                    </div>
                   </div>
 
-                  <h3 className="dish-name">{currentDish.name}</h3>
+                  <div className="seasons-badges">
+                    {renderSeasonsBadges(currentDish.seasons)}
+                  </div>
+
                   {renderDescription(currentDish)}
 
                   <div className="card-decision-actions">
@@ -320,6 +325,9 @@ export function ChooseMenuPage() {
                           {DISH_TYPE_INFO[dish.course].icon}{" "}
                           {DISH_TYPE_INFO[dish.course].label}
                         </span>
+                      </div>
+                      <div className="seasons-badges">
+                        {renderSeasonsBadges(dish.seasons)}
                       </div>
                       {renderDescription(dish)}
                     </div>
@@ -373,8 +381,8 @@ export function ChooseMenuPage() {
       {mode === "recap" && (
         <div className="recap-layout">
           <div className="recap-status-banner">
-            <span className="status-badge">🔒 Menu verrouillé</span>
-            <p>Votre menu est sauvegardé. Idéal pour préparer vos repas !</p>
+            <span className="status-badge">🔒 Menus verrouillés</span>
+            <p>Vos menus sont sauvegardés. Idéal pour préparer vos repas !</p>
           </div>
 
           <div className="recap-dishes-grid">

@@ -121,7 +121,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .type-badge {
@@ -135,11 +135,23 @@
 
 .seasons-badges {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+  margin-bottom: 6px;
 }
 
 .season-mini-tag {
-  font-size: 14px;
+  font-size: 12px;
+  background: #f0f4ff;
+  color: #1d61e7;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.card-header-row .dish-name {
+  margin: 0;
 }
 
 .dish-name {
