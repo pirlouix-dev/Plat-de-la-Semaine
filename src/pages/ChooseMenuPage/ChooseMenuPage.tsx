@@ -169,7 +169,9 @@ export function ChooseMenuPage() {
       );
     }
     setQueue((prev) => [lastItem.dish, ...prev]);
-    setCardAnimation(lastItem.action === "accept" ? "accept-undo" : "reject-undo");
+    setCardAnimation(
+      lastItem.action === "accept" ? "accept-undo" : "reject-undo",
+    );
     setTimeout(() => setCardAnimation(null), 220);
   };
 
@@ -250,10 +252,10 @@ export function ChooseMenuPage() {
                   )}
 
                   <div className="card-decision-actions">
-                    <button className="btn btn-danger" onClick={handleReject}>
+                    <button className="btn btn-refuse" onClick={handleReject}>
                       ✕ Refuser
                     </button>
-                    <button className="btn btn-success" onClick={handleAccept}>
+                    <button className="btn btn-accept" onClick={handleAccept}>
                       ✓ Accepter
                     </button>
                   </div>

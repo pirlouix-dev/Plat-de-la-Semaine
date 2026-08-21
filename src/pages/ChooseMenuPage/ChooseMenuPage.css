@@ -424,12 +424,22 @@
   background-color: #e32f2f;
 }
 
-.btn-success {
-  background-color: #16a34a;
+.btn-refuse {
+  background-color: #dc2626;
   color: #ffffff;
-  border: 2px solid #15803d;
+  border: 2px solid #b91c1c;
 }
 
-.btn-success:hover {
-  background-color: #22c55e;
+.btn-refuse:hover {
+  background-color: #e92b2b;
+}
+
+.btn-accept {
+  background-color: #16a34a;
+  color: #ffffff;
+  border: 2px solid #158e41;
+}
+
+.btn-accept:hover {
+  background-color: #21ab54;
 }
