@@ -19,7 +19,7 @@ function makeDish(overrides: Partial<DishDocType> = {}): DishDocType {
   };
 }
 
-const dishes: DishDocType[] = [
+const defaultDishes: DishDocType[] = [
   makeDish({
     id: "d1",
     name: "Colin d'Alaska & riz",
@@ -40,6 +40,8 @@ const dishes: DishDocType[] = [
   }),
   makeDish({ id: "d4", name: "Tarte aux pommes", course: 2, seasons: [2] }),
 ];
+
+let dishes: DishDocType[] = defaultDishes;
 
 const { editDishMock, removeDishMock, showToastMock } = vi.hoisted(() => ({
   editDishMock: vi.fn(),
@@ -70,6 +72,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  dishes = defaultDishes;
   editDishMock.mockResolvedValue(undefined);
   removeDishMock.mockResolvedValue(undefined);
 });
@@ -190,6 +193,48 @@ describe("EditDishPage", () => {
       expect(
         screen.getByText("Aucun plat ne correspond à vos critères."),
       ).toBeTruthy();
+    });
+  });
+
+  describe("description see more", () => {
+    const longDescription =
+      "Ingrédients : Pommes, pâte brisée, sucre, vanille, cannelle, jus de citron, compote maison et quelques conseils de préparation supplémentaires.";
+
+    function renderWithLongDish() {
+      dishes = [
+        ...defaultDishes,
+        makeDish({
+          id: "d5",
+          name: "Gigot & haricots",
+          description: longDescription,
+        }),
+      ];
+      renderPage();
+    }
+
+    it("shows the toggle only for long descriptions", () => {
+      renderWithLongDish();
+
+      expect(screen.getByText("Voir plus")).toBeTruthy();
+      expect(screen.queryByText("Voir moins")).toBeNull();
+    });
+
+    it("toggles between Voir plus and Voir moins", () => {
+      renderWithLongDish();
+
+      fireEvent.click(screen.getByText("Voir plus"));
+      expect(screen.getByText("Voir moins")).toBeTruthy();
+
+      fireEvent.click(screen.getByText("Voir moins"));
+      expect(screen.getByText("Voir plus")).toBeTruthy();
+    });
+
+    it("does not select the dish when toggling expansion", () => {
+      renderWithLongDish();
+
+      fireEvent.click(screen.getByText("Voir plus"));
+
+      expect(screen.queryByText(/Édition :/)).toBeNull();
     });
   });
 

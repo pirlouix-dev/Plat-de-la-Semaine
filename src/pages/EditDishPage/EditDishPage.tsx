@@ -41,6 +41,9 @@ function EditDishPage() {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expandedDishIds, setExpandedDishIds] = useState<
+    Record<string, boolean>
+  >({});
 
   const selectedDish =
     (dishes.find((d) => d.id === selectedDishId) as DishDocType | undefined) ||
@@ -60,6 +63,13 @@ function EditDishPage() {
 
   const handleDeselectDish = () => {
     setSelectedDishId(null);
+  };
+
+  const toggleExpand = (dishId: string) => {
+    setExpandedDishIds((prev) => ({
+      ...prev,
+      [dishId]: !prev[dishId],
+    }));
   };
 
   const toggleSeason = (season: Season) => {
@@ -263,7 +273,27 @@ function EditDishPage() {
                 </div>
 
                 {dish.description && (
-                  <p className="dish-card-desc">{dish.description}</p>
+                  <div className="description-wrapper">
+                    <p
+                      className={`dish-card-desc ${
+                        expandedDishIds[dish.id] ? "expanded" : ""
+                      }`}
+                    >
+                      {dish.description}
+                    </p>
+                    {dish.description.length > 90 && (
+                      <button
+                        type="button"
+                        className="see-more-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(dish.id);
+                        }}
+                      >
+                        {expandedDishIds[dish.id] ? "Voir moins" : "Voir plus"}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );

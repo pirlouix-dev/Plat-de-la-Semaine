@@ -296,6 +296,33 @@
   word-break: break-word;
 }
 
+.dish-card-desc.expanded {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+}
+
+.description-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.see-more-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.see-more-btn:hover {
+  text-decoration: underline;
+}
+
 .empty-search-state {
   text-align: center;
   color: #9ca3af;
