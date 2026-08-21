@@ -1,18 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon, TrashIcon } from "../../components/Icons";
-import { Course, Season } from "../../types/dish";
+import {
+  Course,
+  Season,
+  getCurrentSeason,
+  isValidCourse,
+  isValidSeason,
+} from "../../types/dish";
+import type { DishDocType } from "../../db/schemas/dishes";
+import { useDishes } from "../../hooks/useDishes";
+import { shuffle } from "../../utils/shuffle";
 import "./ChooseMenuPage.css";
 
-interface DishPlaceholder {
-  id: string;
-  name: string;
-  course: Course;
-  seasons: Season[];
-  description: string;
-}
-
 type ViewMode = "editing" | "recap";
+
+type HistoryAction = { action: "accept" | "reject"; dishId: string };
 
 const DISH_TYPE_INFO: Record<Course, { label: string; icon: string }> = {
   [Course.Starter]: { label: "Entrée", icon: "🥗" },
@@ -27,88 +30,97 @@ const SEASON_INFO: Record<Season, { label: string; icon: string }> = {
   [Season.Winter]: { label: "Hiver", icon: "❄️" },
 };
 
-const INITIAL_QUEUE: DishPlaceholder[] = [
-  {
-    id: "1",
-    name: "Taboulé & œufs durs",
-    course: Course.Main,
-    seasons: [Season.Spring, Season.Summer],
-    description: "Ingrédients : Taboulé, 2 Œufs durs",
-  },
-  {
-    id: "2",
-    name: "Crevettes & riz",
-    course: Course.Main,
-    seasons: [Season.Spring, Season.Summer, Season.Autumn, Season.Winter],
-    description: "Ingrédients : Crevettes, Riz, Sauce soja",
-  },
-  {
-    id: "3",
-    name: "Petits pois, carottes et lardon",
-    course: Course.Main,
-    seasons: [Season.Autumn, Season.Winter],
-    description: "Ingrédients : Petits pois, carottes, lardons, oignons",
-  },
-  {
-    id: "4",
-    name: "Salade de tomates & mozzarella",
-    course: Course.Starter,
-    seasons: [Season.Summer],
-    description:
-      "Ingrédients : Tomates fraîches, Mozzarella di Bufala, Basilic",
-  },
-  {
-    id: "5",
-    name: "Tarte aux pommes",
-    course: Course.Dessert,
-    seasons: [Season.Autumn, Season.Winter],
-    description:
-      "Ingrédients : Pommes,VERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTION VERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTION VERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTION",
-  },
-];
-
-const STORAGE_KEY = "pdls_choose_menu_state_v1";
+const STORAGE_KEY = "pdls_choose_menu_state_v2";
 
 interface SavedMenuState {
-  queue: DishPlaceholder[];
-  selectedDishes: DishPlaceholder[];
-  history: { action: "accept" | "reject"; dish: DishPlaceholder }[];
+  queueIds: string[];
+  selectedIds: string[];
+  history: HistoryAction[];
   mode: ViewMode;
 }
 
-function loadSavedState(): SavedMenuState {
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : [];
+}
+
+function loadSavedState(): SavedMenuState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw)
-      return {
-        queue: INITIAL_QUEUE,
-        selectedDishes: [],
-        history: [],
-        mode: "editing",
-      };
-    return JSON.parse(raw) as SavedMenuState;
-  } catch {
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedMenuState>;
+    if (!Array.isArray(parsed.queueIds)) return null;
+    const history = Array.isArray(parsed.history)
+      ? parsed.history.filter(
+          (h): h is HistoryAction =>
+            !!h &&
+            typeof h === "object" &&
+            (h.action === "accept" || h.action === "reject") &&
+            typeof h.dishId === "string",
+        )
+      : [];
     return {
-      queue: INITIAL_QUEUE,
-      selectedDishes: [],
-      history: [],
-      mode: "editing",
+      queueIds: toStringArray(parsed.queueIds),
+      selectedIds: toStringArray(parsed.selectedIds),
+      history,
+      mode: parsed.mode === "recap" ? "recap" : "editing",
     };
+  } catch {
+    return null;
   }
+}
+
+/** Dishes whose course/seasons values are renderable. */
+function isRenderableDish(dish: DishDocType): boolean {
+  return (
+    isValidCourse(dish.course) &&
+    dish.seasons.every((s) => isValidSeason(s as Season))
+  );
+}
+
+function isInSeason(dish: DishDocType, season: Season): boolean {
+  return dish.seasons.includes(season);
+}
+
+interface SessionState {
+  queueIds: string[];
+  selectedIds: string[];
+  history: HistoryAction[];
+}
+
+// Identités stables pour les états dérivés avant chargement des données
+const NO_IDS: string[] = [];
+const NO_HISTORY: HistoryAction[] = [];
+
+/** Nouvelle file : plats de saison, ordre aléatoire. */
+function buildFreshQueue(dishes: DishDocType[]): string[] {
+  const season = getCurrentSeason();
+  return shuffle(
+    dishes.filter((d) => isRenderableDish(d) && isInSeason(d, season)),
+  ).map((d) => d.id);
+}
+
+/** Reprise d'une session sauvegardée : les plats supprimés sont ignorés. */
+function resolveSavedSession(
+  saved: SavedMenuState,
+  dishMap: Map<string, DishDocType>,
+): SessionState {
+  return {
+    queueIds: saved.queueIds.filter((id) => dishMap.has(id)),
+    selectedIds: saved.selectedIds.filter((id) => dishMap.has(id)),
+    // L'historique est conservé tel quel : les entrées dont le plat a été
+    // supprimé seront simplement ignorées lors d'un "Annuler".
+    history: saved.history,
+  };
 }
 
 export function ChooseMenuPage() {
   const navigate = useNavigate();
+  const { dishes, isLoaded } = useDishes();
 
-  const [initialState] = useState(loadSavedState);
-  const [queue, setQueue] = useState<DishPlaceholder[]>(initialState.queue);
-  const [selectedDishes, setSelectedDishes] = useState<DishPlaceholder[]>(
-    initialState.selectedDishes,
-  );
-  const [history, setHistory] = useState<
-    { action: "accept" | "reject"; dish: DishPlaceholder }[]
-  >(initialState.history);
-  const [mode, setMode] = useState<ViewMode>(initialState.mode);
+  const [initialSaved] = useState(loadSavedState);
+  const [mode, setMode] = useState<ViewMode>(initialSaved?.mode ?? "editing");
 
   const [cardAnimation, setCardAnimation] = useState<
     "accept" | "reject" | "accept-undo" | "reject-undo" | null
@@ -118,18 +130,63 @@ export function ChooseMenuPage() {
     Record<string, boolean>
   >({});
 
-  const currentDish = queue[0] || null;
+  // Plats affichables (ignore les documents corrompus)
+  const dishMap = useMemo(() => {
+    const map = new Map<string, DishDocType>();
+    for (const dish of dishes) {
+      if (isRenderableDish(dish)) map.set(dish.id, dish);
+    }
+    return map;
+  }, [dishes]);
 
-  // Persistance automatique
+  // Session courante : dérivée des données jusqu'à la première interaction,
+  // puis figée dans l'état pour ne pas être perturbée par les changements
+  // de la base (sync, ajout/suppression de plats).
+  const resolvedSession = useMemo(() => {
+    if (!isLoaded) return null;
+    return initialSaved
+      ? resolveSavedSession(initialSaved, dishMap)
+      : { queueIds: buildFreshQueue(dishes), selectedIds: [], history: [] };
+  }, [isLoaded, initialSaved, dishMap, dishes]);
+
+  const [sessionOverride, setSessionOverride] = useState<SessionState | null>(
+    null,
+  );
+  const session = sessionOverride ?? resolvedSession;
+
+  const queueIds = session?.queueIds ?? NO_IDS;
+  const selectedIds = session?.selectedIds ?? NO_IDS;
+  const history = session?.history ?? NO_HISTORY;
+
+  // Persistance automatique (une fois les données chargées)
   useEffect(() => {
+    if (!session) return;
     const stateToSave: SavedMenuState = {
-      queue,
-      selectedDishes,
+      queueIds,
+      selectedIds,
       history,
       mode,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-  }, [queue, selectedDishes, history, mode]);
+  }, [session, mode, queueIds, selectedIds, history]);
+
+  // Résolution des ids vers les documents à jour
+  const queue = useMemo(
+    () =>
+      queueIds
+        .map((id) => dishMap.get(id))
+        .filter((d): d is DishDocType => !!d),
+    [queueIds, dishMap],
+  );
+  const selectedDishes = useMemo(
+    () =>
+      selectedIds
+        .map((id) => dishMap.get(id))
+        .filter((d): d is DishDocType => !!d),
+    [selectedIds, dishMap],
+  );
+
+  const currentDish = queue[0] || null;
 
   // Compteurs
   const counts = {
@@ -158,7 +215,7 @@ export function ChooseMenuPage() {
     ));
   };
 
-  const renderDescription = (dish: DishPlaceholder) => {
+  const renderDescription = (dish: DishDocType) => {
     if (!dish.description) return null;
     const isExpanded = !!expandedDishIds[dish.id];
     const isLong = dish.description.length > 90;
@@ -186,51 +243,69 @@ export function ChooseMenuPage() {
 
   // Actions d'édition
   const handleAccept = () => {
-    if (!currentDish || cardAnimation) return;
+    if (!currentDish || cardAnimation || !session) return;
     setCardAnimation("accept");
     setTimeout(() => {
-      setSelectedDishes((prev) => [currentDish, ...prev]);
-      setHistory((prev) => [{ action: "accept", dish: currentDish }, ...prev]);
-      setQueue((prev) => prev.slice(1));
+      setSessionOverride({
+        queueIds: session.queueIds.slice(1),
+        selectedIds: [currentDish.id, ...session.selectedIds],
+        history: [
+          { action: "accept", dishId: currentDish.id },
+          ...session.history,
+        ],
+      });
       setCardAnimation(null);
     }, 220);
   };
 
   const handleReject = () => {
-    if (!currentDish || cardAnimation) return;
+    if (!currentDish || cardAnimation || !session) return;
     setCardAnimation("reject");
     setTimeout(() => {
-      setHistory((prev) => [{ action: "reject", dish: currentDish }, ...prev]);
-      setQueue((prev) => prev.slice(1));
+      setSessionOverride({
+        queueIds: session.queueIds.slice(1),
+        selectedIds: session.selectedIds,
+        history: [
+          { action: "reject", dishId: currentDish.id },
+          ...session.history,
+        ],
+      });
       setCardAnimation(null);
     }, 220);
   };
 
   const handleUndo = () => {
-    if (history.length === 0 || cardAnimation) return;
-    const lastItem = history[0];
-    setHistory((prev) => prev.slice(1));
+    if (history.length === 0 || cardAnimation || !session) return;
+    const [lastItem, ...rest] = history;
 
-    if (lastItem.action === "accept") {
-      setSelectedDishes((prev) =>
-        prev.filter((d) => d.id !== lastItem.dish.id),
+    // Le plat a pu être supprimé entre-temps : on ignore simplement l'action.
+    const next: SessionState = { queueIds: session.queueIds, selectedIds: session.selectedIds, history: rest };
+    if (dishMap.has(lastItem.dishId)) {
+      if (lastItem.action === "accept") {
+        next.selectedIds = next.selectedIds.filter(
+          (id) => id !== lastItem.dishId,
+        );
+      }
+      next.queueIds = [lastItem.dishId, ...next.queueIds];
+      setSessionOverride(next);
+      setCardAnimation(
+        lastItem.action === "accept" ? "accept-undo" : "reject-undo",
       );
+      setTimeout(() => setCardAnimation(null), 220);
+    } else {
+      setSessionOverride(next);
     }
-    setQueue((prev) => [lastItem.dish, ...prev]);
-    setCardAnimation(
-      lastItem.action === "accept" ? "accept-undo" : "reject-undo",
-    );
-    setTimeout(() => setCardAnimation(null), 220);
   };
 
   const handleResetConfirm = () => {
-    setQueue(INITIAL_QUEUE);
-    setSelectedDishes([]);
-    setHistory([]);
+    setSessionOverride({
+      queueIds: buildFreshQueue(dishes),
+      selectedIds: [],
+      history: [],
+    });
     setMode("editing");
     setShowResetModal(false);
     setExpandedDishIds({});
-    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
@@ -278,13 +353,13 @@ export function ChooseMenuPage() {
                   <div className="card-header-row">
                     <h3 className="dish-name">{currentDish.name}</h3>
                     <span className="type-badge">
-                      {DISH_TYPE_INFO[currentDish.course].icon}{" "}
-                      {DISH_TYPE_INFO[currentDish.course].label}
+                      {DISH_TYPE_INFO[currentDish.course as Course].icon}{" "}
+                      {DISH_TYPE_INFO[currentDish.course as Course].label}
                     </span>
                   </div>
 
                   <div className="seasons-badges">
-                    {renderSeasonsBadges(currentDish.seasons)}
+                    {renderSeasonsBadges(currentDish.seasons as Season[])}
                   </div>
 
                   {renderDescription(currentDish)}
@@ -298,9 +373,32 @@ export function ChooseMenuPage() {
                     </button>
                   </div>
                 </div>
+              ) : !session ? (
+                <div className="empty-queue-card">
+                  <p>Chargement des plats…</p>
+                </div>
               ) : (
                 <div className="empty-queue-card">
-                  <p>🎉 Plus aucun plat à passer en revue !</p>
+                  {dishes.length === 0 ? (
+                    <>
+                      <p>Aucun plat disponible.</p>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => navigate("/add")}
+                      >
+                        Ajouter un plat
+                      </button>
+                    </>
+                  ) : dishMap.size === 0 ||
+                    dishes.filter(
+                      (d) =>
+                        isRenderableDish(d) &&
+                        isInSeason(d, getCurrentSeason()),
+                    ).length === 0 ? (
+                    <p>🍂 Aucun plat de saison pour le moment.</p>
+                  ) : (
+                    <p>🎉 Plus aucun plat à passer en revue !</p>
+                  )}
                 </div>
               )}
             </section>
@@ -322,12 +420,12 @@ export function ChooseMenuPage() {
                       <div className="card-header-row">
                         <span className="dish-name">{dish.name}</span>
                         <span className="type-badge">
-                          {DISH_TYPE_INFO[dish.course].icon}{" "}
-                          {DISH_TYPE_INFO[dish.course].label}
+                          {DISH_TYPE_INFO[dish.course as Course].icon}{" "}
+                          {DISH_TYPE_INFO[dish.course as Course].label}
                         </span>
                       </div>
                       <div className="seasons-badges">
-                        {renderSeasonsBadges(dish.seasons)}
+                        {renderSeasonsBadges(dish.seasons as Season[])}
                       </div>
                       {renderDescription(dish)}
                     </div>

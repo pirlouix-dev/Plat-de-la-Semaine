@@ -57,6 +57,18 @@ export const ALL_SEASONS: Season[] = [
   Season.Winter,
 ];
 
+/**
+ * Current real-world season for a given date (meteorological seasons):
+ * Spring = Mar-May, Summer = Jun-Aug, Autumn = Sep-Nov, Winter = Dec-Feb.
+ */
+export function getCurrentSeason(date: Date = new Date()): Season {
+  const month = date.getMonth();
+  if (month >= 2 && month <= 4) return Season.Spring;
+  if (month >= 5 && month <= 7) return Season.Summer;
+  if (month >= 8 && month <= 10) return Season.Autumn;
+  return Season.Winter;
+}
+
 // ── Field length limits ─ ─────────────────────────────────────────────
 
 export const MAX_NAME_LENGTH = 200;

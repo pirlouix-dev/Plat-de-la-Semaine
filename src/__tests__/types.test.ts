@@ -5,6 +5,7 @@ import {
   COURSE_LABELS,
   SEASON_LABELS,
   ALL_SEASONS,
+  getCurrentSeason,
   MAX_NAME_LENGTH,
   MAX_DESCRIPTION_LENGTH,
   MAX_FEEDBACK_LENGTH,
@@ -119,6 +120,39 @@ describe("ALL_SEASONS", () => {
   it("contains unique values", () => {
     const unique = new Set(ALL_SEASONS);
     expect(unique.size).toBe(ALL_SEASONS.length);
+  });
+});
+
+// ── getCurrentSeason ─────────────────────────────────────────────────────────
+
+describe("getCurrentSeason", () => {
+  it("returns Spring for March, April, May", () => {
+    expect(getCurrentSeason(new Date("2026-03-01"))).toBe(Season.Spring);
+    expect(getCurrentSeason(new Date("2026-04-15"))).toBe(Season.Spring);
+    expect(getCurrentSeason(new Date("2026-05-31"))).toBe(Season.Spring);
+  });
+
+  it("returns Summer for June, July, August", () => {
+    expect(getCurrentSeason(new Date("2026-06-01"))).toBe(Season.Summer);
+    expect(getCurrentSeason(new Date("2026-07-15"))).toBe(Season.Summer);
+    expect(getCurrentSeason(new Date("2026-08-31"))).toBe(Season.Summer);
+  });
+
+  it("returns Autumn for September, October, November", () => {
+    expect(getCurrentSeason(new Date("2026-09-01"))).toBe(Season.Autumn);
+    expect(getCurrentSeason(new Date("2026-10-15"))).toBe(Season.Autumn);
+    expect(getCurrentSeason(new Date("2026-11-30"))).toBe(Season.Autumn);
+  });
+
+  it("returns Winter for December, January, February", () => {
+    expect(getCurrentSeason(new Date("2026-12-01"))).toBe(Season.Winter);
+    expect(getCurrentSeason(new Date("2027-01-15"))).toBe(Season.Winter);
+    expect(getCurrentSeason(new Date("2026-02-28"))).toBe(Season.Winter);
+  });
+
+  it("defaults to the current date and returns a valid season", () => {
+    const season = getCurrentSeason();
+    expect(isValidSeason(season)).toBe(true);
   });
 });
 

@@ -12,16 +12,20 @@ import type { Observable } from "rxjs";
 function useObservableQuery<T>(
   observable$: Observable<T[]> | undefined,
   fallback: T[]
-): T[] {
+): { value: T[]; isLoaded: boolean } {
   const [value, setValue] = useState<T[]>(fallback);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     if (!observable$) return;
-    const sub = observable$.subscribe(setValue);
+    const sub = observable$.subscribe((next) => {
+      setValue(next);
+      setIsLoaded(true);
+    });
     return () => sub.unsubscribe();
   }, [observable$]);
 
-  return value;
+  return { value, isLoaded };
 }
 
 export function useDishes() {
@@ -32,7 +36,7 @@ export function useDishes() {
     return observeDishes(db);
   }, [db]);
 
-  const dishes = useObservableQuery(dishes$, []);
+  const { value: dishes, isLoaded } = useObservableQuery(dishes$, []);
 
   async function addDish(dish: DishDocType): Promise<void> {
     if (!db) throw new Error("Database not ready");
@@ -52,5 +56,5 @@ export function useDishes() {
     await softDeleteDish(db, id);
   }
 
-  return { dishes, addDish, editDish, removeDish };
+  return { dishes, isLoaded, addDish, editDish, removeDish };
 }
