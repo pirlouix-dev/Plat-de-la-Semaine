@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon, TrashIcon } from "../../components/Icons";
 import { Course, Season } from "../../types/dish";
@@ -62,7 +62,8 @@ const INITIAL_QUEUE: DishPlaceholder[] = [
     name: "Tarte aux pommes",
     course: Course.Dessert,
     seasons: [Season.Autumn, Season.Winter],
-    description: "Ingrédients : Pommes, Pâte feuilletée, Cannelle",
+    description:
+      "Ingrédients : Pommes,VERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTION VERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTION VERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTIONVERYLONGDESCRIPTION",
   },
 ];
 
@@ -110,7 +111,7 @@ export function ChooseMenuPage() {
   const [mode, setMode] = useState<ViewMode>(initialState.mode);
 
   const [cardAnimation, setCardAnimation] = useState<
-    "accept" | "reject" | null
+    "accept" | "reject" | "accept-undo" | "reject-undo" | null
   >(null);
   const [showResetModal, setShowResetModal] = useState(false);
 
@@ -168,6 +169,8 @@ export function ChooseMenuPage() {
       );
     }
     setQueue((prev) => [lastItem.dish, ...prev]);
+    setCardAnimation(lastItem.action === "accept" ? "accept-undo" : "reject-undo");
+    setTimeout(() => setCardAnimation(null), 220);
   };
 
   const handleResetConfirm = () => {
@@ -396,6 +399,7 @@ export function ChooseMenuPage() {
               Voulez-vous vraiment effacer tous les plats sélectionnés et
               repartir de zéro ?
             </p>
+            <p className="modal-text">Cette action est irréversible.</p>
             <div className="modal-actions">
               <button
                 className="btn btn-revert"

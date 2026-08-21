@@ -57,6 +57,7 @@
     transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity 0.22s ease;
   box-sizing: border-box;
+  cursor: default !important;
 }
 
 .active-card {
@@ -77,12 +78,42 @@
   }
 }
 
+@keyframes card-accept-undo {
+  from {
+    transform: translateY(40px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes card-reject-undo {
+  from {
+    transform: translateX(-80px) rotate(-4deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
 .active-card.anim-accept {
   animation: card-accept 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 .active-card.anim-reject {
   animation: card-reject 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.active-card.anim-accept-undo {
+  animation: card-accept-undo 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.active-card.anim-reject-undo {
+  animation: card-reject-undo 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .card-header-row {
