@@ -11,7 +11,7 @@ import {
 import type { DishDocType } from "../../db/schemas/dishes";
 import { useDishes } from "../../hooks/useDishes";
 import { shuffle } from "../../utils/shuffle";
-import "./ChooseMenuPage.css";
+import "./ChooseDishesPage.css";
 
 type ViewMode = "editing" | "recap";
 
@@ -115,7 +115,7 @@ function resolveSavedSession(
   };
 }
 
-export function ChooseMenuPage() {
+export function ChooseDishesPage() {
   const navigate = useNavigate();
   const { dishes, isLoaded } = useDishes();
 
@@ -555,4 +555,4 @@ export function ChooseMenuPage() {
   );
 }
 
-export default ChooseMenuPage;
+export default ChooseDishesPage;

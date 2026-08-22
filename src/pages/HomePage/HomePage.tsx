@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import "./MainMenuPage.css";
+import "./HomePage.css";
 
 import logo_img from "../../../assets/logo.png";
 import book_img from "../../../assets/book.webp";
@@ -15,7 +15,7 @@ const mainMenuItems = [
   { id: 4, text: "Paramètres", icon: wheel_img, route: "/settings" },
 ];
 
-function MainMenuPage() {
+function HomePage() {
   const navigate = useNavigate();
   const userId = localStorage.getItem("user_id");
   const username = localStorage.getItem("user_username");
@@ -64,4 +64,4 @@ function MainMenuPage() {
   );
 }
 
-export default MainMenuPage;
+export default HomePage;

@@ -4,8 +4,8 @@ import { useSync } from "./hooks/useSync";
 import { ToastProvider } from "./components/Toast";
 
 import "./App.css";
-import MainMenuPage from "./pages/MainMenuPage/MainMenuPage";
-import ChooseMenuPage from "./pages/ChooseMenuPage/ChooseMenuPage";
+import HomePage from "./pages/HomePage/HomePage";
+import ChooseDishesPage from "./pages/ChooseDishesPage/ChooseDishesPage";
 import AddDishPage from "./pages/AddDishPage/AddDishPage";
 import EditDishPage from "./pages/EditDishPage/EditDishPage";
 import SettingsPage from "./pages/SettingsPage/SettingsPage";
@@ -33,8 +33,8 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route path="/" element={<MainMenuPage />} />
-      <Route path="/choose" element={<ChooseMenuPage />} />
+      <Route path="/" element={<HomePage />} />
+      <Route path="/choose" element={<ChooseDishesPage />} />
       <Route path="/add" element={<AddDishPage />} />
       <Route path="/edit" element={<EditDishPage />} />
       <Route path="/settings" element={<SettingsPage />} />

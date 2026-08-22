@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import ChooseMenuPage from "../pages/ChooseMenuPage/ChooseMenuPage";
+import ChooseDishesPage from "../pages/ChooseDishesPage/ChooseDishesPage";
 import type { DishDocType } from "../db/schemas/dishes";
 
 const STORAGE_KEY = "pdls_choose_menu_state_v2";
@@ -66,7 +66,7 @@ vi.mock("../hooks/useDishes", () => ({
 function renderPage() {
   return render(
     <MemoryRouter>
-      <ChooseMenuPage />
+      <ChooseDishesPage />
     </MemoryRouter>,
   );
 }
@@ -102,7 +102,7 @@ afterEach(() => {
 
 // ── Construction de la file ───────────────────────────────────────────────────
 
-describe("ChooseMenuPage queue construction", () => {
+describe("ChooseDishesPage queue construction", () => {
   it("proposes only dishes in season for the current date", () => {
     mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH, WINTER_DISH, AUTUMN_DISH];
     renderPage();
@@ -141,7 +141,7 @@ describe("ChooseMenuPage queue construction", () => {
 
 // ── Persistance (ids uniquement) ──────────────────────────────────────────────
 
-describe("ChooseMenuPage persistence", () => {
+describe("ChooseDishesPage persistence", () => {
   it("persists dish ids, not dish objects", () => {
     renderPage();
 
@@ -207,7 +207,7 @@ describe("ChooseMenuPage persistence", () => {
 
 // ── Annulation (undo) ─────────────────────────────────────────────────────────
 
-describe("ChooseMenuPage undo", () => {
+describe("ChooseDishesPage undo", () => {
   it("restores an accepted dish as the proposed card", () => {
     renderPage();
 

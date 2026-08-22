@@ -46,7 +46,7 @@ describe("App component — rendering states", () => {
     ).toBeTruthy();
   });
 
-  it("renders MainMenuPage when database is ready", async () => {
+  it("renders HomePage when database is ready", async () => {
     vi.doMock("../db/DatabaseContext", () => ({
       DatabaseProvider: ({ children }: { children: React.ReactNode }) =>
         children,

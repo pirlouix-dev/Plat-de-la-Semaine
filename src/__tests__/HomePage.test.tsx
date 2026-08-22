@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import MainMenuPage from "../pages/MainMenuPage/MainMenuPage";
+import HomePage from "../pages/HomePage/HomePage";
 
 beforeEach(() => {
   localStorage.clear();
 });
 
-describe("MainMenuPage component", () => {
+describe("HomePage component", () => {
   it("renders without crashing", () => {
     const { container } = render(
       <MemoryRouter>
-        <MainMenuPage />
+        <HomePage />
       </MemoryRouter>
     );
     expect(container).toBeTruthy();
@@ -20,7 +20,7 @@ describe("MainMenuPage component", () => {
   it("displays all four menu items", () => {
     render(
       <MemoryRouter>
-        <MainMenuPage />
+        <HomePage />
       </MemoryRouter>
     );
     expect(screen.getByText("Choisir les plats")).toBeTruthy();
@@ -32,7 +32,7 @@ describe("MainMenuPage component", () => {
   it("renders the logo image", () => {
     render(
       <MemoryRouter>
-        <MainMenuPage />
+        <HomePage />
       </MemoryRouter>
     );
     const logo = screen.getByAltText("Plat de la Semaine");
@@ -43,7 +43,7 @@ describe("MainMenuPage component", () => {
   it("renders four card images with correct alt texts", () => {
     render(
       <MemoryRouter>
-        <MainMenuPage />
+        <HomePage />
       </MemoryRouter>
     );
     const images = screen.getAllByRole("img");
@@ -58,7 +58,7 @@ describe("MainMenuPage component", () => {
   it("has the correct CSS class structure", () => {
     const { container } = render(
       <MemoryRouter>
-        <MainMenuPage />
+        <HomePage />
       </MemoryRouter>
     );
     expect(container.querySelector(".app-container")).toBeTruthy();
@@ -70,7 +70,7 @@ describe("MainMenuPage component", () => {
   it("renders menu cards as interactive buttons", () => {
     render(
       <MemoryRouter>
-        <MainMenuPage />
+        <HomePage />
       </MemoryRouter>
     );
     const cards = screen.getAllByRole("button");
@@ -83,7 +83,7 @@ describe("MainMenuPage component", () => {
 
     render(
       <MemoryRouter>
-        <MainMenuPage />
+        <HomePage />
       </MemoryRouter>
     );
     expect(screen.getByText("Bonjour, Mathéo !")).toBeTruthy();
