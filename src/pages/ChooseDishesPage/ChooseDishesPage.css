@@ -1,4 +1,3 @@
-/* Container Général */
 .choose-menu-container {
   width: 100%;
   max-width: 960px;
@@ -29,7 +28,6 @@
   color: #ffffff;
 }
 
-/* Grille 2 colonnes (Édition) */
 .choose-menu-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -46,7 +44,6 @@
   }
 }
 
-/* Cartes de plats */
 .dish-card {
   background: #ffffff;
   color: #1a1a1a;
@@ -212,7 +209,6 @@
   text-decoration: underline;
 }
 
-/* Boutons de décision */
 .card-decision-actions {
   display: flex;
   gap: 12px;
@@ -257,7 +253,6 @@
   background-color: #22c55e;
 }
 
-/* Plats sélectionnés (Mode Édition) */
 .selected-dishes-section {
   margin-top: 24px;
 }
@@ -284,7 +279,6 @@
   font-size: 14px;
 }
 
-/* Sidebar Desktop */
 .menu-sidebar {
   display: flex;
   flex-direction: column;
@@ -327,7 +321,6 @@
   gap: 10px;
 }
 
-/* MODE RÉCAPITULATIF */
 .recap-layout {
   display: flex;
   flex-direction: column;
@@ -373,7 +366,6 @@
   flex: 1;
 }
 
-/* Modale de réinitialisation */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -420,7 +412,6 @@
   flex: 1;
 }
 
-/* Boutons secondaires / Danger */
 .btn-revert {
   background-color: rgb(96, 96, 96);
   color: #ffffff;
