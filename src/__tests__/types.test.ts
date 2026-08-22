@@ -18,8 +18,6 @@ import {
   type CreateDishPayload,
 } from "../types";
 
-// ── Course enum-equivalent ────────────────────────────────────────────────────
-
 describe("Course", () => {
   it("defines Starter with value 0", () => {
     expect(Course.Starter).toBe(0);
@@ -37,8 +35,6 @@ describe("Course", () => {
     expect(Object.keys(Course).length).toBe(3);
   });
 });
-
-// ── Season enum-equivalent ────────────────────────────────────────────────────
 
 describe("Season", () => {
   it("defines Spring with value 0", () => {
@@ -61,8 +57,6 @@ describe("Season", () => {
     expect(Object.keys(Season).length).toBe(4);
   });
 });
-
-// ── Helper constants ─────────────────────────────────────────────────────────
 
 describe("COURSE_LABELS", () => {
   it("maps Starter to 'Entrée'", () => {
@@ -114,7 +108,12 @@ describe("ALL_SEASONS", () => {
   });
 
   it("includes Spring, Summer, Autumn, Winter in order", () => {
-    expect(ALL_SEASONS).toEqual([Season.Spring, Season.Summer, Season.Autumn, Season.Winter]);
+    expect(ALL_SEASONS).toEqual([
+      Season.Spring,
+      Season.Summer,
+      Season.Autumn,
+      Season.Winter,
+    ]);
   });
 
   it("contains unique values", () => {
@@ -122,8 +121,6 @@ describe("ALL_SEASONS", () => {
     expect(unique.size).toBe(ALL_SEASONS.length);
   });
 });
-
-// ── getCurrentSeason ─────────────────────────────────────────────────────────
 
 describe("getCurrentSeason", () => {
   it("returns Spring for March, April, May", () => {
@@ -155,8 +152,6 @@ describe("getCurrentSeason", () => {
     expect(isValidSeason(season)).toBe(true);
   });
 });
-
-// ── Validation helpers ───────────────────────────────────────────────────────
 
 describe("isValidCourse", () => {
   it("returns true for valid course values (0, 1, 2)", () => {
@@ -196,8 +191,6 @@ describe("isValidSeason", () => {
     expect(isValidSeason(null as unknown as number)).toBe(false);
   });
 });
-
-// ── Dish structure (compile-time + runtime shape) ────────────────────────────
 
 describe("Dish type — structural contract", () => {
   it("accepts a valid dish object", () => {
@@ -299,11 +292,12 @@ describe("UpdateDishPayload — structural contract", () => {
   });
 });
 
-// ── API result helpers ───────────────────────────────────────────────────────
-
 describe("isApiError / isApiSuccess", () => {
   it("isApiError returns true for error result", () => {
-    const result = { ok: false as const, error: { code: "NOT_FOUND", message: "Dish not found" } };
+    const result = {
+      ok: false as const,
+      error: { code: "NOT_FOUND", message: "Dish not found" },
+    };
     expect(isApiError(result)).toBe(true);
     expect(isApiSuccess(result)).toBe(false);
   });
@@ -315,7 +309,10 @@ describe("isApiError / isApiSuccess", () => {
   });
 
   it("narrows union correctly with isApiError guard", () => {
-    const result = { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Invalid" } };
+    const result = {
+      ok: false as const,
+      error: { code: "VALIDATION_ERROR", message: "Invalid" },
+    };
     if (isApiError(result)) {
       expect(result.error.code).toBe("VALIDATION_ERROR");
     }
@@ -328,8 +325,6 @@ describe("isApiError / isApiSuccess", () => {
     }
   });
 });
-
-// ── Backup / BackupSummary / RestoreBackupResponse — structural ──────────────
 
 describe("Backup type — structural contract", () => {
   it("accepts a valid backup object", () => {
@@ -393,8 +388,6 @@ describe("RestoreBackupResponse — structural contract", () => {
   });
 });
 
-// ── API response types — structural ──────────────────────────────────────────
-
 describe("ApiResponse / ApiListResponse — structural contract", () => {
   it("accepts a single-resource response", () => {
     const response: Record<string, unknown> = {
@@ -425,7 +418,11 @@ describe("ApiErrorDetail — structural contract", () => {
       message: "Validation failed",
       details: [
         { field: "name", message: "Name is required" },
-        { field: "course", message: "Course must be 0, 1, or 2", rejectedValue: 5 },
+        {
+          field: "course",
+          message: "Course must be 0, 1, or 2",
+          rejectedValue: 5,
+        },
       ],
     };
     expect(error.details).toHaveLength(2);
@@ -440,8 +437,6 @@ describe("ApiEmptyResponse — structural contract", () => {
     expect(response.success).toBe(true);
   });
 });
-
-// ── Barrel export verification ───────────────────────────────────────────────
 
 describe("Barrel exports (src/types/index.ts)", () => {
   it("exports Course and Season as values", () => {
