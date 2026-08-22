@@ -14,7 +14,7 @@ import {
 } from "../../types/dish";
 import "./EditDishPage.css";
 
-const DISH_TYPES: { label: string; icon: string; course: Course }[] = [
+const DISH_COURSES: { label: string; icon: string; course: Course }[] = [
   { label: "Entrée", icon: "🥗", course: Course.Starter },
   { label: "Plat", icon: "🍽️", course: Course.Main },
   { label: "Dessert", icon: "🍰", course: Course.Dessert },
@@ -36,7 +36,7 @@ function EditDishPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filterTypes, setFilterTypes] = useState<Course[]>([]);
+  const [filterCourses, setFilterCourses] = useState<Course[]>([]);
   const [filterSeasons, setFilterSeasons] = useState<Season[]>([]);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -80,9 +80,9 @@ function EditDishPage() {
     );
   };
 
-  const toggleFilterType = (type: Course) => {
-    setFilterTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+  const toggleFilterCourse = (c: Course) => {
+    setFilterCourses((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
     );
   };
 
@@ -94,7 +94,7 @@ function EditDishPage() {
     );
   };
 
-  const activeFiltersCount = filterTypes.length + filterSeasons.length;
+  const activeFiltersCount = filterCourses.length + filterSeasons.length;
 
   const filteredDishes = dishes.filter((dish) => {
     const q = searchQuery.toLowerCase().trim();
@@ -103,14 +103,14 @@ function EditDishPage() {
       dish.name.toLowerCase().includes(q) ||
       dish.description.toLowerCase().includes(q);
 
-    const matchesType =
-      filterTypes.length === 0 || filterTypes.includes(dish.course as Course);
+    const matchesCourse =
+      filterCourses.length === 0 || filterCourses.includes(dish.course as Course);
 
     const matchesSeason =
       filterSeasons.length === 0 ||
       dish.seasons.some((s) => filterSeasons.includes(s as Season));
 
-    return matchesSearch && matchesType && matchesSeason;
+    return matchesSearch && matchesCourse && matchesSeason;
   });
 
   const handleSave = async (e: React.FormEvent) => {
@@ -211,14 +211,14 @@ function EditDishPage() {
           <div className="filters-container">
             <div className="filter-group">
               <div className="filter-row">
-                {DISH_TYPES.map(({ label, icon, course: c }) => {
-                  const isSelected = filterTypes.includes(c);
+                {DISH_COURSES.map(({ label, icon, course: c }) => {
+                  const isSelected = filterCourses.includes(c);
                   return (
                     <button
                       key={label}
                       type="button"
                       className={`filter-chip ${isSelected ? "active" : ""}`}
-                      onClick={() => toggleFilterType(c)}
+                      onClick={() => toggleFilterCourse(c)}
                     >
                       {icon} {label}
                     </button>
@@ -250,7 +250,7 @@ function EditDishPage() {
         <div className="dishes-list">
           {filteredDishes.map((dish) => {
             const isSelected = dish.id === selectedDishId;
-            const typeInfo = DISH_TYPES.find(
+            const courseInfo = DISH_COURSES.find(
               (t) => t.course === (dish.course as Course),
             );
 
@@ -262,8 +262,8 @@ function EditDishPage() {
               >
                 <div className="dish-card-header">
                   <h3 className="dish-card-title">{dish.name}</h3>
-                  <span className="dish-card-type-badge">
-                    {typeInfo?.icon}{" "}
+                  <span className="dish-card-course-badge">
+                    {courseInfo?.icon}{" "}
                     {COURSE_LABELS[dish.course as keyof typeof COURSE_LABELS]}
                   </span>
                 </div>
@@ -344,18 +344,18 @@ function EditDishPage() {
               </div>
 
               <div className="form-section-row">
-                <div className="type-segmented-control">
-                  {DISH_TYPES.map(({ label, icon, course: c }) => (
+                <div className="course-segmented-control">
+                  {DISH_COURSES.map(({ label, icon, course: c }) => (
                     <button
                       type="button"
                       key={label}
-                      className={`type-option ${course === c ? "active" : ""}`}
+                      className={`course-option ${course === c ? "active" : ""}`}
                       onClick={() =>
                         setCourse((prev) => (prev === c ? null : c))
                       }
                     >
-                      <span className="type-icon">{icon}</span>
-                      <span className="type-label">{label}</span>
+                      <span className="course-icon">{icon}</span>
+                      <span className="course-label">{label}</span>
                     </button>
                   ))}
                 </div>

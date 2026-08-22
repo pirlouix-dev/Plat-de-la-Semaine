@@ -9,7 +9,7 @@ import type { components } from "../schema";
 
 // ── Enums (const-object pattern for erasableSyntaxOnly compat) ────────────────
 
-/** Course (type) of a dish: 0 = Starter, 1 = Main, 2 = Dessert */
+/** Course of a dish: 0 = Starter, 1 = Main, 2 = Dessert */
 export const Course = {
   Starter: 0,
   Main: 1,
@@ -28,7 +28,7 @@ export type Season = (typeof Season)[keyof typeof Season];
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-/** French labels for course types, indexed by Course value */
+/** French labels for courses, indexed by Course value */
 export const COURSE_LABELS: Record<
   (typeof Course)[keyof typeof Course],
   string

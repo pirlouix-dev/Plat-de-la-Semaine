@@ -13,9 +13,9 @@ import {
 import type { DishDocType } from "../../db/schemas/dishes";
 import "./AddDishPage.css";
 
-type DishType = "Entrée" | "Plat" | "Dessert";
+type DishCourse = "Entrée" | "Plat" | "Dessert";
 
-const DISH_TYPES: { label: DishType; icon: string; course: Course }[] = [
+const DISH_COURSES: { label: DishCourse; icon: string; course: Course }[] = [
   { label: "Entrée", icon: "🥗", course: Course.Starter },
   { label: "Plat", icon: "🍽️", course: Course.Main },
   { label: "Dessert", icon: "🍰", course: Course.Dessert },
@@ -33,14 +33,14 @@ const DRAFT_SAVE_DELAY_MS = 400;
 
 type DishDraft = {
   name: string;
-  dishType: DishType | null;
+  dishCourse: DishCourse | null;
   selectedSeasons: Season[];
   description: string;
 };
 
 const EMPTY_DRAFT: DishDraft = {
   name: "",
-  dishType: null,
+  dishCourse: null,
   selectedSeasons: [],
   description: "",
 };
@@ -52,8 +52,8 @@ function loadDraft(): DishDraft {
     const parsed = JSON.parse(raw) as Partial<DishDraft>;
     return {
       name: typeof parsed.name === "string" ? parsed.name : "",
-      dishType: DISH_TYPES.some((t) => t.label === parsed.dishType)
-        ? (parsed.dishType as DishType)
+      dishCourse: DISH_COURSES.some((t) => t.label === parsed.dishCourse)
+        ? (parsed.dishCourse as DishCourse)
         : null,
       selectedSeasons: Array.isArray(parsed.selectedSeasons)
         ? parsed.selectedSeasons.filter(
@@ -71,7 +71,7 @@ function loadDraft(): DishDraft {
 function isEmptyDraft(draft: DishDraft): boolean {
   return (
     draft.name === "" &&
-    draft.dishType === null &&
+    draft.dishCourse === null &&
     draft.selectedSeasons.length === 0 &&
     draft.description === ""
   );
@@ -84,16 +84,16 @@ function AddDishPage() {
 
   const [initialDraft] = useState(loadDraft);
   const [name, setName] = useState(initialDraft.name);
-  const [dishType, setDishType] = useState<DishType | null>(initialDraft.dishType);
+  const [dishCourse, setDishCourse] = useState<DishCourse | null>(initialDraft.dishCourse);
   const [selectedSeasons, setSelectedSeasons] = useState<Season[]>(
     initialDraft.selectedSeasons,
   );
   const [description, setDescription] = useState(initialDraft.description);
 
-  const isFormValid = name.trim() !== "" && dishType !== null && selectedSeasons.length > 0;
+  const isFormValid = name.trim() !== "" && dishCourse !== null && selectedSeasons.length > 0;
 
   useEffect(() => {
-    const draft: DishDraft = { name, dishType, selectedSeasons, description };
+    const draft: DishDraft = { name, dishCourse, selectedSeasons, description };
     const timer = setTimeout(() => {
       if (isEmptyDraft(draft)) {
         localStorage.removeItem(DRAFT_KEY);
@@ -102,7 +102,7 @@ function AddDishPage() {
       }
     }, DRAFT_SAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [name, dishType, selectedSeasons, description]);
+  }, [name, dishCourse, selectedSeasons, description]);
 
   const toggleSeason = (season: Season) => {
     setSelectedSeasons((prev) =>
@@ -114,9 +114,9 @@ function AddDishPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const typeEntry = DISH_TYPES.find((t) => t.label === dishType);
-    if (!typeEntry) return;
-    const course = typeEntry.course;
+    const courseEntry = DISH_COURSES.find((t) => t.label === dishCourse);
+    if (!courseEntry) return;
+    const course = courseEntry.course;
 
     const now = new Date().toISOString();
     const dish: DishDocType = {
@@ -169,18 +169,18 @@ function AddDishPage() {
         </div>
 
         <div className="form-section-row">
-          <div className="type-segmented-control">
-            {DISH_TYPES.map(({ label, icon }) => (
+          <div className="course-segmented-control">
+            {DISH_COURSES.map(({ label, icon }) => (
               <button
                 type="button"
                 key={label}
-                className={`type-option ${dishType === label ? "active" : ""}`}
+                className={`course-option ${dishCourse === label ? "active" : ""}`}
                 onClick={() =>
-                  setDishType((prev) => (prev === label ? null : label))
+                  setDishCourse((prev) => (prev === label ? null : label))
                 }
               >
-                <span className="type-icon">{icon}</span>
-                <span className="type-label">{label}</span>
+                <span className="course-icon">{icon}</span>
+                <span className="course-label">{label}</span>
               </button>
             ))}
           </div>

@@ -63,7 +63,7 @@ describe("AddDishPage draft persistence", () => {
 
     expect(getDraft()).toEqual({
       name: "Ratatouille",
-      dishType: "Plat",
+      dishCourse: "Plat",
       selectedSeasons: [1],
       description: "Un grand classique.",
     });
@@ -78,7 +78,7 @@ describe("AddDishPage draft persistence", () => {
   it("removes the draft when the user clears all fields", () => {
     localStorage.setItem(
       DRAFT_KEY,
-      JSON.stringify({ name: "X", dishType: "Plat", selectedSeasons: [1], description: "" }),
+      JSON.stringify({ name: "X", dishCourse: "Plat", selectedSeasons: [1], description: "" }),
     );
     renderPage();
 
@@ -97,7 +97,7 @@ describe("AddDishPage draft persistence", () => {
       DRAFT_KEY,
       JSON.stringify({
         name: "Tartare",
-        dishType: "Entrée",
+        dishCourse: "Entrée",
         selectedSeasons: [1, 3],
         description: "Servi frais.",
       }),
@@ -129,7 +129,7 @@ describe("AddDishPage draft persistence", () => {
   it("clears the draft on successful save", async () => {
     localStorage.setItem(
       DRAFT_KEY,
-      JSON.stringify({ name: "X", dishType: null, selectedSeasons: [], description: "" }),
+      JSON.stringify({ name: "X", dishCourse: null, selectedSeasons: [], description: "" }),
     );
     addDishMock.mockResolvedValue(undefined);
     renderPage();
@@ -142,7 +142,7 @@ describe("AddDishPage draft persistence", () => {
     act(() => vi.advanceTimersByTime(400));
     expect(getDraft()).toEqual({
       name: "Lasagnes",
-      dishType: "Plat",
+      dishCourse: "Plat",
       selectedSeasons: [2],
       description: "",
     });

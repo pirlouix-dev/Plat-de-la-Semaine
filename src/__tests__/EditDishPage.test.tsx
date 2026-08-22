@@ -87,17 +87,17 @@ describe("EditDishPage", () => {
       expect(screen.getByText("Tarte aux pommes")).toBeTruthy();
     });
 
-    it("displays course badges for each dish type", () => {
+    it("displays a badge for each dish course", () => {
       renderPage();
       const badges = screen.getAllByText(/Plat/, {
-        selector: ".dish-card-type-badge",
+        selector: ".dish-card-course-badge",
       });
       expect(badges).toHaveLength(2);
       expect(
-        screen.getByText(/Entrée/, { selector: ".dish-card-type-badge" }),
+        screen.getByText(/Entrée/, { selector: ".dish-card-course-badge" }),
       ).toBeTruthy();
       expect(
-        screen.getByText(/Dessert/, { selector: ".dish-card-type-badge" }),
+        screen.getByText(/Dessert/, { selector: ".dish-card-course-badge" }),
       ).toBeTruthy();
     });
 
@@ -131,11 +131,11 @@ describe("EditDishPage", () => {
       ).toBe("Colin d'Alaska, riz à la vapeur");
     });
 
-    it("highlights the correct course type button", () => {
+    it("highlights the correct course button", () => {
       renderPage();
       fireEvent.click(screen.getByText("Falafels & semoule"));
 
-      const starterBtn = screen.getByText("Entrée").closest(".type-option");
+      const starterBtn = screen.getByText("Entrée").closest(".course-option");
       expect(starterBtn?.className).toContain("active");
     });
 
@@ -159,7 +159,7 @@ describe("EditDishPage", () => {
       expect(screen.queryByText("Colin d'Alaska & riz")).toBeNull();
     });
 
-    it("filters dishes by course type", () => {
+    it("filters dishes by course", () => {
       renderPage();
       fireEvent.click(screen.getByTitle("Afficher/masquer les filtres"));
 

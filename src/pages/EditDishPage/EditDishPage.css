@@ -258,7 +258,7 @@
   color: #111827;
 }
 
-.dish-card-type-badge {
+.dish-card-course-badge {
   font-size: 12px;
   background: #f3f4f6;
   padding: 3px 8px;
@@ -430,13 +430,13 @@
     gap: 14px;
   }
 
-  .type-segmented-control,
+  .course-segmented-control,
   .seasons-group {
     width: 100%;
     box-sizing: border-box;
   }
 
-  .type-option {
+  .course-option {
     flex: 1;
     justify-content: center;
   }

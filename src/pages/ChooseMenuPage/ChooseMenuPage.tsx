@@ -17,7 +17,7 @@ type ViewMode = "editing" | "recap";
 
 type HistoryAction = { action: "accept" | "reject"; dishId: string };
 
-const DISH_TYPE_INFO: Record<Course, { label: string; icon: string }> = {
+const DISH_COURSE_INFO: Record<Course, { label: string; icon: string }> = {
   [Course.Starter]: { label: "Entrée", icon: "🥗" },
   [Course.Main]: { label: "Plat", icon: "🍽️" },
   [Course.Dessert]: { label: "Dessert", icon: "🍰" },
@@ -352,9 +352,9 @@ export function ChooseMenuPage() {
                 >
                   <div className="card-header-row">
                     <h3 className="dish-name">{currentDish.name}</h3>
-                    <span className="type-badge">
-                      {DISH_TYPE_INFO[currentDish.course as Course].icon}{" "}
-                      {DISH_TYPE_INFO[currentDish.course as Course].label}
+                    <span className="course-badge">
+                      {DISH_COURSE_INFO[currentDish.course as Course].icon}{" "}
+                      {DISH_COURSE_INFO[currentDish.course as Course].label}
                     </span>
                   </div>
 
@@ -419,9 +419,9 @@ export function ChooseMenuPage() {
                     <div key={dish.id} className="dish-card selected-card">
                       <div className="card-header-row">
                         <span className="dish-name">{dish.name}</span>
-                        <span className="type-badge">
-                          {DISH_TYPE_INFO[dish.course as Course].icon}{" "}
-                          {DISH_TYPE_INFO[dish.course as Course].label}
+                        <span className="course-badge">
+                          {DISH_COURSE_INFO[dish.course as Course].icon}{" "}
+                          {DISH_COURSE_INFO[dish.course as Course].label}
                         </span>
                       </div>
                       <div className="seasons-badges">
@@ -493,7 +493,7 @@ export function ChooseMenuPage() {
               return (
                 <div key={course} className="recap-category-block">
                   <h3 className="category-title">
-                    {DISH_TYPE_INFO[course].icon} {DISH_TYPE_INFO[course].label}
+                    {DISH_COURSE_INFO[course].icon} {DISH_COURSE_INFO[course].label}
                     s ({courseDishes.length})
                   </h3>
                   <div className="category-cards">
