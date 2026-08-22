@@ -8,7 +8,7 @@ Offline-first PWA for managing weekly meal plans. Built with React 19, RxDB, and
 - **Offline-first** — Local RxDB/IndexedDB database with background sync to a .NET backend
 - **Auto-sync** — Push pending changes and pull remote updates on connectivity & visibility changes
 - **Resilient API client** — Timeouts, combined abort signals, and `ApiResult<T>` discriminated unions
-- **Menu planning** — Coming soon: choose a menu for the week
+- **Dish planning** — Coming soon: choose dishes for the week
 - **Backup & restore** — Cloud backup/restore via REST API
 
 ## Tech Stack

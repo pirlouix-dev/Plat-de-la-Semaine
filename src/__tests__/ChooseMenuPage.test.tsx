@@ -194,7 +194,7 @@ describe("ChooseMenuPage persistence", () => {
 
     fireEvent.click(screen.getByText("✓ Accepter"));
     advance(220);
-    fireEvent.click(screen.getByLabelText("Réinitialiser le menu"));
+    fireEvent.click(screen.getByLabelText("Réinitialiser les plats"));
     fireEvent.click(screen.getByText("Oui, réinitialiser"));
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
@@ -216,12 +216,12 @@ describe("ChooseMenuPage undo", () => {
     advance(220);
 
     expect(getCurrentDishName()).not.toBe(firstName);
-    expect(screen.getByText("Menu sélectionné (1)")).toBeDefined();
+    expect(screen.getByText("Plats sélectionnés (1)")).toBeDefined();
 
     fireEvent.click(screen.getByText("Annuler"));
 
     expect(getCurrentDishName()).toBe(firstName);
-    expect(screen.getByText("Menu sélectionné (0)")).toBeDefined();
+    expect(screen.getByText("Plats sélectionnés (0)")).toBeDefined();
   });
 
   it("restores a rejected dish as the proposed card", () => {

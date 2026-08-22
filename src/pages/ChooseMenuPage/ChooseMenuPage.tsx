@@ -320,14 +320,14 @@ export function ChooseMenuPage() {
           <BackArrowIcon size={20} />
         </button>
         <h1 className="page-title">
-          {mode === "editing" ? "Choisir le menu" : "Menu de la semaine"}
+          {mode === "editing" ? "Choisir les plats" : "Plats de la semaine"}
         </h1>
         {selectedDishes.length > 0 || history.length > 0 ? (
           <button
             className="icon-delete-btn"
             onClick={() => setShowResetModal(true)}
             title="Réinitialiser"
-            aria-label="Réinitialiser le menu"
+            aria-label="Réinitialiser les plats"
           >
             <TrashIcon size={22} color="rgb(220, 57, 41)" />
           </button>
@@ -403,10 +403,10 @@ export function ChooseMenuPage() {
               )}
             </section>
 
-            {/* Menu en cours */}
+            {/* Plats sélectionnés en cours */}
             <section className="selected-dishes-section">
               <h2 className="section-subtitle">
-                Menu sélectionné ({counts.total})
+                Plats sélectionnés ({counts.total})
               </h2>
 
               {selectedDishes.length === 0 ? (
@@ -479,8 +479,8 @@ export function ChooseMenuPage() {
       {mode === "recap" && (
         <div className="recap-layout">
           <div className="recap-status-banner">
-            <span className="status-badge">🔒 Menus verrouillés</span>
-            <p>Vos menus sont sauvegardés. Idéal pour préparer vos repas !</p>
+            <span className="status-badge">🔒 Plats verrouillés</span>
+            <p>Vos plats sont sauvegardés. Idéal pour préparer vos repas !</p>
           </div>
 
           <div className="recap-dishes-grid">
@@ -515,7 +515,7 @@ export function ChooseMenuPage() {
               className="btn btn-primary"
               onClick={() => setMode("editing")}
             >
-              Modifier le menu
+              Modifier les plats
             </button>
             <button
               className="btn btn-danger"

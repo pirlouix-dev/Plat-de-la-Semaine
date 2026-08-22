@@ -65,6 +65,6 @@ describe("App component — rendering states", () => {
         <MockApp />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Choisir le menu")).toBeTruthy();
+    expect(screen.getByText("Choisir les plats")).toBeTruthy();
   });
 });

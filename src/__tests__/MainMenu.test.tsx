@@ -23,7 +23,7 @@ describe("MainMenuPage component", () => {
         <MainMenuPage />
       </MemoryRouter>
     );
-    expect(screen.getByText("Choisir le menu")).toBeTruthy();
+    expect(screen.getByText("Choisir les plats")).toBeTruthy();
     expect(screen.getByText("Ajouter un plat")).toBeTruthy();
     expect(screen.getByText("Modifier un plat")).toBeTruthy();
     expect(screen.getByText("Paramètres")).toBeTruthy();
@@ -49,7 +49,7 @@ describe("MainMenuPage component", () => {
     const images = screen.getAllByRole("img");
     // logo + 4 menu cards
     expect(images.length).toBe(5);
-    expect(screen.getByAltText("Choisir le menu")).toBeTruthy();
+    expect(screen.getByAltText("Choisir les plats")).toBeTruthy();
     expect(screen.getByAltText("Ajouter un plat")).toBeTruthy();
     expect(screen.getByAltText("Modifier un plat")).toBeTruthy();
     expect(screen.getByAltText("Paramètres")).toBeTruthy();

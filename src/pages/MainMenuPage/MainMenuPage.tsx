@@ -9,7 +9,7 @@ import wheel_img from "../../../assets/wheel.webp";
 import textbox_img from "../../../assets/textbox.webp";
 
 const mainMenuItems = [
-  { id: 1, text: "Choisir le menu", icon: book_img, route: "/choose" },
+  { id: 1, text: "Choisir les plats", icon: book_img, route: "/choose" },
   { id: 2, text: "Ajouter un plat", icon: add_img, route: "/add" },
   { id: 3, text: "Modifier un plat", icon: pencil_img, route: "/edit" },
   { id: 4, text: "Paramètres", icon: wheel_img, route: "/settings" },
