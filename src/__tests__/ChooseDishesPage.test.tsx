@@ -167,12 +167,36 @@ describe("ChooseDishesPage persistence", () => {
     seedStorage({
       queueIds: ["summer-a"],
       selectedIds: [],
-      history: [],
+      history: [{ action: "reject", dishId: "all-seasons" }],
       mode: "editing",
     });
     renderPage();
 
     expect(getCurrentDishName()).toBe("Salade tomates & mozzarella");
+  });
+
+  it("starts a fresh queue when no dish was accepted or refused", () => {
+    seedStorage({
+      queueIds: ["summer-a"],
+      selectedIds: [],
+      history: [],
+      mode: "editing",
+    });
+    renderPage();
+
+    // File neuve au lieu de la session sauvegardée
+    expect(getCurrentDishName()).toBe("Colin d'Alaska & riz");
+
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(saved.queueIds).toEqual([
+      "all-seasons",
+      "summer-a",
+      "all-seasons",
+      "summer-a",
+      "all-seasons",
+      "summer-a",
+    ]);
+    expect(saved.history).toEqual([]);
   });
 
   it("drops ids of dishes deleted since the saved session", () => {

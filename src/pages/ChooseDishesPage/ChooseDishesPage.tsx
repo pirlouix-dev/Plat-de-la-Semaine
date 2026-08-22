@@ -123,7 +123,12 @@ export function ChooseDishesPage() {
   const navigate = useNavigate();
   const { dishes, isLoaded } = useDishes();
 
-  const [initialSaved] = useState(loadSavedState);
+  // A session without any decision yet (accept or reject) is not worth
+  // resuming: arriving on the page starts from a fresh queue.
+  const [initialSaved] = useState(() => {
+    const saved = loadSavedState();
+    return saved && saved.history.length > 0 ? saved : null;
+  });
   const [mode, setMode] = useState<ViewMode>(initialSaved?.mode ?? "editing");
 
   const [cardAnimation, setCardAnimation] = useState<
