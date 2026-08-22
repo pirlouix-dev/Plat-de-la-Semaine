@@ -1,4 +1,4 @@
-/*
+/**
  * Dish-related types for "Plat de la Semaine"
  */
 

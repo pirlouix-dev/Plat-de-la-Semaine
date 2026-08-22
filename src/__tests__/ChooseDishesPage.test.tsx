@@ -6,9 +6,6 @@ import type { DishDocType } from "../db/schemas/dishes";
 
 const STORAGE_KEY = "pdls_choose_menu_state_v2";
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
-// Date système figée au 21 août 2026 → été (Season.Summer = 1)
-
 function makeDish(overrides: Partial<DishDocType> = {}): DishDocType {
   return {
     id: "d1",
@@ -61,8 +58,6 @@ vi.mock("../hooks/useDishes", () => ({
   }),
 }));
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function renderPage() {
   return render(
     <MemoryRouter>
@@ -89,7 +84,6 @@ function seedStorage(state: unknown) {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-08-21T12:00:00"));
-  // Fisher-Yates déterministe : échange toujours avec l'index 0
   vi.spyOn(Math, "random").mockReturnValue(0);
   localStorage.clear();
   mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH];
@@ -99,8 +93,6 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
-
-// ── Construction de la file ───────────────────────────────────────────────────
 
 describe("ChooseDishesPage queue construction", () => {
   it("proposes only dishes in season, three passes each, before stopping", () => {
@@ -114,7 +106,6 @@ describe("ChooseDishesPage queue construction", () => {
       advance(220);
     }
 
-    // Ordre identique à chaque passage (random mocké)
     const pass = ["Colin d'Alaska & riz", "Salade tomates & mozzarella"];
     expect(proposedNames).toEqual([...pass, ...pass, ...pass]);
     expect(
@@ -139,8 +130,6 @@ describe("ChooseDishesPage queue construction", () => {
     expect(screen.getByText("Ajouter un plat")).toBeDefined();
   });
 });
-
-// ── Persistance (ids uniquement) ──────────────────────────────────────────────
 
 describe("ChooseDishesPage persistence", () => {
   it("persists dish ids, not dish objects", () => {
@@ -184,7 +173,6 @@ describe("ChooseDishesPage persistence", () => {
     });
     renderPage();
 
-    // File neuve au lieu de la session sauvegardée
     expect(getCurrentDishName()).toBe("Colin d'Alaska & riz");
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
@@ -213,8 +201,7 @@ describe("ChooseDishesPage persistence", () => {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.queueIds).toEqual(["summer-a"]);
     expect(saved.selectedIds).toEqual([]);
-    // L'historique est conservé pour préserver l'ordre des annulations ;
-    // l'entrée orpheline sera ignorée lors du "Annuler".
+
     expect(saved.history).toEqual([
       { action: "reject", dishId: "deleted-dish" },
     ]);
@@ -243,18 +230,14 @@ describe("ChooseDishesPage persistence", () => {
   });
 });
 
-// ── Passages multiples ────────────────────────────────────────────────────────
-
 describe("ChooseDishesPage multiple passes", () => {
   it("adds a second occurrence when an already accepted dish is accepted again", () => {
     renderPage();
 
-    // Passe 1 : acceptation du premier plat proposé
     const firstName = getCurrentDishName();
     fireEvent.click(screen.getByText("✓ Accepter"));
     advance(220);
 
-    // On refuse jusqu'au retour du même plat lors d'un passage suivant
     while (getCurrentDishName() !== firstName) {
       fireEvent.click(screen.getByText("✕ Refuser"));
       advance(220);
@@ -262,12 +245,10 @@ describe("ChooseDishesPage multiple passes", () => {
     fireEvent.click(screen.getByText("✓ Accepter"));
     advance(220);
 
-    // Les deux acceptations coexistent dans la sélection
     expect(screen.getByText("Plats sélectionnés (2)")).toBeDefined();
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.selectedIds).toHaveLength(2);
 
-    // Une seule annulation retire une seule occurrence ; le plat reste proposé
     fireEvent.click(screen.getByText("Annuler"));
     expect(screen.getByText("Plats sélectionnés (1)")).toBeDefined();
     expect(getCurrentDishName()).toBe(firstName);
@@ -277,8 +258,6 @@ describe("ChooseDishesPage multiple passes", () => {
     expect(savedAfterUndo.selectedIds).toHaveLength(1);
   });
 });
-
-// ── Annulation (undo) ─────────────────────────────────────────────────────────
 
 describe("ChooseDishesPage undo", () => {
   it("restores an accepted dish as the proposed card", () => {
@@ -319,7 +298,6 @@ describe("ChooseDishesPage undo", () => {
     advance(220);
     fireEvent.click(screen.getByText("Annuler"));
 
-    // Pendant l'animation de revert, les décisions sont ignorées
     fireEvent.click(screen.getByText("✕ Refuser"));
     advance(100);
     expect(getCurrentDishName()).toBe(firstName);
@@ -343,8 +321,6 @@ describe("ChooseDishesPage undo", () => {
 
     fireEvent.click(screen.getByText("Annuler"));
 
-    // L'action est retirée de l'historique mais le plat fantôme n'est
-    // pas restauré dans la file.
     expect(getCurrentDishName()).toBe("Salade tomates & mozzarella");
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.history).toEqual([]);
