@@ -32,6 +32,9 @@ const SEASON_INFO: Record<Season, { label: string; icon: string }> = {
 
 const STORAGE_KEY = "pdls_choose_menu_state_v2";
 
+/** Nombre de fois où chaque plat compatible est proposé avant arrêt. */
+const PASSES_PER_DISH = 3;
+
 interface SavedMenuState {
   queueIds: string[];
   selectedIds: string[];
@@ -93,12 +96,13 @@ interface SessionState {
 const NO_IDS: string[] = [];
 const NO_HISTORY: HistoryAction[] = [];
 
-/** Nouvelle file : plats de saison, ordre aléatoire. */
+/** Nouvelle file : plats de saison, ordre aléatoire, répétés PASSES_PER_DISH fois. */
 function buildFreshQueue(dishes: DishDocType[]): string[] {
   const season = getCurrentSeason();
-  return shuffle(
+  const ids = shuffle(
     dishes.filter((d) => isRenderableDish(d) && isInSeason(d, season)),
   ).map((d) => d.id);
+  return Array.from({ length: PASSES_PER_DISH }, () => ids).flat();
 }
 
 /** Reprise d'une session sauvegardée : les plats supprimés sont ignorés. */
@@ -282,9 +286,15 @@ export function ChooseDishesPage() {
     const next: SessionState = { queueIds: session.queueIds, selectedIds: session.selectedIds, history: rest };
     if (dishMap.has(lastItem.dishId)) {
       if (lastItem.action === "accept") {
-        next.selectedIds = next.selectedIds.filter(
-          (id) => id !== lastItem.dishId,
-        );
+        // Un plat peut avoir été accepté plusieurs fois : on ne retire
+        // qu'une seule occurrence par annulation. Nouvelle instance pour
+        // que les dérivations (useMemo, sauvegarde) se mettent à jour.
+        const idx = next.selectedIds.indexOf(lastItem.dishId);
+        if (idx !== -1) {
+          next.selectedIds = next.selectedIds.filter(
+            (_, i) => i !== idx,
+          );
+        }
       }
       next.queueIds = [lastItem.dishId, ...next.queueIds];
       setSessionOverride(next);
@@ -397,7 +407,7 @@ export function ChooseDishesPage() {
                     ).length === 0 ? (
                     <p>🍂 Aucun plat de saison pour le moment.</p>
                   ) : (
-                    <p>🎉 Plus aucun plat à passer en revue !</p>
+                    <p>Tous les plats ont été passés en revue.</p>
                   )}
                 </div>
               )}
@@ -415,8 +425,11 @@ export function ChooseDishesPage() {
                 </div>
               ) : (
                 <div className="selected-dishes-list">
-                  {selectedDishes.map((dish) => (
-                    <div key={dish.id} className="dish-card selected-card">
+                  {selectedDishes.map((dish, index) => (
+                    <div
+                      key={`${dish.id}-${index}`}
+                      className="dish-card selected-card"
+                    >
                       <div className="card-header-row">
                         <span className="dish-name">{dish.name}</span>
                         <span className="course-badge">
@@ -497,8 +510,11 @@ export function ChooseDishesPage() {
                     s ({courseDishes.length})
                   </h3>
                   <div className="category-cards">
-                    {courseDishes.map((dish) => (
-                      <div key={dish.id} className="dish-card recap-card">
+                    {courseDishes.map((dish, index) => (
+                      <div
+                        key={`${dish.id}-${index}`}
+                        className="dish-card recap-card"
+                      >
                         <h4 className="dish-name">{dish.name}</h4>
                         {renderDescription(dish)}
                       </div>

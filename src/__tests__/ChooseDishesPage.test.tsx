@@ -103,7 +103,7 @@ afterEach(() => {
 // ── Construction de la file ───────────────────────────────────────────────────
 
 describe("ChooseDishesPage queue construction", () => {
-  it("proposes only dishes in season for the current date", () => {
+  it("proposes only dishes in season, three passes each, before stopping", () => {
     mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH, WINTER_DISH, AUTUMN_DISH];
     renderPage();
 
@@ -114,11 +114,12 @@ describe("ChooseDishesPage queue construction", () => {
       advance(220);
     }
 
-    expect(proposedNames.sort()).toEqual([
-      "Colin d'Alaska & riz",
-      "Salade tomates & mozzarella",
-    ]);
-    expect(screen.getByText(/Plus aucun plat à passer en revue/)).toBeDefined();
+    // Ordre identique à chaque passage (random mocké)
+    const pass = ["Colin d'Alaska & riz", "Salade tomates & mozzarella"];
+    expect(proposedNames).toEqual([...pass, ...pass, ...pass]);
+    expect(
+      screen.getByText(/Tous les plats ont été passés en revue/),
+    ).toBeDefined();
   });
 
   it("shows a dedicated message when no dish is in season", () => {
@@ -150,7 +151,13 @@ describe("ChooseDishesPage persistence", () => {
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.selectedIds).toEqual(["all-seasons"]);
-    expect(saved.queueIds).toEqual(["summer-a"]);
+    expect(saved.queueIds).toEqual([
+      "summer-a",
+      "all-seasons",
+      "summer-a",
+      "all-seasons",
+      "summer-a",
+    ]);
     expect(saved.history).toEqual([
       { action: "accept", dishId: "all-seasons" },
     ]);
@@ -198,10 +205,52 @@ describe("ChooseDishesPage persistence", () => {
     fireEvent.click(screen.getByText("Oui, réinitialiser"));
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
-    expect([...saved.queueIds].sort()).toEqual(["all-seasons", "summer-a"]);
+    expect(saved.queueIds).toEqual([
+      "all-seasons",
+      "summer-a",
+      "all-seasons",
+      "summer-a",
+      "all-seasons",
+      "summer-a",
+    ]);
     expect(saved.selectedIds).toEqual([]);
     expect(saved.history).toEqual([]);
     expect(getCurrentDishName()).toBe("Colin d'Alaska & riz");
+  });
+});
+
+// ── Passages multiples ────────────────────────────────────────────────────────
+
+describe("ChooseDishesPage multiple passes", () => {
+  it("adds a second occurrence when an already accepted dish is accepted again", () => {
+    renderPage();
+
+    // Passe 1 : acceptation du premier plat proposé
+    const firstName = getCurrentDishName();
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+
+    // On refuse jusqu'au retour du même plat lors d'un passage suivant
+    while (getCurrentDishName() !== firstName) {
+      fireEvent.click(screen.getByText("✕ Refuser"));
+      advance(220);
+    }
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+
+    // Les deux acceptations coexistent dans la sélection
+    expect(screen.getByText("Plats sélectionnés (2)")).toBeDefined();
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(saved.selectedIds).toHaveLength(2);
+
+    // Une seule annulation retire une seule occurrence ; le plat reste proposé
+    fireEvent.click(screen.getByText("Annuler"));
+    expect(screen.getByText("Plats sélectionnés (1)")).toBeDefined();
+    expect(getCurrentDishName()).toBe(firstName);
+    const savedAfterUndo = JSON.parse(
+      localStorage.getItem(STORAGE_KEY) ?? "{}",
+    );
+    expect(savedAfterUndo.selectedIds).toHaveLength(1);
   });
 });
 
