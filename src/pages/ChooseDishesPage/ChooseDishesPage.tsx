@@ -32,7 +32,6 @@ const SEASON_INFO: Record<Season, { label: string; icon: string }> = {
 
 const STORAGE_KEY = "pdls_choose_menu_state_v2";
 
-/** Nombre de fois où chaque plat compatible est proposé avant arrêt. */
 const PASSES_PER_DISH = 3;
 
 interface SavedMenuState {
@@ -74,7 +73,6 @@ function loadSavedState(): SavedMenuState | null {
   }
 }
 
-/** Dishes whose course/seasons values are renderable. */
 function isRenderableDish(dish: DishDocType): boolean {
   return (
     isValidCourse(dish.course) &&
@@ -92,11 +90,9 @@ interface SessionState {
   history: HistoryAction[];
 }
 
-// Identités stables pour les états dérivés avant chargement des données
 const NO_IDS: string[] = [];
 const NO_HISTORY: HistoryAction[] = [];
 
-/** Nouvelle file : plats de saison, ordre aléatoire, répétés PASSES_PER_DISH fois. */
 function buildFreshQueue(dishes: DishDocType[]): string[] {
   const season = getCurrentSeason();
   const ids = shuffle(
@@ -105,7 +101,6 @@ function buildFreshQueue(dishes: DishDocType[]): string[] {
   return Array.from({ length: PASSES_PER_DISH }, () => ids).flat();
 }
 
-/** Reprise d'une session sauvegardée : les plats supprimés sont ignorés. */
 function resolveSavedSession(
   saved: SavedMenuState,
   dishMap: Map<string, DishDocType>,
@@ -113,8 +108,6 @@ function resolveSavedSession(
   return {
     queueIds: saved.queueIds.filter((id) => dishMap.has(id)),
     selectedIds: saved.selectedIds.filter((id) => dishMap.has(id)),
-    // L'historique est conservé tel quel : les entrées dont le plat a été
-    // supprimé seront simplement ignorées lors d'un "Annuler".
     history: saved.history,
   };
 }
@@ -123,8 +116,6 @@ export function ChooseDishesPage() {
   const navigate = useNavigate();
   const { dishes, isLoaded } = useDishes();
 
-  // A session without any decision yet (accept or reject) is not worth
-  // resuming: arriving on the page starts from a fresh queue.
   const [initialSaved] = useState(() => {
     const saved = loadSavedState();
     return saved && saved.history.length > 0 ? saved : null;
@@ -139,7 +130,6 @@ export function ChooseDishesPage() {
     Record<string, boolean>
   >({});
 
-  // Plats affichables (ignore les documents corrompus)
   const dishMap = useMemo(() => {
     const map = new Map<string, DishDocType>();
     for (const dish of dishes) {
@@ -148,9 +138,6 @@ export function ChooseDishesPage() {
     return map;
   }, [dishes]);
 
-  // Session courante : dérivée des données jusqu'à la première interaction,
-  // puis figée dans l'état pour ne pas être perturbée par les changements
-  // de la base (sync, ajout/suppression de plats).
   const resolvedSession = useMemo(() => {
     if (!isLoaded) return null;
     return initialSaved
@@ -167,7 +154,6 @@ export function ChooseDishesPage() {
   const selectedIds = session?.selectedIds ?? NO_IDS;
   const history = session?.history ?? NO_HISTORY;
 
-  // Persistance automatique (une fois les données chargées)
   useEffect(() => {
     if (!session) return;
     const stateToSave: SavedMenuState = {
@@ -179,7 +165,6 @@ export function ChooseDishesPage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
   }, [session, mode, queueIds, selectedIds, history]);
 
-  // Résolution des ids vers les documents à jour
   const queue = useMemo(
     () =>
       queueIds
@@ -197,7 +182,6 @@ export function ChooseDishesPage() {
 
   const currentDish = queue[0] || null;
 
-  // Compteurs
   const counts = {
     starters: selectedDishes.filter((d) => d.course === Course.Starter).length,
     mains: selectedDishes.filter((d) => d.course === Course.Main).length,
@@ -250,7 +234,6 @@ export function ChooseDishesPage() {
     );
   };
 
-  // Actions d'édition
   const handleAccept = () => {
     if (!currentDish || cardAnimation || !session) return;
     setCardAnimation("accept");
@@ -287,7 +270,6 @@ export function ChooseDishesPage() {
     if (history.length === 0 || cardAnimation || !session) return;
     const [lastItem, ...rest] = history;
 
-    // Le plat a pu être supprimé entre-temps : on ignore simplement l'action.
     const next: SessionState = {
       queueIds: session.queueIds,
       selectedIds: session.selectedIds,
@@ -295,9 +277,6 @@ export function ChooseDishesPage() {
     };
     if (dishMap.has(lastItem.dishId)) {
       if (lastItem.action === "accept") {
-        // Un plat peut avoir été accepté plusieurs fois : on ne retire
-        // qu'une seule occurrence par annulation. Nouvelle instance pour
-        // que les dérivations (useMemo, sauvegarde) se mettent à jour.
         const idx = next.selectedIds.indexOf(lastItem.dishId);
         if (idx !== -1) {
           next.selectedIds = next.selectedIds.filter((_, i) => i !== idx);
@@ -327,7 +306,6 @@ export function ChooseDishesPage() {
 
   return (
     <div className="choose-menu-container">
-      {/* En-tête */}
       <header className="form-header">
         <button
           className="back-btn"
@@ -353,11 +331,9 @@ export function ChooseDishesPage() {
         )}
       </header>
 
-      {/* MODE ÉDITION */}
       {mode === "editing" && (
         <div className="choose-menu-layout">
           <main className="menu-main-column">
-            {/* Carte proposée */}
             <section className="proposed-card-section">
               <h2 className="section-subtitle">Plat proposé</h2>
 
@@ -420,7 +396,6 @@ export function ChooseDishesPage() {
               )}
             </section>
 
-            {/* Plats sélectionnés en cours */}
             <section className="selected-dishes-section">
               <h2 className="section-subtitle">
                 Plats sélectionnés ({counts.total})
@@ -455,7 +430,6 @@ export function ChooseDishesPage() {
             </section>
           </main>
 
-          {/* Sidebar Desktop */}
           <aside className="menu-sidebar">
             <div className="sidebar-card counters-card">
               <h3 className="sidebar-title">Récapitulatif</h3>
@@ -495,7 +469,6 @@ export function ChooseDishesPage() {
         </div>
       )}
 
-      {/* MODE RÉCAPITULATIF (LECTURE SEULE / VALIDÉ) */}
       {mode === "recap" && (
         <div className="recap-layout">
           <div className="recap-dishes-grid">
@@ -527,7 +500,6 @@ export function ChooseDishesPage() {
             })}
           </div>
 
-          {/* Barre d'action fixe ou latérale du mode récapitulatif */}
           <div className="recap-bottom-actions">
             <button
               className="btn btn-primary"
@@ -545,7 +517,6 @@ export function ChooseDishesPage() {
         </div>
       )}
 
-      {/* POPUP / MODALE DE CONFIRMATION DE RÉINITIALISATION */}
       {showResetModal && (
         <div className="modal-overlay" onClick={() => setShowResetModal(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
