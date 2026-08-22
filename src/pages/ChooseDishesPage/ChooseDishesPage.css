@@ -334,26 +334,10 @@
   gap: 20px;
 }
 
-.recap-status-banner {
-  background: rgba(29, 97, 231, 0.15);
-  border: 1px solid rgba(29, 97, 231, 0.4);
-  border-radius: 18px;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .status-badge {
   font-size: 14px;
   font-weight: 700;
   color: #60a5fa;
-}
-
-.recap-status-banner p {
-  margin: 0;
-  font-size: 13px;
-  color: #d1d5db;
 }
 
 .recap-dishes-grid {

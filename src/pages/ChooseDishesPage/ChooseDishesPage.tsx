@@ -288,7 +288,11 @@ export function ChooseDishesPage() {
     const [lastItem, ...rest] = history;
 
     // Le plat a pu être supprimé entre-temps : on ignore simplement l'action.
-    const next: SessionState = { queueIds: session.queueIds, selectedIds: session.selectedIds, history: rest };
+    const next: SessionState = {
+      queueIds: session.queueIds,
+      selectedIds: session.selectedIds,
+      history: rest,
+    };
     if (dishMap.has(lastItem.dishId)) {
       if (lastItem.action === "accept") {
         // Un plat peut avoir été accepté plusieurs fois : on ne retire
@@ -296,9 +300,7 @@ export function ChooseDishesPage() {
         // que les dérivations (useMemo, sauvegarde) se mettent à jour.
         const idx = next.selectedIds.indexOf(lastItem.dishId);
         if (idx !== -1) {
-          next.selectedIds = next.selectedIds.filter(
-            (_, i) => i !== idx,
-          );
+          next.selectedIds = next.selectedIds.filter((_, i) => i !== idx);
         }
       }
       next.queueIds = [lastItem.dishId, ...next.queueIds];
@@ -335,7 +337,7 @@ export function ChooseDishesPage() {
           <BackArrowIcon size={20} />
         </button>
         <h1 className="page-title">
-          {mode === "editing" ? "Choisir les plats" : "Plats de la semaine"}
+          {mode === "editing" ? "Choisir les plats" : "Plats sauvegardés"}
         </h1>
         {selectedDishes.length > 0 || history.length > 0 ? (
           <button
@@ -496,11 +498,6 @@ export function ChooseDishesPage() {
       {/* MODE RÉCAPITULATIF (LECTURE SEULE / VALIDÉ) */}
       {mode === "recap" && (
         <div className="recap-layout">
-          <div className="recap-status-banner">
-            <span className="status-badge">🔒 Plats verrouillés</span>
-            <p>Vos plats sont sauvegardés. Idéal pour préparer vos repas !</p>
-          </div>
-
           <div className="recap-dishes-grid">
             {[Course.Starter, Course.Main, Course.Dessert].map((course) => {
               const courseDishes = selectedDishes.filter(
@@ -511,8 +508,8 @@ export function ChooseDishesPage() {
               return (
                 <div key={course} className="recap-category-block">
                   <h3 className="category-title">
-                    {DISH_COURSE_INFO[course].icon} {DISH_COURSE_INFO[course].label}
-                    s ({courseDishes.length})
+                    {DISH_COURSE_INFO[course].icon}{" "}
+                    {DISH_COURSE_INFO[course].label}s ({courseDishes.length})
                   </h3>
                   <div className="category-cards">
                     {courseDishes.map((dish, index) => (
