@@ -243,16 +243,6 @@
   background-color: #ef4444;
 }
 
-.btn-accept {
-  background-color: #16a34a;
-  color: #ffffff;
-  border: 2px solid #15803d;
-}
-
-.btn-accept:hover {
-  background-color: #22c55e;
-}
-
 .selected-dishes-section {
   margin-top: 24px;
 }

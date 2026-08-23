@@ -4,7 +4,6 @@ import { apiPost, notifyAuthChange } from "../../services/api";
 import type { components } from "../../schema";
 import { MailIcon } from "../../components/Icons";
 import logo_img from "../../../assets/logo.png";
-import "../RegisterPage/RegisterPage.css";
 import "./LoginPage.css";
 
 type AuthResponse = components["schemas"]["AuthResponse"];

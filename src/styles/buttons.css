@@ -1,0 +1,42 @@
+.btn {
+  width: 100%;
+  height: min(52px, 7svh);
+  min-height: 48px;
+  border-radius: 16px;
+  font-size: clamp(14px, 2.2svh, 16px);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background-color: #1d61e7;
+  color: #ffffff;
+  border: 2px solid #1955ce;
+}
+
+.btn-primary:hover {
+  background-color: rgb(40, 106, 238);
+}
+
+.btn-primary:disabled {
+  background-color: rgb(141, 141, 141);
+  border: 2px solid rgb(100, 100, 100);
+  cursor: not-allowed;
+}
+
+.btn-success {
+  background-color: #179340;
+  color: #ffffff;
+  border: 2px solid rgb(20, 119, 53);
+}
+
+.btn-success:hover {
+  background-color: #179d43;
+}
