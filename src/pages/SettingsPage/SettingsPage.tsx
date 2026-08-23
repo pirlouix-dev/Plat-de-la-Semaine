@@ -1,12 +1,307 @@
-import "../../App.css";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { BackArrowIcon } from "../../components/Icons";
+import "./SettingsPage.css";
 
-function SettingsPage() {
+type SettingsTab = "account" | "data" | "bugs" | "info";
+
+interface Backup {
+  id: string;
+  dateLabel: string;
+  timeLabel: string;
+  dishesCount: number;
+  descriptionsCount: number;
+  isCurrent?: boolean;
+}
+
+const MOCK_BACKUPS: Backup[] = [
+  {
+    id: "b1",
+    dateLabel: "Aujourd'hui",
+    timeLabel: "09:21",
+    dishesCount: 16,
+    descriptionsCount: 15,
+    isCurrent: true,
+  },
+  {
+    id: "b2",
+    dateLabel: "19/08/2026",
+    timeLabel: "09:18",
+    dishesCount: 15,
+    descriptionsCount: 15,
+  },
+  {
+    id: "b3",
+    dateLabel: "21/06/2026",
+    timeLabel: "17:45",
+    dishesCount: 16,
+    descriptionsCount: 15,
+  },
+  {
+    id: "b4",
+    dateLabel: "21/06/2026",
+    timeLabel: "12:30",
+    dishesCount: 14,
+    descriptionsCount: 13,
+  },
+];
+
+export function SettingsPage() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<SettingsTab>("data");
+
+  // Formulaires fictifs pour la démonstration
+  const [username, setUsername] = useState("toto");
+  const [bugDescription, setBugDescription] = useState("");
+  const [backups, setBackups] = useState<Backup[]>(MOCK_BACKUPS);
+
+  const handleRestore = (id: string) => {
+    setBackups((prev) =>
+      prev.map((b) => ({
+        ...b,
+        isCurrent: b.id === id,
+      })),
+    );
+  };
+
   return (
-    <div className="app-container">
-      <h1 className="page-title">Paramètres</h1>
-      <p className="page-placeholder">
-        Settings page — coming soon.
-      </p>
+    <div className="settings-container">
+      {/* En-tête de page standardisé */}
+      <header className="form-header">
+        <button
+          className="back-btn"
+          onClick={() => navigate("/")}
+          aria-label="Retour"
+        >
+          <BackArrowIcon size={20} />
+        </button>
+        <h1 className="page-title">Paramètres</h1>
+        <div className="header-spacer" />
+      </header>
+
+      <div className="settings-layout">
+        {/* Navigation verticale à gauche */}
+        <aside className="settings-sidebar">
+          <div className="sidebar-card nav-card">
+            <nav className="settings-nav-list">
+              <button
+                className={`nav-item-btn ${activeTab === "account" ? "active" : ""}`}
+                onClick={() => setActiveTab("account")}
+              >
+                <span className="nav-icon">👤</span>
+                <span className="nav-label">Mon compte</span>
+              </button>
+
+              <button
+                className={`nav-item-btn ${activeTab === "data" ? "active" : ""}`}
+                onClick={() => setActiveTab("data")}
+              >
+                <span className="nav-icon">🔄</span>
+                <span className="nav-label">Données & Plats</span>
+              </button>
+
+              <button
+                className={`nav-item-btn ${activeTab === "bugs" ? "active" : ""}`}
+                onClick={() => setActiveTab("bugs")}
+              >
+                <span className="nav-icon">🐛</span>
+                <span className="nav-label">Signaler un bug</span>
+              </button>
+
+              <button
+                className={`nav-item-btn ${activeTab === "info" ? "active" : ""}`}
+                onClick={() => setActiveTab("info")}
+              >
+                <span className="nav-icon">ℹ️</span>
+                <span className="nav-label">À propos</span>
+              </button>
+            </nav>
+          </div>
+        </aside>
+
+        {/* Contenu principal de l'onglet actif */}
+        <main className="settings-main-content">
+          {/* ONGLET 1 : MON COMPTE */}
+          {activeTab === "account" && (
+            <div className="settings-panel">
+              <section className="settings-section-card">
+                <h2 className="section-title">Profil utilisateur</h2>
+                <div className="form-group">
+                  <label htmlFor="username-input" className="input-label">
+                    Nom d'utilisateur
+                  </label>
+                  <div className="input-with-button">
+                    <input
+                      id="username-input"
+                      type="text"
+                      className="settings-input"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                    <button className="btn btn-primary">Enregistrer</button>
+                  </div>
+                </div>
+              </section>
+
+              <section className="settings-section-card">
+                <h2 className="section-title">Sécurité</h2>
+                <p className="section-description">
+                  Un e-mail vous sera envoyé pour réinitialiser votre mot de
+                  passe.
+                </p>
+                <button className="btn btn-secondary">
+                  🔒 Réinitialiser le mot de passe
+                </button>
+              </section>
+
+              <section className="settings-section-card danger-zone">
+                <h2 className="section-title danger-title">Zone de danger</h2>
+                <div className="danger-actions">
+                  <button className="btn btn-revert">Se déconnecter</button>
+                  <button className="btn btn-danger">
+                    Supprimer le compte
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* ONGLET 2 : DONNÉES & RESTAURATION (TIMELINE) */}
+          {activeTab === "data" && (
+            <div className="settings-panel">
+              <section className="settings-section-card">
+                <h2 className="section-title">Restauration des données</h2>
+                <p className="section-description">
+                  Sélectionnez une sauvegarde dans l'historique pour restaurer
+                  l'état de vos plats.
+                </p>
+
+                {/* Timeline des sauvegardes */}
+                <div className="backup-timeline">
+                  {backups.map((backup) => (
+                    <div
+                      key={backup.id}
+                      className={`timeline-item ${backup.isCurrent ? "current" : ""}`}
+                    >
+                      <div className="timeline-marker">
+                        <div className="timeline-dot" />
+                        <div className="timeline-line" />
+                      </div>
+
+                      <div className="timeline-card">
+                        <div className="timeline-card-header">
+                          <div className="backup-time-info">
+                            <span className="backup-date">
+                              {backup.dateLabel}
+                            </span>
+                            <span className="backup-time">
+                              {" "}
+                              à {backup.timeLabel}
+                            </span>
+                          </div>
+
+                          {backup.isCurrent ? (
+                            <span className="status-pill active-pill">
+                              ● Version active
+                            </span>
+                          ) : (
+                            <button
+                              className="btn btn-restore-sm"
+                              onClick={() => handleRestore(backup.id)}
+                            >
+                              ↺ Restaurer
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="backup-meta-chips">
+                          <span className="meta-chip">
+                            🍽️ {backup.dishesCount} plats
+                          </span>
+                          <span className="meta-chip">
+                            📝 {backup.descriptionsCount} descriptions
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="settings-section-card">
+                <h2 className="section-title">Organisation des plats</h2>
+                <p className="section-description">
+                  Réorganisez ou réinitialisez le tri automatique de l'ensemble
+                  de votre catalogue.
+                </p>
+                <button className="btn btn-secondary">
+                  🔀 Retrier les plats
+                </button>
+              </section>
+            </div>
+          )}
+
+          {/* ONGLET 3 : SIGNALER UN BUG */}
+          {activeTab === "bugs" && (
+            <div className="settings-panel">
+              <section className="settings-section-card">
+                <h2 className="section-title">Signaler un bug</h2>
+                <p className="section-description">
+                  Décrivez le problème rencontré pour nous aider à le résoudre :
+                </p>
+                <ul className="bug-guidelines-list">
+                  <li>Ce que vous faisiez juste avant l'incident</li>
+                  <li>Si le comportement est systématique ou occasionnel</li>
+                </ul>
+
+                <textarea
+                  className="settings-textarea"
+                  placeholder="Lorsque j'accepte plusieurs plats très rapidement..."
+                  rows={5}
+                  value={bugDescription}
+                  onChange={(e) => setBugDescription(e.target.value)}
+                />
+
+                <div className="form-actions">
+                  <button
+                    className="btn btn-primary"
+                    disabled={!bugDescription.trim()}
+                  >
+                    Envoyer le rapport
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* ONGLET 4 : À PROPOS */}
+          {activeTab === "info" && (
+            <div className="settings-panel">
+              <section className="settings-section-card">
+                <h2 className="section-title">
+                  Informations sur l'application
+                </h2>
+                <div className="info-list">
+                  <div className="info-row">
+                    <span className="info-label">Version actuelle</span>
+                    <span className="info-value">v4.0.0 Web</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">
+                      Version desktop d'origine
+                    </span>
+                    <span className="info-value">v3.8.2 (PyQt5)</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Statut du système</span>
+                    <span className="status-pill active-pill">Synchronisé</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
