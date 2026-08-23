@@ -63,16 +63,6 @@
   margin-top: min(10px, 1.5svh);
 }
 
-.btn-success {
-  background-color: #179340;
-  color: #ffffff;
-  border: 2px solid rgb(20, 119, 53);
-}
-
-.btn-success:hover {
-  background-color: #179d43;
-}
-
 .register-link-btn {
   background: none;
   border: none;
