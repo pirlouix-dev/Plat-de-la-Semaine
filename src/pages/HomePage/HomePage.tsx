@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import "./HomePage.css";
 
+import { useSyncStatus } from "../../hooks/useSyncStatus";
+
 import logo_img from "../../../assets/logo.png";
 import book_img from "../../../assets/book.webp";
 import add_img from "../../../assets/add.webp";
@@ -20,6 +22,7 @@ function HomePage() {
   const userId = localStorage.getItem("user_id");
   const username = localStorage.getItem("user_username");
   const isLoggedIn = !!userId;
+  const syncDisplay = useSyncStatus();
 
   return (
     <div className="app-container">
@@ -30,9 +33,14 @@ function HomePage() {
           <span className="account-title">
             {isLoggedIn ? `Bonjour, ${username} !` : "Mode Invité"}
           </span>
-          <span className="account-subtitle">
+          <span
+            className={
+              "account-subtitle" +
+              (syncDisplay.isError ? " account-subtitle--error" : "")
+            }
+          >
             {isLoggedIn
-              ? "Vos plats sont synchronisés"
+              ? syncDisplay.text
               : "Connectez-vous pour sauvegarder vos plats"}
           </span>
         </div>

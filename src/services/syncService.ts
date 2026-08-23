@@ -8,12 +8,18 @@ import {
 } from "./dishService";
 import type { components } from "../schema";
 import { isLoggedIn } from "./api";
+import {
+  markSyncStarted,
+  markSyncSuccess,
+  markSyncFailed,
+  setOnline,
+  seedLastSyncAt,
+  _resetSyncStatus,
+} from "./syncStatusStore";
 
 type ApiDish = components["schemas"]["Dish"];
 
-const INITIAL_BACKOFF_MS = 1_000;
-const MAX_BACKOFF_MS = 30_000;
-const MAX_RETRIES = 5;
+const BACKOFF_DELAYS_MS = [1_000, 5_000, 15_000, 30_000, 60_000];
 const LAST_SYNC_KEY = "lastSyncAt";
 const SYNC_INTERVAL_MS = 3_600_000;
 
@@ -34,6 +40,7 @@ export function _resetSyncState(): void {
     clearInterval(syncInterval);
     syncInterval = null;
   }
+  _resetSyncStatus();
 }
 
 function isOnline(): boolean {
@@ -151,13 +158,17 @@ function isSyncStale(lastSyncAt: string): boolean {
   return Date.now() - new Date(lastSyncAt).getTime() > STALE_SYNC_THRESHOLD_MS;
 }
 
-async function pullAndMerge(db: AppDatabase): Promise<void> {
+/**
+ * Pulls remote dishes and merges them locally.
+ * Returns the persisted lastSyncAt ISO timestamp on success, null on failure.
+ */
+async function pullAndMerge(db: AppDatabase): Promise<string | null> {
   const lastSyncAt = await getLastSyncAt(db);
   const syncStartTime = new Date().toISOString();
   const needsFullSync = !lastSyncAt || isSyncStale(lastSyncAt);
 
   const result = await getDishes({ since: needsFullSync ? undefined : lastSyncAt });
-  if (!result.ok) return;
+  if (!result.ok) return null;
 
   const remoteDishes = result.data;
 
@@ -231,6 +242,8 @@ async function pullAndMerge(db: AppDatabase): Promise<void> {
   }
 
   await setLastSyncAt(db, syncStartTime);
+
+  return syncStartTime;
 }
 
 export async function sync(db: AppDatabase): Promise<void> {
@@ -240,19 +253,22 @@ export async function sync(db: AppDatabase): Promise<void> {
   if (!isLoggedIn()) return;
 
   syncRunning = true;
+  markSyncStarted();
   try {
     const hadFailures = await pushPendingChanges(db);
-    await pullAndMerge(db);
+    const pulledSyncAt = await pullAndMerge(db);
 
-    if (hadFailures) {
-      retryCount = Math.min(retryCount + 1, MAX_RETRIES);
-      const delay = Math.min(
-        INITIAL_BACKOFF_MS * Math.pow(2, retryCount - 1),
-        MAX_BACKOFF_MS
-      );
+    if (hadFailures || pulledSyncAt === null) {
+      retryCount += 1;
+      const delay =
+        BACKOFF_DELAYS_MS[
+          Math.min(retryCount - 1, BACKOFF_DELAYS_MS.length - 1)
+        ];
       scheduleRetry(db, delay);
+      markSyncFailed(Date.now() + delay);
     } else {
       retryCount = 0;
+      markSyncSuccess(pulledSyncAt);
     }
   } finally {
     syncRunning = false;
@@ -282,10 +298,19 @@ export function startAutoSync(db: AppDatabase): () => void {
   }
 
   const onOnline = () => {
+    setOnline(true);
     void sync(db).then(() => scheduleNextSync(db));
   };
 
+  const onOffline = () => {
+    setOnline(false);
+  };
+
   window.addEventListener("online", onOnline);
+  window.addEventListener("offline", onOffline);
+
+  setOnline(navigator.onLine);
+  void getLastSyncAt(db).then(seedLastSyncAt);
 
   scheduleNextSync(db);
 
@@ -295,6 +320,7 @@ export function startAutoSync(db: AppDatabase): () => void {
 
   return () => {
     window.removeEventListener("online", onOnline);
+    window.removeEventListener("offline", onOffline);
     if (syncTimer) {
       clearTimeout(syncTimer);
       syncTimer = null;
