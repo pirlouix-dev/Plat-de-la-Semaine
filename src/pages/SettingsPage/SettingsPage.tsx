@@ -14,6 +14,13 @@ interface Backup {
   isCurrent?: boolean;
 }
 
+const TAB_CONFIG: Record<SettingsTab, { title: string; icon: string }> = {
+  account: { title: "Mon compte", icon: "👤" },
+  data: { title: "Données & Plats", icon: "🔄" },
+  bugs: { title: "Signaler un bug", icon: "🐛" },
+  info: { title: "À propos", icon: "ℹ️" },
+};
+
 const MOCK_BACKUPS: Backup[] = [
   {
     id: "b1",
@@ -48,9 +55,10 @@ const MOCK_BACKUPS: Backup[] = [
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("data");
+  // Sur mobile, null représente le sommaire (liste des onglets)
+  const [activeTab, setActiveTab] = useState<SettingsTab | null>(null);
 
-  // Formulaires fictifs pour la démonstration
+  // Formulaires
   const [username, setUsername] = useState("toto");
   const [bugDescription, setBugDescription] = useState("");
   const [backups, setBackups] = useState<Backup[]>(MOCK_BACKUPS);
@@ -64,65 +72,58 @@ export function SettingsPage() {
     );
   };
 
+  const handleBack = () => {
+    // Si un onglet est ouvert sur mobile, le bouton retour ramène au sommaire
+    if (activeTab !== null) {
+      setActiveTab(null);
+    } else {
+      // Si on est déjà au sommaire, le bouton retour ramène au menu principal
+      navigate("/");
+    }
+  };
+
+  // Onglet affiché par défaut sur Desktop si aucun n'a été sélectionné sur mobile
+  const currentTab = activeTab || "data";
+
   return (
-    <div className="settings-container">
-      {/* En-tête de page standardisé */}
+    <div
+      className={`settings-container ${activeTab ? "has-active-tab" : "is-summary"}`}
+    >
+      {/* En-tête de page dynamique */}
       <header className="form-header">
-        <button
-          className="back-btn"
-          onClick={() => navigate("/")}
-          aria-label="Retour"
-        >
+        <button className="back-btn" onClick={handleBack} aria-label="Retour">
           <BackArrowIcon size={20} />
         </button>
-        <h1 className="page-title">Paramètres</h1>
+        <h1 className="page-title">
+          {activeTab ? TAB_CONFIG[activeTab].title : "Paramètres"}
+        </h1>
         <div className="header-spacer" />
       </header>
 
       <div className="settings-layout">
-        {/* Navigation verticale à gauche */}
+        {/* Sommaire / Menu latéral */}
         <aside className="settings-sidebar">
           <div className="sidebar-card nav-card">
             <nav className="settings-nav-list">
-              <button
-                className={`nav-item-btn ${activeTab === "account" ? "active" : ""}`}
-                onClick={() => setActiveTab("account")}
-              >
-                <span className="nav-icon">👤</span>
-                <span className="nav-label">Mon compte</span>
-              </button>
-
-              <button
-                className={`nav-item-btn ${activeTab === "data" ? "active" : ""}`}
-                onClick={() => setActiveTab("data")}
-              >
-                <span className="nav-icon">🔄</span>
-                <span className="nav-label">Données & Plats</span>
-              </button>
-
-              <button
-                className={`nav-item-btn ${activeTab === "bugs" ? "active" : ""}`}
-                onClick={() => setActiveTab("bugs")}
-              >
-                <span className="nav-icon">🐛</span>
-                <span className="nav-label">Signaler un bug</span>
-              </button>
-
-              <button
-                className={`nav-item-btn ${activeTab === "info" ? "active" : ""}`}
-                onClick={() => setActiveTab("info")}
-              >
-                <span className="nav-icon">ℹ️</span>
-                <span className="nav-label">À propos</span>
-              </button>
+              {(Object.keys(TAB_CONFIG) as SettingsTab[]).map((tabKey) => (
+                <button
+                  key={tabKey}
+                  className={`nav-item-btn ${currentTab === tabKey && activeTab !== null ? "active" : ""}`}
+                  onClick={() => setActiveTab(tabKey)}
+                >
+                  <span className="nav-icon">{TAB_CONFIG[tabKey].icon}</span>
+                  <span className="nav-label">{TAB_CONFIG[tabKey].title}</span>
+                  <span className="nav-chevron">›</span>
+                </button>
+              ))}
             </nav>
           </div>
         </aside>
 
-        {/* Contenu principal de l'onglet actif */}
+        {/* Panneau de contenu principal */}
         <main className="settings-main-content">
           {/* ONGLET 1 : MON COMPTE */}
-          {activeTab === "account" && (
+          {currentTab === "account" && (
             <div className="settings-panel">
               <section className="settings-section-card">
                 <h2 className="section-title">Profil utilisateur</h2>
@@ -167,7 +168,7 @@ export function SettingsPage() {
           )}
 
           {/* ONGLET 2 : DONNÉES & RESTAURATION (TIMELINE) */}
-          {activeTab === "data" && (
+          {currentTab === "data" && (
             <div className="settings-panel">
               <section className="settings-section-card">
                 <h2 className="section-title">Restauration des données</h2>
@@ -176,7 +177,6 @@ export function SettingsPage() {
                   l'état de vos plats.
                 </p>
 
-                {/* Timeline des sauvegardes */}
                 <div className="backup-timeline">
                   {backups.map((backup) => (
                     <div
@@ -242,7 +242,7 @@ export function SettingsPage() {
           )}
 
           {/* ONGLET 3 : SIGNALER UN BUG */}
-          {activeTab === "bugs" && (
+          {currentTab === "bugs" && (
             <div className="settings-panel">
               <section className="settings-section-card">
                 <h2 className="section-title">Signaler un bug</h2>
@@ -275,7 +275,7 @@ export function SettingsPage() {
           )}
 
           {/* ONGLET 4 : À PROPOS */}
-          {activeTab === "info" && (
+          {currentTab === "info" && (
             <div className="settings-panel">
               <section className="settings-section-card">
                 <h2 className="section-title">

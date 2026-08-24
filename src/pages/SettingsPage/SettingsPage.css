@@ -17,6 +17,37 @@
   gap: 24px;
 }
 
+/* =======================================
+   GESTION DE LA NAVIGATION MOBILE (< 768px)
+======================================= */
+@media (max-width: 767px) {
+  /* Au sommaire : afficher la liste, masquer le contenu */
+  .settings-container.is-summary .settings-sidebar {
+    display: block;
+  }
+  .settings-container.is-summary .settings-main-content {
+    display: none;
+  }
+
+  /* Dans un onglet actif : masquer la liste, afficher le contenu */
+  .settings-container.has-active-tab .settings-sidebar {
+    display: none;
+  }
+  .settings-container.has-active-tab .settings-main-content {
+    display: block;
+  }
+
+  .nav-chevron {
+    display: inline-block;
+    margin-left: auto;
+    font-size: 18px;
+    color: #a0a5b1;
+  }
+}
+
+/* =======================================
+   GESTION DU LAYOUT DESKTOP (>= 768px)
+======================================= */
 @media (min-width: 768px) {
   .settings-container {
     padding-bottom: min(24px, 3svh);
@@ -25,9 +56,18 @@
   .settings-layout {
     grid-template-columns: 240px 1fr;
   }
+
+  .settings-sidebar,
+  .settings-main-content {
+    display: block !important;
+  }
+
+  .nav-chevron {
+    display: none;
+  }
 }
 
-/* Menu latéral */
+/* Menu latéral / Sommaire */
 .nav-card {
   padding: 12px;
 }
@@ -43,9 +83,9 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 12px 14px;
-  background: transparent;
-  border: 1px solid transparent;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   color: #a0a5b1;
   font-size: 15px;
@@ -56,7 +96,7 @@
 }
 
 .nav-item-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
 
@@ -99,7 +139,105 @@
 }
 
 /* =======================================
-   DESIGN TIMELINE POUR LA RESTAURATION
+   FORMULAIRES & FIX INPUT ÉCRASÉ
+======================================= */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+/* FIX : Empêche l'input d'être écrasé par le bouton */
+.input-with-button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.input-with-button .settings-input {
+  flex: 1;
+}
+
+.input-with-button .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.settings-input,
+.settings-textarea {
+  width: 100%;
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 15px;
+  box-sizing: border-box;
+  outline: none;
+  font-family: inherit;
+}
+
+.settings-input:focus,
+.settings-textarea:focus {
+  border-color: #1d61e7;
+  box-shadow: 0 0 0 3px rgba(29, 97, 231, 0.25);
+}
+
+.settings-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Boutons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #1d61e7;
+  color: #ffffff;
+  flex: 1;
+}
+
+.btn-primary:hover {
+  background-color: #1550c0;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* =======================================
+   TIMELINE RESTAURATION
 ======================================= */
 .backup-timeline {
   display: flex;
@@ -150,7 +288,6 @@
   display: none;
 }
 
-/* Item courant (actif) */
 .timeline-item.current .timeline-dot {
   background: #1d61e7;
   border-color: #ffffff;
@@ -166,9 +303,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
 }
 
 .timeline-item.current .timeline-card {
@@ -213,7 +347,6 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Boutons & Pills de la Timeline */
 .status-pill {
   font-size: 12px;
   font-weight: 700;
@@ -245,78 +378,7 @@
   border-color: #1d61e7;
 }
 
-/* =======================================
-   AUTRES ÉLÉMENTS DU FORMULAIRE
-======================================= */
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.input-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #d1d5db;
-}
-
-.input-with-button {
-  display: flex;
-  gap: 10px;
-}
-
-.input-with-button .settings-input {
-  flex: 1;
-}
-
-.settings-input,
-.settings-textarea {
-  width: 100%;
-  background: #ffffff;
-  color: #1a1a1a;
-  border: 1px solid #d1d5db;
-  border-radius: 14px;
-  padding: 10px 14px;
-  font-size: 15px;
-  box-sizing: border-box;
-  outline: none;
-  font-family: inherit;
-}
-
-.settings-input:focus,
-.settings-textarea:focus {
-  border-color: #1d61e7;
-  box-shadow: 0 0 0 3px rgba(29, 97, 231, 0.25);
-}
-
-.settings-textarea {
-  resize: vertical;
-  min-height: 100px;
-}
-
-.btn-secondary {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 10px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.form-actions {
-  margin-top: 14px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Zone de danger */
+/* Zone de danger & Divers */
 .danger-zone {
   border-color: rgba(220, 38, 38, 0.3);
   background: rgba(220, 38, 38, 0.05);
@@ -333,7 +395,12 @@
   margin-top: 12px;
 }
 
-/* Liste des consignes bug */
+.form-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .bug-guidelines-list {
   margin: 0 0 14px 20px;
   padding: 0;
@@ -342,7 +409,6 @@
   line-height: 1.5;
 }
 
-/* Informations systeme */
 .info-list {
   display: flex;
   flex-direction: column;
