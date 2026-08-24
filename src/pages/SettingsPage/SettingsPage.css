@@ -18,9 +18,9 @@
 }
 
 /* =======================================
-   GESTION DE LA NAVIGATION MOBILE (< 768px)
+   GESTION DE LA NAVIGATION MOBILE (< 650px)
 ======================================= */
-@media (max-width: 767px) {
+@media (max-width: 649px) {
   /* Au sommaire : afficher la liste, masquer le contenu */
   .settings-container.is-summary .settings-sidebar {
     display: block;
@@ -46,9 +46,9 @@
 }
 
 /* =======================================
-   GESTION DU LAYOUT DESKTOP (>= 768px)
+   GESTION DU LAYOUT DESKTOP (>= 650px)
 ======================================= */
-@media (min-width: 768px) {
+@media (min-width: 650px) {
   .settings-container {
     padding-bottom: min(24px, 3svh);
   }
@@ -92,7 +92,10 @@
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nav-item-btn:hover {
@@ -101,13 +104,15 @@
 }
 
 .nav-item-btn.active {
+  transition: none;
   background: #1d61e7;
   color: #ffffff;
   border-color: #1d61e7;
 }
 
 .nav-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
 }
 
 /* Cartes de section */
@@ -153,23 +158,6 @@
   color: #d1d5db;
 }
 
-/* FIX : Empêche l'input d'être écrasé par le bouton */
-.input-with-button {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
-}
-
-.input-with-button .settings-input {
-  flex: 1;
-}
-
-.input-with-button .btn {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
 .settings-input,
 .settings-textarea {
   width: 100%;
@@ -180,60 +168,12 @@
   padding: 10px 14px;
   font-size: 15px;
   box-sizing: border-box;
-  outline: none;
   font-family: inherit;
-}
-
-.settings-input:focus,
-.settings-textarea:focus {
-  border-color: #1d61e7;
-  box-shadow: 0 0 0 3px rgba(29, 97, 231, 0.25);
 }
 
 .settings-textarea {
   resize: vertical;
   min-height: 100px;
-}
-
-/* Boutons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition:
-    background-color 0.2s ease,
-    opacity 0.2s ease;
-}
-
-.btn-primary {
-  background-color: #1d61e7;
-  color: #ffffff;
-  flex: 1;
-}
-
-.btn-primary:hover {
-  background-color: #1550c0;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* =======================================
@@ -272,7 +212,10 @@
   background: rgba(255, 255, 255, 0.25);
   border: 3px solid #1a1a1a;
   z-index: 2;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .timeline-line {
@@ -317,6 +260,11 @@
   gap: 12px;
 }
 
+.timeline-card-header .btn {
+  width: 65%;
+  white-space: nowrap;
+}
+
 .backup-time-info {
   font-size: 15px;
 }
@@ -359,23 +307,6 @@
   background: rgba(29, 97, 231, 0.2);
   color: #60a5fa;
   border: 1px solid rgba(96, 165, 250, 0.3);
-}
-
-.btn-restore-sm {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-restore-sm:hover {
-  background: #1d61e7;
-  border-color: #1d61e7;
 }
 
 /* Zone de danger & Divers */

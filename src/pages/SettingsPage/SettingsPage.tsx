@@ -1,9 +1,18 @@
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
-import { BackArrowIcon } from "../../components/Icons";
+import {
+  BackArrowIcon,
+  BugIcon,
+  InfoIcon,
+  RefreshIcon,
+  UserIcon,
+} from "../../components/Icons";
 import "./SettingsPage.css";
 
 type SettingsTab = "account" | "data" | "bugs" | "info";
+
+// Doit rester en phase avec le breakpoint CSS de SettingsPage.css
+const MOBILE_LAYOUT_QUERY = "(max-width: 649px)";
 
 interface Backup {
   id: string;
@@ -14,11 +23,14 @@ interface Backup {
   isCurrent?: boolean;
 }
 
-const TAB_CONFIG: Record<SettingsTab, { title: string; icon: string }> = {
-  account: { title: "Mon compte", icon: "👤" },
-  data: { title: "Données & Plats", icon: "🔄" },
-  bugs: { title: "Signaler un bug", icon: "🐛" },
-  info: { title: "À propos", icon: "ℹ️" },
+const TAB_CONFIG: Record<
+  SettingsTab,
+  { title: string; Icon: ComponentType<{ size?: number }> }
+> = {
+  account: { title: "Mon compte", Icon: UserIcon },
+  data: { title: "Données & Plats", Icon: RefreshIcon },
+  bugs: { title: "Signaler un bug", Icon: BugIcon },
+  info: { title: "À propos", Icon: InfoIcon },
 };
 
 const MOCK_BACKUPS: Backup[] = [
@@ -55,8 +67,10 @@ const MOCK_BACKUPS: Backup[] = [
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  // Sur mobile, null représente le sommaire (liste des onglets)
-  const [activeTab, setActiveTab] = useState<SettingsTab | null>(null);
+  // Sur mobile, null représente le sommaire ; sur desktop, le premier onglet est ouvert
+  const [activeTab, setActiveTab] = useState<SettingsTab | null>(() =>
+    window.matchMedia(MOBILE_LAYOUT_QUERY).matches ? null : "account",
+  );
 
   // Formulaires
   const [username, setUsername] = useState("toto");
@@ -73,17 +87,16 @@ export function SettingsPage() {
   };
 
   const handleBack = () => {
-    // Si un onglet est ouvert sur mobile, le bouton retour ramène au sommaire
-    if (activeTab !== null) {
+    // Sur mobile uniquement, le bouton retour ramène d'abord au sommaire
+    if (activeTab !== null && window.matchMedia(MOBILE_LAYOUT_QUERY).matches) {
       setActiveTab(null);
     } else {
-      // Si on est déjà au sommaire, le bouton retour ramène au menu principal
       navigate("/");
     }
   };
 
-  // Onglet affiché par défaut sur Desktop si aucun n'a été sélectionné sur mobile
-  const currentTab = activeTab || "data";
+  // Repli si on arrive au sommaire mobile puis qu'on passe en desktop
+  const currentTab = activeTab ?? "account";
 
   return (
     <div
@@ -105,17 +118,22 @@ export function SettingsPage() {
         <aside className="settings-sidebar">
           <div className="sidebar-card nav-card">
             <nav className="settings-nav-list">
-              {(Object.keys(TAB_CONFIG) as SettingsTab[]).map((tabKey) => (
-                <button
-                  key={tabKey}
-                  className={`nav-item-btn ${currentTab === tabKey && activeTab !== null ? "active" : ""}`}
-                  onClick={() => setActiveTab(tabKey)}
-                >
-                  <span className="nav-icon">{TAB_CONFIG[tabKey].icon}</span>
-                  <span className="nav-label">{TAB_CONFIG[tabKey].title}</span>
-                  <span className="nav-chevron">›</span>
-                </button>
-              ))}
+              {(Object.keys(TAB_CONFIG) as SettingsTab[]).map((tabKey) => {
+                const { title, Icon } = TAB_CONFIG[tabKey];
+                return (
+                  <button
+                    key={tabKey}
+                    className={`nav-item-btn ${currentTab === tabKey && activeTab !== null ? "active" : ""}`}
+                    onClick={() => setActiveTab(tabKey)}
+                  >
+                    <span className="nav-icon">
+                      <Icon size={20} />
+                    </span>
+                    <span className="nav-label">{title}</span>
+                    <span className="nav-chevron">›</span>
+                  </button>
+                );
+              })}
             </nav>
           </div>
         </aside>
@@ -131,16 +149,14 @@ export function SettingsPage() {
                   <label htmlFor="username-input" className="input-label">
                     Nom d'utilisateur
                   </label>
-                  <div className="input-with-button">
-                    <input
-                      id="username-input"
-                      type="text"
-                      className="settings-input"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <button className="btn btn-primary">Enregistrer</button>
-                  </div>
+                  <input
+                    id="username-input"
+                    type="text"
+                    className="settings-input"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                  <button className="btn btn-primary">Enregistrer</button>
                 </div>
               </section>
 
@@ -150,8 +166,8 @@ export function SettingsPage() {
                   Un e-mail vous sera envoyé pour réinitialiser votre mot de
                   passe.
                 </p>
-                <button className="btn btn-secondary">
-                  🔒 Réinitialiser le mot de passe
+                <button className="btn btn-revert">
+                  Réinitialiser le mot de passe
                 </button>
               </section>
 
@@ -206,10 +222,10 @@ export function SettingsPage() {
                             </span>
                           ) : (
                             <button
-                              className="btn btn-restore-sm"
+                              className="btn btn-revert"
                               onClick={() => handleRestore(backup.id)}
                             >
-                              ↺ Restaurer
+                              Restaurer
                             </button>
                           )}
                         </div>
@@ -226,17 +242,6 @@ export function SettingsPage() {
                     </div>
                   ))}
                 </div>
-              </section>
-
-              <section className="settings-section-card">
-                <h2 className="section-title">Organisation des plats</h2>
-                <p className="section-description">
-                  Réorganisez ou réinitialisez le tri automatique de l'ensemble
-                  de votre catalogue.
-                </p>
-                <button className="btn btn-secondary">
-                  🔀 Retrier les plats
-                </button>
               </section>
             </div>
           )}
