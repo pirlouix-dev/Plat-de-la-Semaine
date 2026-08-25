@@ -40,7 +40,7 @@ function isOnline(): boolean {
   return navigator.onLine;
 }
 
-async function getLastSyncAt(db: AppDatabase): Promise<string | null> {
+export async function getLastSyncAt(db: AppDatabase): Promise<string | null> {
   if (!db?.preferences) return null;
   const doc = await db.preferences.findOne(LAST_SYNC_KEY).exec();
   return doc ? (doc.toJSON().value as string) : null;

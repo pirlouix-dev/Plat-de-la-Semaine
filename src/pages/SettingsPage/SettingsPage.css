@@ -152,6 +152,18 @@
   gap: 8px;
 }
 
+.input-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 .input-label {
   font-size: 13px;
   font-weight: 600;

@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from "react";
+import { useState, useEffect, useCallback, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BackArrowIcon,
@@ -7,21 +7,24 @@ import {
   RefreshIcon,
   UserIcon,
 } from "../../components/Icons";
+import CharacterCounter from "../../components/CharacterCounter";
+import { useDatabase } from "../../db/DatabaseContext";
+import { useToast } from "../../components/toastContext";
+import { getBackups, restoreBackup } from "../../services/backupService";
+import { getVersionInfo, submitFeedback } from "../../services/settingsService";
+import { getLastSyncAt } from "../../services/syncService";
+import { updateUsername, resetPassword, deleteAccount } from "../../services/authService";
+import { clearAuth } from "../../services/api";
+import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
+import { MAX_FEEDBACK_LENGTH, MAX_USERNAME_LENGTH } from "../../types/dish";
+import type { BackupSummary } from "../../types";
+import type { VersionInfo } from "../../services/settingsService";
 import "./SettingsPage.css";
 
 type SettingsTab = "account" | "data" | "bugs" | "info";
 
 // Doit rester en phase avec le breakpoint CSS de SettingsPage.css
 const MOBILE_LAYOUT_QUERY = "(max-width: 649px)";
-
-interface Backup {
-  id: string;
-  dateLabel: string;
-  timeLabel: string;
-  dishesCount: number;
-  descriptionsCount: number;
-  isCurrent?: boolean;
-}
 
 const TAB_CONFIG: Record<
   SettingsTab,
@@ -33,58 +36,227 @@ const TAB_CONFIG: Record<
   info: { title: "À propos", Icon: InfoIcon },
 };
 
-const MOCK_BACKUPS: Backup[] = [
-  {
-    id: "b1",
-    dateLabel: "Aujourd'hui",
-    timeLabel: "09:21",
-    dishesCount: 16,
-    descriptionsCount: 15,
-    isCurrent: true,
-  },
-  {
-    id: "b2",
-    dateLabel: "19/08/2026",
-    timeLabel: "09:18",
-    dishesCount: 15,
-    descriptionsCount: 15,
-  },
-  {
-    id: "b3",
-    dateLabel: "21/06/2026",
-    timeLabel: "17:45",
-    dishesCount: 16,
-    descriptionsCount: 15,
-  },
-  {
-    id: "b4",
-    dateLabel: "21/06/2026",
-    timeLabel: "12:30",
-    dishesCount: 14,
-    descriptionsCount: 13,
-  },
-];
+function formatBackupDate(isoDate: string): { dateLabel: string; timeLabel: string } {
+  const d = new Date(isoDate);
+  const now = new Date();
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+
+  const timeLabel = d.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (isToday) {
+    return { dateLabel: "Aujourd'hui", timeLabel };
+  }
+
+  const dateLabel = d.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  return { dateLabel, timeLabel };
+}
+
+function formatLastSync(isoDate: string | null): string {
+  if (!isoDate) return "Jamais";
+  const d = new Date(isoDate);
+  return d.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function LoginPrompt() {
+  const navigate = useNavigate();
+  return (
+    <div className="settings-panel">
+      <section className="settings-section-card">
+        <p className="section-description">
+          Connectez-vous pour accéder à cette section.
+        </p>
+        <div className="form-actions">
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate("/login")}
+          >
+            Se connecter
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 export function SettingsPage() {
   const navigate = useNavigate();
+  const { db } = useDatabase();
+  const { showToast } = useToast();
+  const isLoggedIn = useIsLoggedIn();
+
   // Sur mobile, null représente le sommaire ; sur desktop, le premier onglet est ouvert
   const [activeTab, setActiveTab] = useState<SettingsTab | null>(() =>
     window.matchMedia(MOBILE_LAYOUT_QUERY).matches ? null : "account",
   );
 
-  // Formulaires
-  const [username, setUsername] = useState("toto");
-  const [bugDescription, setBugDescription] = useState("");
-  const [backups, setBackups] = useState<Backup[]>(MOCK_BACKUPS);
+  // ── Account ───────────────────────────────────────────────────────────────
+  const [username, setUsername] = useState(
+    () => localStorage.getItem("user_username") ?? "",
+  );
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const handleRestore = (id: string) => {
-    setBackups((prev) =>
-      prev.map((b) => ({
-        ...b,
-        isCurrent: b.id === id,
-      })),
-    );
+  const handleUsernameSave = async () => {
+    const trimmed = username.trim();
+    if (!trimmed || trimmed.length > MAX_USERNAME_LENGTH) return;
+    setUsernameSaving(true);
+    const result = await updateUsername(trimmed);
+    if (result.ok) {
+      localStorage.setItem("user_username", trimmed);
+      showToast("Nom d'utilisateur mis à jour", "success");
+    } else {
+      showToast(result.error.message, "error");
+    }
+    setUsernameSaving(false);
   };
+
+  const handleResetPassword = async () => {
+    setResettingPassword(true);
+    const result = await resetPassword();
+    if (result.ok) {
+      showToast("Email de réinitialisation envoyé", "success");
+    } else {
+      showToast(result.error.message, "error");
+    }
+    setResettingPassword(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    const result = await deleteAccount();
+    if (result.ok) {
+      clearAuth();
+      navigate("/", { replace: true });
+    } else {
+      showToast(result.error.message, "error");
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
+  // Repli si on arrive au sommaire mobile puis qu'on passe en desktop
+  const currentTab = activeTab ?? "account";
+
+  // ── Data & Plats ──────────────────────────────────────────────────────────
+  const [backups, setBackups] = useState<BackupSummary[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(false);
+  const [backupsError, setBackupsError] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  const fetchBackups = useCallback(async () => {
+    setBackupsLoading(true);
+    setBackupsError(null);
+    const result = await getBackups();
+    if (result.ok) {
+      setBackups(result.data);
+    } else {
+      setBackupsError(result.error.message);
+    }
+    setBackupsLoading(false);
+  }, []);
+
+  const handleRestore = async (backupId: string) => {
+    setRestoringId(backupId);
+    const result = await restoreBackup(backupId);
+    if (result.ok) {
+      showToast("Sauvegarde restaurée avec succès", "success");
+      await fetchBackups();
+    } else {
+      showToast(result.error.message, "error");
+    }
+    setRestoringId(null);
+  };
+
+  // ── Bug Report ────────────────────────────────────────────────────────────
+  const [bugDescription, setBugDescription] = useState("");
+  const [bugSubmitting, setBugSubmitting] = useState(false);
+
+  const handleBugSubmit = async () => {
+    if (!bugDescription.trim()) return;
+    setBugSubmitting(true);
+    const result = await submitFeedback({
+      message: bugDescription.trim(),
+      appVersion: versionInfo?.latestVersion ?? "unknown",
+    });
+    if (result.ok) {
+      showToast("Rapport envoyé, merci !", "success");
+      setBugDescription("");
+    } else {
+      showToast(result.error.message, "error");
+    }
+    setBugSubmitting(false);
+  };
+
+  // ── About ─────────────────────────────────────────────────────────────────
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getVersionInfo().then((result) => {
+      if (!cancelled && result.ok) {
+        setVersionInfo(result.data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ── Fetch data on tab switch ──────────────────────────────────────────────
+  useEffect(() => {
+    if (currentTab !== "data" || backups.length > 0 || !isLoggedIn) return;
+    let cancelled = false;
+    const load = async () => {
+      setBackupsLoading(true);
+      setBackupsError(null);
+      const result = await getBackups();
+      if (cancelled) return;
+      if (result.ok) {
+        setBackups(result.data);
+      } else {
+        setBackupsError(result.error.message);
+      }
+      setBackupsLoading(false);
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTab, backups.length, isLoggedIn]);
+
+  useEffect(() => {
+    if (currentTab !== "info") return;
+    let cancelled = false;
+    if (isLoggedIn && db) {
+      getLastSyncAt(db).then((iso) => {
+        if (!cancelled) {
+          setLastSyncAt(iso);
+        }
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTab, db, isLoggedIn]);
 
   const handleBack = () => {
     // Sur mobile uniquement, le bouton retour ramène d'abord au sommaire
@@ -95,8 +267,10 @@ export function SettingsPage() {
     }
   };
 
-  // Repli si on arrive au sommaire mobile puis qu'on passe en desktop
-  const currentTab = activeTab ?? "account";
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/", { replace: true });
+  };
 
   return (
     <div
@@ -142,137 +316,240 @@ export function SettingsPage() {
         <main className="settings-main-content">
           {/* ONGLET 1 : MON COMPTE */}
           {currentTab === "account" && (
-            <div className="settings-panel">
-              <section className="settings-section-card">
-                <h2 className="section-title">Profil utilisateur</h2>
-                <div className="form-group">
-                  <label htmlFor="username-input" className="input-label">
-                    Nom d'utilisateur
-                  </label>
-                  <input
-                    id="username-input"
-                    type="text"
-                    className="settings-input"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                  <button className="btn btn-primary">Enregistrer</button>
-                </div>
-              </section>
+            isLoggedIn ? (
+              <div className="settings-panel">
+                <section className="settings-section-card">
+                  <h2 className="section-title">Profil utilisateur</h2>
+                  <div className="form-group">
+                    <label htmlFor="username-input" className="input-label">
+                      Nom d'utilisateur
+                    </label>
+                    <input
+                      id="username-input"
+                      type="text"
+                      className="settings-input"
+                      maxLength={MAX_USERNAME_LENGTH}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                    <div className="input-footer">
+                      <CharacterCounter
+                        value={username}
+                        maxLength={MAX_USERNAME_LENGTH}
+                      />
+                      <button
+                        className="btn btn-primary"
+                        disabled={
+                          !username.trim() ||
+                          username.trim() === localStorage.getItem("user_username") ||
+                          usernameSaving
+                        }
+                        onClick={handleUsernameSave}
+                      >
+                        {usernameSaving ? "Enregistrement…" : "Enregistrer"}
+                      </button>
+                    </div>
+                  </div>
+                </section>
 
-              <section className="settings-section-card">
-                <h2 className="section-title">Sécurité</h2>
-                <button className="btn btn-primary">Se déconnecter</button>
-                <button className="btn btn-revert security-btn">
-                  Réinitialiser le mot de passe
-                </button>
-              </section>
-
-              <section className="settings-section-card danger-zone">
-                <h2 className="section-title danger-title">Zone de danger</h2>
-                <div className="danger-actions">
-                  <button className="btn btn-danger">
-                    Supprimer le compte
+                <section className="settings-section-card">
+                  <h2 className="section-title">Sécurité</h2>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleLogout}
+                  >
+                    Se déconnecter
                   </button>
-                </div>
-              </section>
-            </div>
+                  <button
+                    className="btn btn-revert security-btn"
+                    disabled={resettingPassword}
+                    onClick={handleResetPassword}
+                  >
+                    {resettingPassword ? "Envoi en cours…" : "Réinitialiser le mot de passe"}
+                  </button>
+                </section>
+
+                <section className="settings-section-card danger-zone">
+                  <h2 className="section-title danger-title">Zone de danger</h2>
+                  <p className="section-description">
+                    Cette action est irréversible. Toutes vos données seront supprimées.
+                  </p>
+                  <div className="danger-actions">
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => setShowDeleteModal(true)}
+                    >
+                      Supprimer le compte
+                    </button>
+                  </div>
+                </section>
+
+                {showDeleteModal && (
+                  <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                      <h3 className="modal-title">Supprimer le compte ?</h3>
+                      <p className="modal-text">
+                        Voulez-vous vraiment supprimer votre compte et toutes vos données ?
+                      </p>
+                      <p className="modal-text">Cette action est irréversible.</p>
+                      <div className="modal-actions">
+                        <button
+                          className="btn btn-revert"
+                          onClick={() => setShowDeleteModal(false)}
+                          disabled={deleting}
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          onClick={handleDeleteAccount}
+                          disabled={deleting}
+                        >
+                          {deleting ? "Suppression…" : "Supprimer"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <LoginPrompt />
+            )
           )}
 
           {/* ONGLET 2 : DONNÉES & RESTAURATION (TIMELINE) */}
           {currentTab === "data" && (
-            <div className="settings-panel">
-              <section className="settings-section-card">
-                <h2 className="section-title">Restauration des données</h2>
-                <p className="section-description">
-                  Sélectionnez une sauvegarde dans l'historique pour restaurer
-                  l'état de vos plats.
-                </p>
+            isLoggedIn ? (
+              <div className="settings-panel">
+                <section className="settings-section-card">
+                  <h2 className="section-title">Restauration des données</h2>
+                  <p className="section-description">
+                    Sélectionnez une sauvegarde dans l'historique pour restaurer
+                    l'état de vos plats.
+                  </p>
 
-                <div className="backup-timeline">
-                  {backups.map((backup) => (
-                    <div
-                      key={backup.id}
-                      className={`timeline-item ${backup.isCurrent ? "current" : ""}`}
-                    >
-                      <div className="timeline-marker">
-                        <div className="timeline-dot" />
-                        <div className="timeline-line" />
-                      </div>
+                  {backupsLoading && (
+                    <p className="section-description">Chargement…</p>
+                  )}
 
-                      <div className="timeline-card">
-                        <div className="timeline-card-header">
-                          <div className="backup-time-info">
-                            <span className="backup-date">
-                              {backup.dateLabel}
-                            </span>
-                            <span className="backup-time">
-                              {" "}
-                              à {backup.timeLabel}
-                            </span>
+                  {backupsError && (
+                    <p className="section-description" style={{ color: "#ef4444" }}>
+                      {backupsError}
+                    </p>
+                  )}
+
+                  {!backupsLoading && backups.length === 0 && (
+                    <p className="section-description">
+                      Aucune sauvegarde disponible.
+                    </p>
+                  )}
+
+                  <div className="backup-timeline">
+                    {backups.map((backup, index) => {
+                      const isCurrent = index === 0;
+                      const { dateLabel, timeLabel } = formatBackupDate(
+                        backup.createdAt,
+                      );
+                      const isRestoring = restoringId === backup.id;
+
+                      return (
+                        <div
+                          key={backup.id}
+                          className={`timeline-item ${isCurrent ? "current" : ""}`}
+                        >
+                          <div className="timeline-marker">
+                            <div className="timeline-dot" />
+                            <div className="timeline-line" />
                           </div>
 
-                          {backup.isCurrent ? (
-                            <span className="status-pill active-pill">
-                              ● Version active
-                            </span>
-                          ) : (
-                            <button
-                              className="btn btn-primary"
-                              onClick={() => handleRestore(backup.id)}
-                            >
-                              Restaurer
-                            </button>
-                          )}
-                        </div>
+                          <div className="timeline-card">
+                            <div className="timeline-card-header">
+                              <div className="backup-time-info">
+                                <span className="backup-date">
+                                  {dateLabel}
+                                </span>
+                                <span className="backup-time">
+                                  {" "}
+                                  à {timeLabel}
+                                </span>
+                              </div>
 
-                        <div className="backup-meta-chips">
-                          <span className="meta-chip">
-                            🍽️ {backup.dishesCount} plats
-                          </span>
-                          <span className="meta-chip">
-                            📝 {backup.descriptionsCount} descriptions
-                          </span>
+                              {isCurrent ? (
+                                <span className="status-pill active-pill">
+                                  ● Version active
+                                </span>
+                              ) : (
+                                <button
+                                  className="btn btn-primary"
+                                  disabled={isRestoring}
+                                  onClick={() => handleRestore(backup.id)}
+                                >
+                                  {isRestoring ? "Restauration…" : "Restaurer"}
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="backup-meta-chips">
+                              <span className="meta-chip">
+                                🍽️ {backup.dishCount} plats
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <LoginPrompt />
+            )
           )}
 
           {/* ONGLET 3 : SIGNALER UN BUG */}
           {currentTab === "bugs" && (
-            <div className="settings-panel">
-              <section className="settings-section-card">
-                <h2 className="section-title">Signaler un bug</h2>
-                <p className="section-description">
-                  Décrivez le problème rencontré pour nous aider à le résoudre :
-                </p>
-                <ul className="bug-guidelines-list">
-                  <li>Ce que vous faisiez juste avant l'incident</li>
-                  <li>Si le comportement est systématique ou occasionnel</li>
-                </ul>
+            isLoggedIn ? (
+              <div className="settings-panel">
+                <section className="settings-section-card">
+                  <h2 className="section-title">Signaler un bug</h2>
+                  <p className="section-description">
+                    Décrivez le problème rencontré pour nous aider à le résoudre :
+                  </p>
+                  <ul className="bug-guidelines-list">
+                    <li>Ce que vous faisiez juste avant l'incident</li>
+                    <li>Si le comportement est systématique ou occasionnel</li>
+                  </ul>
 
-                <textarea
-                  className="settings-textarea"
-                  placeholder="Lorsque j'accepte plusieurs plats très rapidement..."
-                  rows={5}
-                  value={bugDescription}
-                  onChange={(e) => setBugDescription(e.target.value)}
-                />
+                  <textarea
+                    className="settings-textarea"
+                    placeholder="Lorsque j'accepte plusieurs plats très rapidement..."
+                    rows={5}
+                    maxLength={MAX_FEEDBACK_LENGTH}
+                    value={bugDescription}
+                    onChange={(e) => setBugDescription(e.target.value)}
+                  />
 
-                <div className="form-actions">
-                  <button
-                    className="btn btn-primary"
-                    disabled={!bugDescription.trim()}
-                  >
-                    Envoyer le rapport
-                  </button>
-                </div>
-              </section>
-            </div>
+                  <div className="textarea-footer">
+                    <CharacterCounter
+                      value={bugDescription}
+                      maxLength={MAX_FEEDBACK_LENGTH}
+                    />
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      className="btn btn-primary"
+                      disabled={!bugDescription.trim() || bugSubmitting}
+                      onClick={handleBugSubmit}
+                    >
+                      {bugSubmitting ? "Envoi…" : "Envoyer le rapport"}
+                    </button>
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <LoginPrompt />
+            )
           )}
 
           {/* ONGLET 4 : À PROPOS */}
@@ -285,11 +562,15 @@ export function SettingsPage() {
                 <div className="info-list">
                   <div className="info-row">
                     <span className="info-label">Version de l'application</span>
-                    <span className="info-value">4.0.0</span>
+                    <span className="info-value">
+                      {versionInfo?.latestVersion ?? "…"}
+                    </span>
                   </div>
                   <div className="info-row">
                     <span className="info-label">Dernière synchronisation</span>
-                    <span className="info-value">19/08/2026 à 09:00</span>
+                    <span className="info-value">
+                      {formatLastSync(lastSyncAt)}
+                    </span>
                   </div>
                 </div>
               </section>
