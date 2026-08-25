@@ -162,11 +162,8 @@ export function SettingsPage() {
 
               <section className="settings-section-card">
                 <h2 className="section-title">Sécurité</h2>
-                <p className="section-description">
-                  Un e-mail vous sera envoyé pour réinitialiser votre mot de
-                  passe.
-                </p>
-                <button className="btn btn-revert">
+                <button className="btn btn-primary">Se déconnecter</button>
+                <button className="btn btn-revert security-btn">
                   Réinitialiser le mot de passe
                 </button>
               </section>
@@ -174,7 +171,6 @@ export function SettingsPage() {
               <section className="settings-section-card danger-zone">
                 <h2 className="section-title danger-title">Zone de danger</h2>
                 <div className="danger-actions">
-                  <button className="btn btn-revert">Se déconnecter</button>
                   <button className="btn btn-danger">
                     Supprimer le compte
                   </button>
@@ -222,7 +218,7 @@ export function SettingsPage() {
                             </span>
                           ) : (
                             <button
-                              className="btn btn-revert"
+                              className="btn btn-primary"
                               onClick={() => handleRestore(backup.id)}
                             >
                               Restaurer
@@ -288,18 +284,12 @@ export function SettingsPage() {
                 </h2>
                 <div className="info-list">
                   <div className="info-row">
-                    <span className="info-label">Version actuelle</span>
-                    <span className="info-value">v4.0.0 Web</span>
+                    <span className="info-label">Version de l'application</span>
+                    <span className="info-value">4.0.0</span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">
-                      Version desktop d'origine
-                    </span>
-                    <span className="info-value">v3.8.2 (PyQt5)</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="info-label">Statut du système</span>
-                    <span className="status-pill active-pill">Synchronisé</span>
+                    <span className="info-label">Dernière synchronisation</span>
+                    <span className="info-value">19/08/2026 à 09:00</span>
                   </div>
                 </div>
               </section>

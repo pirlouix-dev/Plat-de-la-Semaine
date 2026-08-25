@@ -319,6 +319,10 @@
   color: #ef4444;
 }
 
+.security-btn {
+  margin-top: 12px;
+}
+
 .danger-actions {
   display: flex;
   gap: 12px;
