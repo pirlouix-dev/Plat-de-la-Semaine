@@ -27,7 +27,7 @@ export function formatAge(ageMs: number): string {
 export function deriveSyncDisplay(state: SyncState, now: number): SyncDisplay {
   if (!state.online) {
     return {
-      text: "Hors ligne — synchronisation dès le retour de la connexion",
+      text: "Vous êtes hors ligne — synchronisation impossible",
       isError: true,
     };
   }
@@ -43,17 +43,9 @@ export function deriveSyncDisplay(state: SyncState, now: number): SyncDisplay {
         new Date(state.lastSyncAt).getTime());
 
   if (hasError) {
-    if (
-      state.nextRetryAt !== null &&
-      state.nextRetryAt > now
-    ) {
-      const seconds = Math.ceil((state.nextRetryAt - now) / 1000);
-      const retryIn =
-        seconds >= 60
-          ? `dans ${Math.floor(seconds / 60)} min`
-          : `dans ${seconds}s`;
+    if (state.retryCount > 0) {
       return {
-        text: `Échec de la synchronisation · nouvelle tentative ${retryIn}`,
+        text: `Échec de la synchronisation • Tentative n°${state.retryCount}`,
         isError: true,
       };
     }
@@ -66,7 +58,7 @@ export function deriveSyncDisplay(state: SyncState, now: number): SyncDisplay {
   if (state.lastSyncAt !== null) {
     const age = Math.max(0, now - new Date(state.lastSyncAt).getTime());
     return {
-      text: `Vos plats sont synchronisés · ${formatAge(age)}`,
+      text: `Vos plats sont synchronisés • ${formatAge(age)}`,
       isError: false,
     };
   }

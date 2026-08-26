@@ -9,11 +9,8 @@ export interface SyncState {
   lastSyncAt: string | null;
   /** ISO timestamp of the last failed sync attempt, null if last attempt succeeded. */
   lastErrorAt: string | null;
-  /**
-   * Epoch ms of the scheduled retry after a failure.
-   * Null when no retry is pending (success, or retries exhausted).
-   */
-  nextRetryAt: number | null;
+  /** Number of consecutive failed attempts since last success. */
+  retryCount: number;
 }
 
 function initialState(): SyncState {
@@ -22,7 +19,7 @@ function initialState(): SyncState {
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     lastSyncAt: null,
     lastErrorAt: null,
-    nextRetryAt: null,
+    retryCount: 0,
   };
 }
 
@@ -58,7 +55,7 @@ export function markSyncSuccess(lastSyncAt: string): void {
     phase: "idle",
     lastSyncAt,
     lastErrorAt: null,
-    nextRetryAt: null,
+    retryCount: 0,
   });
 }
 
@@ -66,11 +63,11 @@ export function markSyncSuccess(lastSyncAt: string): void {
  * @internal Called by syncService when a sync cycle fails.
  * Pass null when retries are exhausted (no scheduled retry).
  */
-export function markSyncFailed(nextRetryAt: number | null): void {
+export function markSyncFailed(retryCount: number): void {
   setState({
     phase: "idle",
     lastErrorAt: new Date().toISOString(),
-    nextRetryAt,
+    retryCount,
   });
 }
 

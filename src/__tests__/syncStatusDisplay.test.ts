@@ -8,7 +8,7 @@ function makeState(overrides: Partial<SyncState> = {}): SyncState {
     online: true,
     lastSyncAt: null,
     lastErrorAt: null,
-    nextRetryAt: null,
+    retryCount: 0,
     ...overrides,
   };
 }
@@ -40,12 +40,12 @@ describe("deriveSyncDisplay", () => {
         phase: "syncing",
         lastErrorAt: new Date(NOW).toISOString(),
       }),
-      NOW
+      NOW,
     );
 
     expect(display.isError).toBe(true);
     expect(display.text).toBe(
-      "Hors ligne — synchronisation dès le retour de la connexion"
+      "Vous êtes hors ligne — synchronisation impossible",
     );
   });
 
@@ -56,54 +56,26 @@ describe("deriveSyncDisplay", () => {
     expect(display.text).toBe("Synchronisation en cours…");
   });
 
-  it("shows error with countdown when a retry is scheduled", () => {
+  it("shows error with attempt count when retrying", () => {
     const display = deriveSyncDisplay(
       makeState({
         lastErrorAt: new Date(NOW).toISOString(),
-        nextRetryAt: NOW + 8_000,
+        retryCount: 3,
       }),
-      NOW
+      NOW,
     );
 
     expect(display.isError).toBe(true);
-    expect(display.text).toBe(
-      "Échec de la synchronisation · nouvelle tentative dans 8s"
-    );
+    expect(display.text).toBe("Échec de la synchronisation • Tentative n°3");
   });
 
-  it("rounds the countdown up to the next second", () => {
+  it("shows static error when retryCount is 0", () => {
     const display = deriveSyncDisplay(
       makeState({
         lastErrorAt: new Date(NOW).toISOString(),
-        nextRetryAt: NOW + 8_400,
+        retryCount: 0,
       }),
-      NOW
-    );
-
-    expect(display.text).toContain("nouvelle tentative dans 9s");
-  });
-
-  it("shows the countdown in minutes for waits of a minute or more", () => {
-    const display = deriveSyncDisplay(
-      makeState({
-        lastErrorAt: new Date(NOW).toISOString(),
-        nextRetryAt: NOW + 60_000,
-      }),
-      NOW
-    );
-
-    expect(display.text).toBe(
-      "Échec de la synchronisation · nouvelle tentative dans 1 min"
-    );
-  });
-
-  it("falls back to a static message once the countdown expires", () => {
-    const display = deriveSyncDisplay(
-      makeState({
-        lastErrorAt: new Date(NOW).toISOString(),
-        nextRetryAt: NOW - 1,
-      }),
-      NOW
+      NOW,
     );
 
     expect(display.isError).toBe(true);
@@ -113,7 +85,7 @@ describe("deriveSyncDisplay", () => {
   it("falls back to a static message when no retry is scheduled", () => {
     const display = deriveSyncDisplay(
       makeState({ lastErrorAt: new Date(NOW).toISOString() }),
-      NOW
+      NOW,
     );
 
     expect(display.isError).toBe(true);
@@ -125,9 +97,9 @@ describe("deriveSyncDisplay", () => {
       makeState({
         lastSyncAt: new Date(NOW).toISOString(),
         lastErrorAt: new Date(NOW - 60_000).toISOString(),
-        nextRetryAt: NOW + 8_000,
+        retryCount: 3,
       }),
-      NOW
+      NOW,
     );
 
     expect(display.isError).toBe(false);
@@ -137,26 +109,26 @@ describe("deriveSyncDisplay", () => {
   it("shows relative time since the last successful sync", () => {
     const display = deriveSyncDisplay(
       makeState({ lastSyncAt: new Date(NOW - 5 * 60_000).toISOString() }),
-      NOW
+      NOW,
     );
 
     expect(display.isError).toBe(false);
-    expect(display.text).toBe("Vos plats sont synchronisés · il y a 5 min");
+    expect(display.text).toBe("Vos plats sont synchronisés • il y a 5 min");
   });
 
   it("shows 'à l'instant' right after a successful sync", () => {
     const display = deriveSyncDisplay(
       makeState({ lastSyncAt: new Date(NOW - 4_000).toISOString() }),
-      NOW
+      NOW,
     );
 
-    expect(display.text).toBe("Vos plats sont synchronisés · à l'instant");
+    expect(display.text).toBe("Vos plats sont synchronisés • à l'instant");
   });
 
   it("clamps negative ages caused by clock skew", () => {
     const display = deriveSyncDisplay(
       makeState({ lastSyncAt: new Date(NOW + 120_000).toISOString() }),
-      NOW
+      NOW,
     );
 
     expect(display.text).toContain("à l'instant");

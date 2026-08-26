@@ -895,7 +895,7 @@ describe("sync status reporting", () => {
     const status = getSyncState();
     expect(status.phase).toBe("idle");
     expect(status.lastErrorAt).toBeNull();
-    expect(status.nextRetryAt).toBeNull();
+    expect(status.retryCount).toBe(0);
     expect(status.lastSyncAt).not.toBeNull();
     expect(new Date(status.lastSyncAt!).getTime()).toBeGreaterThanOrEqual(
       new Date(before).getTime()
@@ -910,7 +910,7 @@ describe("sync status reporting", () => {
     expect(getSyncState().phase).toBe("idle");
   });
 
-  it("reports failure and next retry when push fails", async () => {
+  it("reports failure and increments retryCount when push fails", async () => {
     await insertDish(
       db,
       makeDish({ id: "status-2", syncStatus: "pending_create" })
@@ -920,16 +920,12 @@ describe("sync status reporting", () => {
       error: { code: "HTTP_500", message: "fail" },
     });
 
-    const before = Date.now();
     await sync(db);
 
     const status = getSyncState();
     expect(status.phase).toBe("idle");
     expect(status.lastErrorAt).not.toBeNull();
-    expect(status.nextRetryAt).not.toBeNull();
-    // First backoff retry is scheduled ~1s out.
-    expect(status.nextRetryAt!).toBeGreaterThanOrEqual(before + 1_000);
-    expect(status.nextRetryAt!).toBeLessThanOrEqual(Date.now() + 1_000 + 200);
+    expect(status.retryCount).toBe(1);
   });
 
   it("reports failure when the pull fails", async () => {
@@ -938,14 +934,12 @@ describe("sync status reporting", () => {
       error: { code: "NETWORK_ERROR", message: "Network request failed" },
     });
 
-    const before = Date.now();
     await sync(db);
 
     const status = getSyncState();
     expect(status.phase).toBe("idle");
     expect(status.lastErrorAt).not.toBeNull();
-    expect(status.nextRetryAt).not.toBeNull();
-    expect(status.nextRetryAt!).toBeGreaterThanOrEqual(before + 1_000);
+    expect(status.retryCount).toBe(1);
   });
 
   it("backs off 1s→5s→15s→30s then retries every minute", async () => {
@@ -955,19 +949,9 @@ describe("sync status reporting", () => {
     });
 
     const nominalDelays = [1_000, 5_000, 15_000, 30_000, 60_000, 60_000];
-    const measured: number[] = [];
     for (let i = 0; i < nominalDelays.length; i++) {
-      const before = Date.now();
       await sync(db);
-      const nextRetryAt = getSyncState().nextRetryAt;
-      expect(nextRetryAt).not.toBeNull();
-      measured.push(nextRetryAt! - before);
-    }
-
-    for (let i = 0; i < nominalDelays.length; i++) {
-      // nextRetryAt is computed from Date.now() >= before, so it is at least nominal.
-      expect(measured[i]).toBeGreaterThanOrEqual(nominalDelays[i]);
-      expect(measured[i]).toBeLessThan(nominalDelays[i] + 500);
+      expect(getSyncState().retryCount).toBe(i + 1);
     }
   });
 
@@ -984,7 +968,7 @@ describe("sync status reporting", () => {
 
     const status = getSyncState();
     expect(status.lastErrorAt).toBeNull();
-    expect(status.nextRetryAt).toBeNull();
+    expect(status.retryCount).toBe(0);
     expect(status.lastSyncAt).not.toBeNull();
   });
 

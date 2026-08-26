@@ -265,7 +265,7 @@ export async function sync(db: AppDatabase): Promise<void> {
           Math.min(retryCount - 1, BACKOFF_DELAYS_MS.length - 1)
         ];
       scheduleRetry(db, delay);
-      markSyncFailed(Date.now() + delay);
+      markSyncFailed(retryCount);
     } else {
       retryCount = 0;
       markSyncSuccess(pulledSyncAt);

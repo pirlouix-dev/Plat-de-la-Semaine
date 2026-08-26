@@ -13,7 +13,7 @@ const mockUseSyncStatus = vi.mocked(useSyncStatus);
 
 function mockSyncStatus(overrides: Partial<SyncDisplay> = {}): void {
   mockUseSyncStatus.mockReturnValue({
-    text: "Vos plats sont synchronisés · il y a 5 min",
+    text: "Vos plats sont synchronisés • il y a 5 min",
     isError: false,
     ...overrides,
   });
@@ -29,7 +29,7 @@ describe("HomePage component", () => {
     const { container } = render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(container).toBeTruthy();
   });
@@ -38,7 +38,7 @@ describe("HomePage component", () => {
     render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText("Choisir les plats")).toBeTruthy();
     expect(screen.getByText("Ajouter un plat")).toBeTruthy();
@@ -50,7 +50,7 @@ describe("HomePage component", () => {
     render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     const logo = screen.getByAltText("Plat de la Semaine");
     expect(logo).toBeTruthy();
@@ -61,7 +61,7 @@ describe("HomePage component", () => {
     render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     const images = screen.getAllByRole("img");
     // logo + 4 menu cards
@@ -76,19 +76,21 @@ describe("HomePage component", () => {
     const { container } = render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(container.querySelector(".app-container")).toBeTruthy();
     expect(container.querySelector(".menu-grid")).toBeTruthy();
     expect(container.querySelectorAll(".menu-card-wrapper").length).toBe(4);
-    expect(container.querySelectorAll(".card-textbox-container").length).toBe(4);
+    expect(container.querySelectorAll(".card-textbox-container").length).toBe(
+      4,
+    );
   });
 
   it("renders menu cards as interactive buttons", () => {
     render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     const cards = screen.getAllByRole("button");
     expect(cards.length).toBe(5);
@@ -101,11 +103,11 @@ describe("HomePage component", () => {
     render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText("Bonjour, Mathéo !")).toBeTruthy();
     expect(
-      screen.getByText("Vos plats sont synchronisés · il y a 5 min")
+      screen.getByText("Vos plats sont synchronisés • il y a 5 min"),
     ).toBeTruthy();
     expect(screen.getByText("Mon compte")).toBeTruthy();
   });
@@ -117,7 +119,7 @@ describe("HomePage component", () => {
     render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText("Synchronisation en cours…")).toBeTruthy();
   });
@@ -125,32 +127,32 @@ describe("HomePage component", () => {
   it("shows the offline message in red when offline", () => {
     localStorage.setItem("user_id", "user-42");
     mockSyncStatus({
-      text: "Hors ligne — synchronisation dès le retour de la connexion",
+      text: "Vous êtes hors ligne — synchronisation impossible",
       isError: true,
     });
 
     const { container } = render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    expect(screen.getByText(/Hors ligne/)).toBeTruthy();
+    expect(screen.getByText(/hors ligne/)).toBeTruthy();
     expect(container.querySelector(".account-subtitle--error")).toBeTruthy();
   });
 
   it("shows the sync error message in red when the last sync failed", () => {
     localStorage.setItem("user_id", "user-42");
     mockSyncStatus({
-      text: "Échec de la synchronisation · nouvelle tentative dans 8s",
+      text: "Échec de la synchronisation • Tentative n°3",
       isError: true,
     });
 
     const { container } = render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    expect(screen.getByText(/nouvelle tentative dans 8s/)).toBeTruthy();
+    expect(screen.getByText(/Tentative n°3/)).toBeTruthy();
     expect(container.querySelector(".account-subtitle--error")).toBeTruthy();
   });
 
@@ -160,10 +162,10 @@ describe("HomePage component", () => {
     render(
       <MemoryRouter>
         <HomePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(
-      screen.getByText("Connectez-vous pour sauvegarder vos plats")
+      screen.getByText("Connectez-vous pour sauvegarder vos plats"),
     ).toBeTruthy();
   });
 });
