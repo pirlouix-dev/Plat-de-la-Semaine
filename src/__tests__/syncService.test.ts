@@ -135,7 +135,7 @@ describe("sync", () => {
         description: "",
         course: 2,
         seasons: [2],
-      })
+      }),
     );
 
     mockCreateDish.mockResolvedValue({
@@ -193,7 +193,7 @@ describe("sync", () => {
         description: "",
         course: 1,
         seasons: [0],
-      })
+      }),
     );
 
     mockUpdateDish.mockResolvedValue({
@@ -246,7 +246,7 @@ describe("sync", () => {
         serverId: "srv-3",
         syncStatus: "pending_delete",
         isDeleted: true,
-      })
+      }),
     );
 
     mockDeleteDish.mockResolvedValue({ ok: true, data: undefined });
@@ -273,7 +273,9 @@ describe("sync", () => {
     const doc = await db.dishes.findOne("sync-3").exec();
     expect(doc).toBeNull();
 
-    const reInserted = await db.dishes.find({ selector: { serverId: "srv-3" } }).exec();
+    const reInserted = await db.dishes
+      .find({ selector: { serverId: "srv-3" } })
+      .exec();
     expect(reInserted).toHaveLength(0);
   });
 
@@ -311,7 +313,7 @@ describe("sync", () => {
         name: "Old Name",
         syncStatus: "synced",
         updatedAt: "2026-01-01T00:00:00.000Z",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({
@@ -345,7 +347,7 @@ describe("sync", () => {
         name: "Local Newer",
         syncStatus: "synced",
         updatedAt: "2026-08-01T00:00:00.000Z",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({
@@ -377,7 +379,7 @@ describe("sync", () => {
         id: "gone-local",
         serverId: "gone-server",
         syncStatus: "synced",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({ ok: true, data: [] });
@@ -395,7 +397,7 @@ describe("sync", () => {
         id: "pending-local",
         serverId: "pending-server",
         syncStatus: "pending_update",
-      })
+      }),
     );
 
     mockUpdateDish.mockResolvedValue({
@@ -421,7 +423,7 @@ describe("sync", () => {
         syncStatus: "synced",
         isDeleted: false,
         updatedAt: "2026-01-01T00:00:00.000Z",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({
@@ -456,7 +458,7 @@ describe("sync", () => {
         syncStatus: "synced",
         isDeleted: false,
         updatedAt: "2026-07-26T12:00:00.000Z",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({
@@ -492,7 +494,7 @@ describe("sync", () => {
         syncStatus: "pending_update",
         isDeleted: false,
         updatedAt: "2026-07-26T12:00:00.000Z",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({
@@ -533,7 +535,7 @@ describe("sync", () => {
         course: 2,
         seasons: [1],
         updatedAt: "2026-07-26T12:00:00.000Z",
-      })
+      }),
     );
 
     mockUpdateDish.mockResolvedValue({
@@ -623,9 +625,7 @@ describe("sync", () => {
   });
 
   it("subsequent sync passes stored lastSyncAt as since param", async () => {
-    const recentDate = new Date(
-      Date.now() - 24 * 60 * 60 * 1000
-    ).toISOString();
+    const recentDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     await db.preferences.upsert({
       key: "lastSyncAt",
       value: recentDate,
@@ -643,7 +643,7 @@ describe("sync", () => {
 
   it("does a full pull when lastSyncAt is older than 30 days", async () => {
     const staleDate = new Date(
-      Date.now() - 31 * 24 * 60 * 60 * 1000
+      Date.now() - 31 * 24 * 60 * 60 * 1000,
     ).toISOString();
     await db.preferences.upsert({
       key: "lastSyncAt",
@@ -669,14 +669,12 @@ describe("sync", () => {
     expect(pref).not.toBeNull();
     const stored = pref!.get("value") as string;
     expect(new Date(stored).getTime()).toBeGreaterThanOrEqual(
-      new Date(beforeSync).getTime()
+      new Date(beforeSync).getTime(),
     );
   });
 
   it("skips orphan removal during incremental sync", async () => {
-    const recentDate = new Date(
-      Date.now() - 24 * 60 * 60 * 1000
-    ).toISOString();
+    const recentDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     await db.preferences.upsert({
       key: "lastSyncAt",
       value: recentDate,
@@ -690,7 +688,7 @@ describe("sync", () => {
         serverId: "existing-server",
         name: "Existing Dish",
         syncStatus: "synced",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({
@@ -724,7 +722,7 @@ describe("sync", () => {
         serverId: "orphan-server",
         name: "Orphan Dish",
         syncStatus: "synced",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({ ok: true, data: [] });
@@ -737,7 +735,7 @@ describe("sync", () => {
 
   it("performs orphan removal when lastSyncAt is stale", async () => {
     const staleDate = new Date(
-      Date.now() - 31 * 24 * 60 * 60 * 1000
+      Date.now() - 31 * 24 * 60 * 60 * 1000,
     ).toISOString();
     await db.preferences.upsert({
       key: "lastSyncAt",
@@ -752,7 +750,7 @@ describe("sync", () => {
         serverId: "orphan-server",
         name: "Orphan Dish",
         syncStatus: "synced",
-      })
+      }),
     );
 
     mockGetDishes.mockResolvedValue({ ok: true, data: [] });
@@ -809,7 +807,10 @@ describe("startAutoSync", () => {
 
     const cleanup = startAutoSync(db);
 
-    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 3_600_000);
+    expect(setIntervalSpy).toHaveBeenCalledWith(
+      expect.any(Function),
+      3_600_000,
+    );
 
     setIntervalSpy.mockRestore();
     cleanup();
@@ -869,7 +870,7 @@ describe("sync status reporting", () => {
   it("reports syncing phase while pushing pending changes", async () => {
     await insertDish(
       db,
-      makeDish({ id: "status-1", syncStatus: "pending_create" })
+      makeDish({ id: "status-1", syncStatus: "pending_create" }),
     );
 
     const phasesDuringPush: string[] = [];
@@ -898,7 +899,7 @@ describe("sync status reporting", () => {
     expect(status.retryCount).toBe(0);
     expect(status.lastSyncAt).not.toBeNull();
     expect(new Date(status.lastSyncAt!).getTime()).toBeGreaterThanOrEqual(
-      new Date(before).getTime()
+      new Date(before).getTime(),
     );
   });
 
@@ -913,7 +914,7 @@ describe("sync status reporting", () => {
   it("reports failure and increments retryCount when push fails", async () => {
     await insertDish(
       db,
-      makeDish({ id: "status-2", syncStatus: "pending_create" })
+      makeDish({ id: "status-2", syncStatus: "pending_create" }),
     );
     mockCreateDish.mockResolvedValue({
       ok: false,
