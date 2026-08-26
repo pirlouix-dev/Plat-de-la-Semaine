@@ -987,7 +987,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Status": {
+    "/api/status": {
         parameters: {
             query?: never;
             header?: never;
