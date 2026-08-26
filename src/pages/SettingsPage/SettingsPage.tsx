@@ -275,7 +275,6 @@ export function SettingsPage() {
     <div
       className={`settings-container ${activeTab ? "has-active-tab" : "is-summary"}`}
     >
-      {/* En-tête de page dynamique */}
       <header className="form-header">
         <button className="back-btn" onClick={handleBack} aria-label="Retour">
           <BackArrowIcon size={20} />
@@ -287,7 +286,6 @@ export function SettingsPage() {
       </header>
 
       <div className="settings-layout">
-        {/* Sommaire / Menu latéral */}
         <aside className="settings-sidebar">
           <div className="sidebar-card nav-card">
             <nav className="settings-nav-list">
@@ -311,9 +309,7 @@ export function SettingsPage() {
           </div>
         </aside>
 
-        {/* Panneau de contenu principal */}
         <main className="settings-main-content">
-          {/* ONGLET 1 : MON COMPTE */}
           {currentTab === "account" &&
             (isLoggedIn ? (
               <div className="settings-panel">
@@ -427,7 +423,6 @@ export function SettingsPage() {
               <LoginPrompt />
             ))}
 
-          {/* ONGLET 2 : DONNÉES & RESTAURATION (TIMELINE) */}
           {currentTab === "data" &&
             (isLoggedIn ? (
               <div className="settings-panel">
@@ -516,7 +511,6 @@ export function SettingsPage() {
               <LoginPrompt />
             ))}
 
-          {/* ONGLET 3 : SIGNALER UN BUG */}
           {currentTab === "bugs" &&
             (isLoggedIn ? (
               <div className="settings-panel">
@@ -561,7 +555,6 @@ export function SettingsPage() {
               <LoginPrompt />
             ))}
 
-          {/* ONGLET 4 : À PROPOS */}
           {currentTab === "info" && (
             <div className="settings-panel">
               <section className="settings-section-card">
