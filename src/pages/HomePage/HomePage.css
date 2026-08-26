@@ -49,6 +49,10 @@
   color: #555;
 }
 
+.account-subtitle--error {
+  color: #d32f2f;
+}
+
 .account-btn {
   background-color: #0865ff;
   border: none;
