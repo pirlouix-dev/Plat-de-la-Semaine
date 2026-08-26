@@ -143,6 +143,13 @@
   line-height: 1.4;
 }
 
+.section-description-login {
+  font-size: 14px;
+  color: #e7e5e5;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
 /* =======================================
    FORMULAIRES & FIX INPUT ÉCRASÉ
 ======================================= */

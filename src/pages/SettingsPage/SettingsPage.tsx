@@ -13,7 +13,11 @@ import { useToast } from "../../components/toastContext";
 import { getBackups, restoreBackup } from "../../services/backupService";
 import { getVersionInfo, submitFeedback } from "../../services/settingsService";
 import { getLastSyncAt } from "../../services/syncService";
-import { updateUsername, resetPassword, deleteAccount } from "../../services/authService";
+import {
+  updateUsername,
+  resetPassword,
+  deleteAccount,
+} from "../../services/authService";
 import { clearAuth } from "../../services/api";
 import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
 import { MAX_FEEDBACK_LENGTH, MAX_USERNAME_LENGTH } from "../../types/dish";
@@ -36,7 +40,10 @@ const TAB_CONFIG: Record<
   info: { title: "À propos", Icon: InfoIcon },
 };
 
-function formatBackupDate(isoDate: string): { dateLabel: string; timeLabel: string } {
+function formatBackupDate(isoDate: string): {
+  dateLabel: string;
+  timeLabel: string;
+} {
   const d = new Date(isoDate);
   const now = new Date();
   const isToday =
@@ -78,7 +85,7 @@ function LoginPrompt() {
   return (
     <div className="settings-panel">
       <section className="settings-section-card">
-        <p className="section-description">
+        <p className="section-description-login">
           Connectez-vous pour accéder à cette section.
         </p>
         <div className="form-actions">
@@ -315,8 +322,8 @@ export function SettingsPage() {
         {/* Panneau de contenu principal */}
         <main className="settings-main-content">
           {/* ONGLET 1 : MON COMPTE */}
-          {currentTab === "account" && (
-            isLoggedIn ? (
+          {currentTab === "account" &&
+            (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
                   <h2 className="section-title">Profil utilisateur</h2>
@@ -341,7 +348,8 @@ export function SettingsPage() {
                         className="btn btn-primary"
                         disabled={
                           !username.trim() ||
-                          username.trim() === localStorage.getItem("user_username") ||
+                          username.trim() ===
+                            localStorage.getItem("user_username") ||
                           usernameSaving
                         }
                         onClick={handleUsernameSave}
@@ -354,10 +362,7 @@ export function SettingsPage() {
 
                 <section className="settings-section-card">
                   <h2 className="section-title">Sécurité</h2>
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleLogout}
-                  >
+                  <button className="btn btn-primary" onClick={handleLogout}>
                     Se déconnecter
                   </button>
                   <button
@@ -365,14 +370,17 @@ export function SettingsPage() {
                     disabled={resettingPassword}
                     onClick={handleResetPassword}
                   >
-                    {resettingPassword ? "Envoi en cours…" : "Réinitialiser le mot de passe"}
+                    {resettingPassword
+                      ? "Envoi en cours…"
+                      : "Réinitialiser le mot de passe"}
                   </button>
                 </section>
 
                 <section className="settings-section-card danger-zone">
                   <h2 className="section-title danger-title">Zone de danger</h2>
                   <p className="section-description">
-                    Cette action est irréversible. Toutes vos données seront supprimées.
+                    Cette action est irréversible. Toutes vos données seront
+                    supprimées.
                   </p>
                   <div className="danger-actions">
                     <button
@@ -385,13 +393,22 @@ export function SettingsPage() {
                 </section>
 
                 {showDeleteModal && (
-                  <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="modal-overlay"
+                    onClick={() => setShowDeleteModal(false)}
+                  >
+                    <div
+                      className="modal-card"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <h3 className="modal-title">Supprimer le compte ?</h3>
                       <p className="modal-text">
-                        Voulez-vous vraiment supprimer votre compte et toutes vos données ?
+                        Voulez-vous vraiment supprimer votre compte et toutes
+                        vos données ?
                       </p>
-                      <p className="modal-text">Cette action est irréversible.</p>
+                      <p className="modal-text">
+                        Cette action est irréversible.
+                      </p>
                       <div className="modal-actions">
                         <button
                           className="btn btn-revert"
@@ -414,12 +431,11 @@ export function SettingsPage() {
               </div>
             ) : (
               <LoginPrompt />
-            )
-          )}
+            ))}
 
           {/* ONGLET 2 : DONNÉES & RESTAURATION (TIMELINE) */}
-          {currentTab === "data" && (
-            isLoggedIn ? (
+          {currentTab === "data" &&
+            (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
                   <h2 className="section-title">Restauration des données</h2>
@@ -433,7 +449,10 @@ export function SettingsPage() {
                   )}
 
                   {backupsError && (
-                    <p className="section-description" style={{ color: "#ef4444" }}>
+                    <p
+                      className="section-description"
+                      style={{ color: "#ef4444" }}
+                    >
                       {backupsError}
                     </p>
                   )}
@@ -465,9 +484,7 @@ export function SettingsPage() {
                           <div className="timeline-card">
                             <div className="timeline-card-header">
                               <div className="backup-time-info">
-                                <span className="backup-date">
-                                  {dateLabel}
-                                </span>
+                                <span className="backup-date">{dateLabel}</span>
                                 <span className="backup-time">
                                   {" "}
                                   à {timeLabel}
@@ -503,17 +520,17 @@ export function SettingsPage() {
               </div>
             ) : (
               <LoginPrompt />
-            )
-          )}
+            ))}
 
           {/* ONGLET 3 : SIGNALER UN BUG */}
-          {currentTab === "bugs" && (
-            isLoggedIn ? (
+          {currentTab === "bugs" &&
+            (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
                   <h2 className="section-title">Signaler un bug</h2>
                   <p className="section-description">
-                    Décrivez le problème rencontré pour nous aider à le résoudre :
+                    Décrivez le problème rencontré pour nous aider à le résoudre
+                    :
                   </p>
                   <ul className="bug-guidelines-list">
                     <li>Ce que vous faisiez juste avant l'incident</li>
@@ -549,8 +566,7 @@ export function SettingsPage() {
               </div>
             ) : (
               <LoginPrompt />
-            )
-          )}
+            ))}
 
           {/* ONGLET 4 : À PROPOS */}
           {currentTab === "info" && (
