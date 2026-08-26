@@ -10,6 +10,7 @@ function TestConsumer() {
       <button onClick={() => showToast("Saved!")}>save</button>
       <button onClick={() => showToast("Oops", "error")}>error</button>
       <button onClick={() => showToast("Heads up", "info")}>info</button>
+      <button onClick={() => showToast("Long read", "info", 6000)}>custom duration</button>
     </div>
   );
 }
@@ -87,6 +88,34 @@ describe("Toast", () => {
     });
 
     expect(screen.queryByText("Saved!")).toBeNull();
+  });
+
+  it("respects custom duration", () => {
+    renderToast();
+    act(() => {
+      screen.getByText("custom duration").click();
+    });
+    expect(screen.getByText("Long read")).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.queryByText("Long read")!.className).not.toContain("toast-exiting");
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    const toast = screen.queryByText("Long read");
+    expect(toast).not.toBeNull();
+    expect(toast!.className).toContain("toast-exiting");
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.queryByText("Long read")).toBeNull();
   });
 
   it("stacks multiple toasts", () => {

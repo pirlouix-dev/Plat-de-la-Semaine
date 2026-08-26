@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { ToastProvider } from "../components/Toast";
 import LoginPage from "../pages/LoginPage/LoginPage";
 
 beforeEach(() => {
@@ -48,7 +49,9 @@ function renderLogin(options?: { justRegistered?: boolean; email?: string; idTok
 
   return render(
     <MemoryRouter initialEntries={initialEntries}>
-      <LoginPage />
+      <ToastProvider>
+        <LoginPage />
+      </ToastProvider>
     </MemoryRouter>,
   );
 }
@@ -238,5 +241,85 @@ describe("LoginPage", () => {
     await vi.waitFor(() => {
       expect(screen.getByText(/Renvoyer \(10s\)/)).toBeDisabled();
     });
+  });
+
+  it("calls /api/auth/forgot-password with email and shows success toast", async () => {
+    mockFetchSuccess({});
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "user@example.com" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+
+    const fetchMock = vi.mocked(fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/api/auth/forgot-password");
+    expect(options.body).toBe(
+      JSON.stringify({ email: "user@example.com" }),
+    );
+
+    expect(
+      await screen.findByText("Un email de réinitialisation a été envoyé."),
+    ).toBeTruthy();
+  });
+
+  it("disables forgot-password button while request is in flight", async () => {
+    let resolveFetch!: (v: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(
+        () => new Promise((r) => { resolveFetch = r; }),
+      ),
+    );
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "user@example.com" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+
+    const button = screen.getByRole("button", { name: /envoi en cours/i });
+    expect(button).toBeDisabled();
+
+    resolveFetch({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({}),
+    } as unknown as Response);
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: /mot de passe oublié/i })).not.toBeDisabled();
+    });
+  });
+
+  it("shows validation error for empty email on forgot password", async () => {
+    renderLogin();
+
+    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+
+    expect(
+      screen.getByText("Veuillez entrer une adresse email valide."),
+    ).toBeTruthy();
+  });
+
+  it("shows validation error for invalid email on forgot password", async () => {
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "not-an-email" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+
+    expect(
+      screen.getByText("Veuillez entrer une adresse email valide."),
+    ).toBeTruthy();
   });
 });
