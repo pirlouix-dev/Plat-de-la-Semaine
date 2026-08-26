@@ -331,19 +331,21 @@ export function SettingsPage() {
                     <label htmlFor="username-input" className="input-label">
                       Nom d'utilisateur
                     </label>
-                    <input
-                      id="username-input"
-                      type="text"
-                      className="settings-input"
-                      maxLength={MAX_USERNAME_LENGTH}
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <div className="input-footer">
+                    <div className="input-group char-counter-field">
+                      <input
+                        id="username-input"
+                        type="text"
+                        className="settings-input"
+                        maxLength={MAX_USERNAME_LENGTH}
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                      />
                       <CharacterCounter
                         value={username}
                         maxLength={MAX_USERNAME_LENGTH}
                       />
+                    </div>
+                    <div className="input-footer">
                       <button
                         className="btn btn-primary"
                         disabled={
@@ -537,16 +539,15 @@ export function SettingsPage() {
                     <li>Si le comportement est systématique ou occasionnel</li>
                   </ul>
 
-                  <textarea
-                    className="settings-textarea"
-                    placeholder="Lorsque j'accepte plusieurs plats très rapidement..."
-                    rows={5}
-                    maxLength={MAX_FEEDBACK_LENGTH}
-                    value={bugDescription}
-                    onChange={(e) => setBugDescription(e.target.value)}
-                  />
-
-                  <div className="textarea-footer">
+                  <div className="input-group char-counter-field">
+                    <textarea
+                      className="settings-textarea"
+                      placeholder="Lorsque j'accepte plusieurs plats très rapidement..."
+                      rows={5}
+                      maxLength={MAX_FEEDBACK_LENGTH}
+                      value={bugDescription}
+                      onChange={(e) => setBugDescription(e.target.value)}
+                    />
                     <CharacterCounter
                       value={bugDescription}
                       maxLength={MAX_FEEDBACK_LENGTH}
