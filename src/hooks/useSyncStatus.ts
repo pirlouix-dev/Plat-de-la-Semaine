@@ -27,7 +27,7 @@ export function formatAge(ageMs: number): string {
 export function deriveSyncDisplay(state: SyncState, now: number): SyncDisplay {
   if (!state.online) {
     return {
-      text: "Vous êtes hors ligne — synchronisation impossible",
+      text: "Vous êtes hors ligne • synchronisation impossible",
       isError: true,
     };
   }

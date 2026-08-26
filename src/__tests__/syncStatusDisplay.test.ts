@@ -45,7 +45,7 @@ describe("deriveSyncDisplay", () => {
 
     expect(display.isError).toBe(true);
     expect(display.text).toBe(
-      "Vous êtes hors ligne — synchronisation impossible",
+      "Vous êtes hors ligne • synchronisation impossible",
     );
   });
 
