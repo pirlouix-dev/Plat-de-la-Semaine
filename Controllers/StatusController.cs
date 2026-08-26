@@ -54,20 +54,7 @@ public class StatusController : ControllerBase
         {
             database = _firestore.IsConnected ? "connected" : "disconnected",
             usersCount,
-            dishesCount,
-            debug = new
-            {
-                GOOGLE_CREDENTIALS_JSON = GetEnvFirst10("GOOGLE_CREDENTIALS_JSON"),
-                FIREBASE_PROJECT_ID = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID"),
-                FIREBASE_API_KEY = GetEnvFirst10("FIREBASE_API_KEY"),
-                isInitialized = _firestore.IsConnected
-            }
+            dishesCount
         });
-    }
-
-    private static string? GetEnvFirst10(string name)
-    {
-        var value = Environment.GetEnvironmentVariable(name);
-        return value is { Length: > 10 } ? value[..10] : value;
     }
 }
