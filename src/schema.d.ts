@@ -220,6 +220,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a password reset email */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ForgotPasswordPayload"];
+                    "text/json": components["schemas"]["ForgotPasswordPayload"];
+                    "application/*+json": components["schemas"]["ForgotPasswordPayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/username": {
         parameters: {
             query?: never;
@@ -947,7 +987,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Status": {
+    "/api/status": {
         parameters: {
             query?: never;
             header?: never;
@@ -1100,6 +1140,9 @@ export interface components {
         FeedbackPayload: {
             message: string;
             appVersion: string;
+        };
+        ForgotPasswordPayload: {
+            email: string;
         };
         LoginPayload: {
             email: string;
