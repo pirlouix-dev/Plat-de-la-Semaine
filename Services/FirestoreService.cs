@@ -1,3 +1,4 @@
+using System.Text;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
@@ -33,9 +34,15 @@ public class FirestoreService : IFirestoreService
 
             if (FirebaseApp.DefaultInstance == null)
             {
+                var credentialsJson = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_JSON");
+                var credential = string.IsNullOrEmpty(credentialsJson)
+                    ? GoogleCredential.GetApplicationDefault()
+                    : CredentialFactory.FromJson<ServiceAccountCredential>(
+                        Encoding.UTF8.GetString(Convert.FromBase64String(credentialsJson))).ToGoogleCredential();
+
                 FirebaseApp.Create(new AppOptions
                 {
-                    Credential = GoogleCredential.GetApplicationDefault()
+                    Credential = credential
                 });
             }
 
