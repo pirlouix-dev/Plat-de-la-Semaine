@@ -8,7 +8,7 @@ namespace PlatDeLaSemaineBack.Controllers;
 /// Application status and diagnostic endpoint.
 /// </summary>
 [ApiController]
-[Route("api/Status")]
+[Route("api/status")]
 [Tags("Health")]
 public class StatusController : ControllerBase
 {

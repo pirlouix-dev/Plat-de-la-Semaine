@@ -153,6 +153,13 @@ public class FirestoreService : IFirestoreService
         await _db!.Collection("Users").Document(user.Id).SetAsync(user, SetOptions.MergeAll);
     }
 
+    /// <inheritdoc />
+    public async Task DeleteUserAsync(string userId)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        await _db!.Collection("Users").Document(userId).DeleteAsync();
+    }
+
     // ── Backups ─────────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -185,6 +192,27 @@ public class FirestoreService : IFirestoreService
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
         await _db!.Collection("Backups").Document(backupId).DeleteAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<Backup>> GetBackupsByUserIdAsync(string userId)
+    {
+        if (!IsConnected) return new List<Backup>();
+        var snapshot = await _db!.Collection("Backups")
+            .WhereEqualTo("UserId", userId)
+            .GetSnapshotAsync();
+        return snapshot.Documents.Select(doc => doc.ConvertTo<Backup>()).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteBatchAsync(string collection, IEnumerable<string> ids)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+
+        var batch = _db!.StartBatch();
+        foreach (var id in ids)
+            batch.Delete(_db.Collection(collection).Document(id));
+        await batch.CommitAsync();
     }
 
     // ── Config ──────────────────────────────────────────────────────

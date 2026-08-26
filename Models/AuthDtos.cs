@@ -63,3 +63,30 @@ public class SendVerificationPayload
 {
     public required string IdToken { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// Request payload for updating the authenticated user's username.
+/// </summary>
+public class UpdateUsernamePayload
+{
+    [StringLength(100, MinimumLength = 1)]
+    public required string Username { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Request payload for a forgot-password email.
+/// </summary>
+public class ForgotPasswordPayload
+{
+    [Required]
+    [EmailAddress]
+    public required string Email { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Response after deleting an account.
+/// </summary>
+public class AccountDeletionResponse
+{
+    public string Message { get; set; } = string.Empty;
+}

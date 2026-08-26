@@ -71,6 +71,11 @@ public interface IFirestoreService
     /// </summary>
     Task UpdateUserAsync(User user);
 
+    /// <summary>
+    /// Hard-deletes a user document from Firestore.
+    /// </summary>
+    Task DeleteUserAsync(string userId);
+
     // ── Backups ─────────────────────────────────────────────────────
 
     /// <summary>
@@ -87,6 +92,16 @@ public interface IFirestoreService
     /// Hard-deletes a backup document from Firestore.
     /// </summary>
     Task DeleteBackupAsync(string backupId);
+
+    /// <summary>
+    /// Retrieves all backups for a given user.
+    /// </summary>
+    Task<List<Backup>> GetBackupsByUserIdAsync(string userId);
+
+    /// <summary>
+    /// Deletes multiple documents from a collection in a single batch.
+    /// </summary>
+    Task DeleteBatchAsync(string collection, IEnumerable<string> ids);
 
     // ── Config ──────────────────────────────────────────────────────
 

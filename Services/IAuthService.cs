@@ -26,4 +26,19 @@ public interface IAuthService
     /// Sends an email verification message to the user associated with the given ID token.
     /// </summary>
     Task SendVerificationEmailAsync(string idToken);
+
+    /// <summary>
+    /// Updates the username of the authenticated user.
+    /// </summary>
+    Task UpdateUsernameAsync(string userId, string username);
+
+    /// <summary>
+    /// Sends a password reset email to the given address.
+    /// </summary>
+    Task SendPasswordResetEmailAsync(string email);
+
+    /// <summary>
+    /// Deletes the user's Firebase Auth account and all associated Firestore data.
+    /// </summary>
+    Task DeleteAccountAsync(string userId);
 }

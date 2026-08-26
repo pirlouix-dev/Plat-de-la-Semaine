@@ -1,3 +1,4 @@
+using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
 using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
@@ -10,7 +11,7 @@ namespace PlatDeLaSemaineBack.Controllers;
 [ApiController]
 [Route("api/auth")]
 [Tags("Auth")]
-public class AuthController : ControllerBase
+public class AuthController : BaseController
 {
     private readonly IAuthService _authService;
 
@@ -69,5 +70,73 @@ public class AuthController : ControllerBase
     {
         await _authService.SendVerificationEmailAsync(payload.IdToken);
         return Ok();
+    }
+
+    /// <summary>
+    /// Send a password reset email to the given address.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [EndpointSummary("Send a password reset email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordPayload payload)
+    {
+        try
+        {
+            await _authService.SendPasswordResetEmailAsync(payload.Email);
+        }
+        catch (InvalidOperationException)
+        {
+            // Always return 200 to prevent email enumeration.
+        }
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Update the authenticated user's username.
+    /// </summary>
+    [HttpPut("username")]
+    [EndpointSummary("Update the authenticated user's username")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateUsername([FromBody] UpdateUsernamePayload payload)
+    {
+        var userId = await GetUserIdAsync();
+        await _authService.UpdateUsernameAsync(userId, payload.Username);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Send a password reset email to the authenticated user.
+    /// </summary>
+    [HttpPost("reset-password")]
+    [EndpointSummary("Send a password reset email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ResetPassword()
+    {
+        var userId = await GetUserIdAsync();
+        var userRecord = await FirebaseAuth.DefaultInstance.GetUserAsync(userId);
+        await _authService.SendPasswordResetEmailAsync(userRecord.Email!);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Delete the authenticated user's account and all associated data.
+    /// </summary>
+    [HttpDelete("account")]
+    [EndpointSummary("Delete the authenticated user's account and all associated data")]
+    [ProducesResponseType(typeof(AccountDeletionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteAccount()
+    {
+        var userId = await GetUserIdAsync();
+        await _authService.DeleteAccountAsync(userId);
+        return Ok(new AccountDeletionResponse { Message = "Account deleted successfully." });
     }
 }

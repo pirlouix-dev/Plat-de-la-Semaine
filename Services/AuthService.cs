@@ -165,6 +165,55 @@ public class AuthService : IAuthService
             throw new InvalidOperationException(errorMessage);
         }
     }
+
+    /// <inheritdoc />
+    public async Task UpdateUsernameAsync(string userId, string username)
+    {
+        var user = await _firestore.GetUserByIdAsync(userId)
+            ?? throw new KeyNotFoundException("User not found.");
+
+        user.Username = username;
+        await _firestore.UpdateUserAsync(user);
+    }
+
+    /// <inheritdoc />
+    public async Task SendPasswordResetEmailAsync(string email)
+    {
+        var request = new Dictionary<string, string>
+        {
+            { "requestType", "PASSWORD_RESET" },
+            { "email", email }
+        };
+
+        var response = await _http.PostAsJsonAsync(
+            $"{IdentityToolkitUrl}:sendOobCode?key={_apiKey}", request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadFromJsonAsync<SignInErrorResponse>();
+            var errorMessage = errorBody?.Error?.Message ?? "Failed to send password reset email.";
+            throw new InvalidOperationException(errorMessage);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteAccountAsync(string userId)
+    {
+        await FirebaseAuth.DefaultInstance.DeleteUserAsync(userId);
+
+        var dishes = await _firestore.GetDishesByUserIdAsync(userId, null);
+        var backups = await _firestore.GetBackupsByUserIdAsync(userId);
+
+        var dishIds = dishes.Where(d => d.Id != null).Select(d => d.Id!).ToList();
+        var backupIds = backups.Where(b => b.Id != null).Select(b => b.Id!).ToList();
+
+        if (dishIds.Count > 0)
+            await _firestore.DeleteBatchAsync("Dishes", dishIds);
+        if (backupIds.Count > 0)
+            await _firestore.DeleteBatchAsync("Backups", backupIds);
+
+        await _firestore.DeleteUserAsync(userId);
+    }
 }
 
 internal class SignInResponse
