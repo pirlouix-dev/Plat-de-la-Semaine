@@ -27,7 +27,10 @@ function mockFetchSuccess(body: unknown) {
   );
 }
 
-function mockFetchError(status: number, body: { code: string; message: string }) {
+function mockFetchError(
+  status: number,
+  body: { code: string; message: string },
+) {
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({
@@ -38,14 +41,20 @@ function mockFetchError(status: number, body: { code: string; message: string })
   );
 }
 
-function renderLogin(options?: { justRegistered?: boolean; email?: string; idToken?: string }) {
+function renderLogin(options?: {
+  justRegistered?: boolean;
+  email?: string;
+  idToken?: string;
+}) {
   const state = options?.justRegistered
-    ? { justRegistered: true, email: options.email ?? "", idToken: options.idToken ?? null }
+    ? {
+        justRegistered: true,
+        email: options.email ?? "",
+        idToken: options.idToken ?? null,
+      }
     : undefined;
 
-  const initialEntries = state
-    ? [{ pathname: "/login", state }]
-    : ["/login"];
+  const initialEntries = state ? [{ pathname: "/login", state }] : ["/login"];
 
   return render(
     <MemoryRouter initialEntries={initialEntries}>
@@ -64,7 +73,11 @@ describe("LoginPage", () => {
   });
 
   it("hides verification popup when close button is clicked", () => {
-    renderLogin({ justRegistered: true, email: "test@example.com", idToken: "t" });
+    renderLogin({
+      justRegistered: true,
+      email: "test@example.com",
+      idToken: "t",
+    });
     fireEvent.click(screen.getByLabelText("Fermer"));
     expect(screen.queryByText("Vérifiez votre email")).toBeNull();
   });
@@ -89,7 +102,10 @@ describe("LoginPage", () => {
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("/api/auth/login");
     expect(options.body).toBe(
-      JSON.stringify({ email: "user@example.com", password: "correct-password" }),
+      JSON.stringify({
+        email: "user@example.com",
+        password: "correct-password",
+      }),
     );
   });
 
@@ -133,7 +149,9 @@ describe("LoginPage", () => {
     });
     fireEvent.click(screen.getByText("Se connecter"));
 
-    expect(await screen.findByText("Email ou mot de passe incorrect")).toBeTruthy();
+    expect(
+      await screen.findByText("Email ou mot de passe incorrect"),
+    ).toBeTruthy();
   });
 
   it("shows verification popup when login returns emailVerified false", async () => {
@@ -161,7 +179,11 @@ describe("LoginPage", () => {
         status: 200,
         json: vi
           .fn()
-          .mockResolvedValue({ ...AUTH_RESPONSE, idToken: "login-id-token", emailVerified: false }),
+          .mockResolvedValue({
+            ...AUTH_RESPONSE,
+            idToken: "login-id-token",
+            emailVerified: false,
+          }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -203,7 +225,11 @@ describe("LoginPage", () => {
     vi.useFakeTimers();
     mockFetchSuccess({});
 
-    renderLogin({ justRegistered: true, email: "test@example.com", idToken: "resend-token" });
+    renderLogin({
+      justRegistered: true,
+      email: "test@example.com",
+      idToken: "resend-token",
+    });
 
     for (let i = 0; i < 10; i++) {
       await act(async () => {
@@ -227,7 +253,11 @@ describe("LoginPage", () => {
     vi.useFakeTimers();
     mockFetchSuccess({});
 
-    renderLogin({ justRegistered: true, email: "test@example.com", idToken: "cooldown-token" });
+    renderLogin({
+      justRegistered: true,
+      email: "test@example.com",
+      idToken: "cooldown-token",
+    });
 
     for (let i = 0; i < 10; i++) {
       await act(async () => {
@@ -252,19 +282,19 @@ describe("LoginPage", () => {
       target: { value: "user@example.com" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /mot de passe oublié/i }),
+    );
 
     const fetchMock = vi.mocked(fetch);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("/api/auth/forgot-password");
-    expect(options.body).toBe(
-      JSON.stringify({ email: "user@example.com" }),
-    );
+    expect(options.body).toBe(JSON.stringify({ email: "user@example.com" }));
 
     expect(
-      await screen.findByText("Un email de réinitialisation a été envoyé."),
+      await screen.findByText(/un email de réinitialisation a été envoyé/),
     ).toBeTruthy();
   });
 
@@ -273,7 +303,10 @@ describe("LoginPage", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation(
-        () => new Promise((r) => { resolveFetch = r; }),
+        () =>
+          new Promise((r) => {
+            resolveFetch = r;
+          }),
       ),
     );
 
@@ -283,7 +316,9 @@ describe("LoginPage", () => {
       target: { value: "user@example.com" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /mot de passe oublié/i }),
+    );
 
     const button = screen.getByRole("button", { name: /envoi en cours/i });
     expect(button).toBeDisabled();
@@ -295,14 +330,18 @@ describe("LoginPage", () => {
     } as unknown as Response);
 
     await vi.waitFor(() => {
-      expect(screen.getByRole("button", { name: /mot de passe oublié/i })).not.toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: /mot de passe oublié/i }),
+      ).not.toBeDisabled();
     });
   });
 
   it("shows validation error for empty email on forgot password", async () => {
     renderLogin();
 
-    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /mot de passe oublié/i }),
+    );
 
     expect(
       screen.getByText("Veuillez entrer une adresse email valide."),
@@ -316,7 +355,9 @@ describe("LoginPage", () => {
       target: { value: "not-an-email" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /mot de passe oublié/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /mot de passe oublié/i }),
+    );
 
     expect(
       screen.getByText("Veuillez entrer une adresse email valide."),

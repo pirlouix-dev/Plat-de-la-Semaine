@@ -97,7 +97,11 @@ function LoginPage() {
       email,
     });
     if (result.ok) {
-      showToast("Un email de réinitialisation a été envoyé.", "success", 5000);
+      showToast(
+        "Si ce compte existe, un email de réinitialisation a été envoyé.",
+        "success",
+        7000,
+      );
     } else {
       showToast(result.error.message ?? "Une erreur est survenue.", "error");
     }
@@ -179,7 +183,7 @@ function LoginPage() {
               onClick={handleForgotPassword}
               disabled={forgotLoading}
             >
-              {forgotLoading ? "Envoi en cours…" : "Mot de passe oublié\u00a0?"}
+              {forgotLoading ? "Envoi en cours…" : "Mot de passe oublié ?"}
             </button>
           </div>
         </div>
