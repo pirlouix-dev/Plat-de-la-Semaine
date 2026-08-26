@@ -127,7 +127,7 @@ describe("HomePage component", () => {
   it("shows the offline message in red when offline", () => {
     localStorage.setItem("user_id", "user-42");
     mockSyncStatus({
-      text: "Vous êtes hors ligne — synchronisation impossible",
+      text: "Vous êtes hors ligne • synchronisation impossible",
       isError: true,
     });
 
