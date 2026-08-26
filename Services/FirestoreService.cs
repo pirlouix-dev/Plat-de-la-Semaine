@@ -40,13 +40,21 @@ public class FirestoreService : IFirestoreService
                     : CredentialFactory.FromJson<ServiceAccountCredential>(
                         Encoding.UTF8.GetString(Convert.FromBase64String(credentialsJson))).ToGoogleCredential();
 
-                FirebaseApp.Create(new AppOptions
+                FirebaseApp.Create(new AppOptions()
                 {
                     Credential = credential
                 });
+                _db = new FirestoreDbBuilder
+                {
+                    ProjectId = projectId,
+                    Credential = credential
+                }.Build();
+            }
+            else
+            {
+                _db = FirestoreDb.Create(projectId);
             }
 
-            _db = FirestoreDb.Create(projectId);
             _initialized = true;
             Console.WriteLine("Firestore client initialized successfully.");
             return Task.FromResult(true);
