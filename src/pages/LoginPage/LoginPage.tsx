@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { apiPost, notifyAuthChange } from "../../services/api";
 import type { components } from "../../schema";
 import { MailIcon } from "../../components/Icons";
+import { useToast } from "../../components/toastContext";
 import logo_img from "../../../assets/logo.png";
 import "./LoginPage.css";
 
@@ -18,9 +19,15 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const [showPopup, setShowPopup] = useState(!!location.state?.justRegistered);
-  const [idToken, setIdToken] = useState<string | null>(location.state?.idToken ?? null);
-  const [cooldown, setCooldown] = useState(location.state?.justRegistered ? 10 : 0);
+  const [idToken, setIdToken] = useState<string | null>(
+    location.state?.idToken ?? null,
+  );
+  const { showToast } = useToast();
+  const [cooldown, setCooldown] = useState(
+    location.state?.justRegistered ? 10 : 0,
+  );
   const [sending, setSending] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   useEffect(() => {
     if (location.state?.justRegistered) {
@@ -77,6 +84,28 @@ function LoginPage() {
       setError(result.error.message ?? "Une erreur est survenue.");
     }
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Veuillez entrer une adresse email valide.");
+      return;
+    }
+    setError(null);
+    setForgotLoading(true);
+    const result = await apiPost<undefined>("/api/auth/forgot-password", {
+      email,
+    });
+    if (result.ok) {
+      showToast(
+        "Si ce compte existe, un email de réinitialisation a été envoyé.",
+        "success",
+        7000,
+      );
+    } else {
+      showToast(result.error.message ?? "Une erreur est survenue.", "error");
+    }
+    setForgotLoading(false);
   };
 
   return (
@@ -147,6 +176,16 @@ function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <div className="forgot-password-container">
+            <button
+              type="button"
+              className="forgot-password-link"
+              onClick={handleForgotPassword}
+              disabled={forgotLoading}
+            >
+              {forgotLoading ? "Envoi en cours…" : "Mot de passe oublié ?"}
+            </button>
+          </div>
         </div>
 
         {error && <div className="register-error">{error}</div>}

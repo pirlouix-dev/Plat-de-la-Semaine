@@ -42,8 +42,9 @@ const NO_REFRESH_PATHS = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/refresh",
+  "/api/auth/forgot-password",
   "/api/auth/send-verification",
-  "/api/Status",
+  "/api/status",
   "/api/version",
 ];
 
