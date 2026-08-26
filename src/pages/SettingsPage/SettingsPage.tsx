@@ -27,7 +27,7 @@ import "./SettingsPage.css";
 
 type SettingsTab = "account" | "data" | "bugs" | "info";
 
-// Doit rester en phase avec le breakpoint CSS de SettingsPage.css
+// Must match the CSS media query in SettingsPage.css
 const MOBILE_LAYOUT_QUERY = "(max-width: 649px)";
 
 const TAB_CONFIG: Record<
@@ -107,12 +107,10 @@ export function SettingsPage() {
   const { showToast } = useToast();
   const isLoggedIn = useIsLoggedIn();
 
-  // Sur mobile, null représente le sommaire ; sur desktop, le premier onglet est ouvert
   const [activeTab, setActiveTab] = useState<SettingsTab | null>(() =>
     window.matchMedia(MOBILE_LAYOUT_QUERY).matches ? null : "account",
   );
 
-  // ── Account ───────────────────────────────────────────────────────────────
   const [username, setUsername] = useState(
     () => localStorage.getItem("user_username") ?? "",
   );
@@ -159,10 +157,8 @@ export function SettingsPage() {
     }
   };
 
-  // Repli si on arrive au sommaire mobile puis qu'on passe en desktop
   const currentTab = activeTab ?? "account";
 
-  // ── Data & Plats ──────────────────────────────────────────────────────────
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [backupsLoading, setBackupsLoading] = useState(false);
   const [backupsError, setBackupsError] = useState<string | null>(null);
@@ -192,7 +188,6 @@ export function SettingsPage() {
     setRestoringId(null);
   };
 
-  // ── Bug Report ────────────────────────────────────────────────────────────
   const [bugDescription, setBugDescription] = useState("");
   const [bugSubmitting, setBugSubmitting] = useState(false);
 
@@ -212,7 +207,6 @@ export function SettingsPage() {
     setBugSubmitting(false);
   };
 
-  // ── About ─────────────────────────────────────────────────────────────────
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
@@ -228,7 +222,6 @@ export function SettingsPage() {
     };
   }, []);
 
-  // ── Fetch data on tab switch ──────────────────────────────────────────────
   useEffect(() => {
     if (currentTab !== "data" || backups.length > 0 || !isLoggedIn) return;
     let cancelled = false;
@@ -266,7 +259,6 @@ export function SettingsPage() {
   }, [currentTab, db, isLoggedIn]);
 
   const handleBack = () => {
-    // Sur mobile uniquement, le bouton retour ramène d'abord au sommaire
     if (activeTab !== null && window.matchMedia(MOBILE_LAYOUT_QUERY).matches) {
       setActiveTab(null);
     } else {
