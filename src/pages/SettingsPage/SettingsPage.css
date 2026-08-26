@@ -1,4 +1,3 @@
-/* Layout Global de la page Paramètres */
 .settings-container {
   width: 100%;
   max-width: 960px;
@@ -17,11 +16,7 @@
   gap: 24px;
 }
 
-/* =======================================
-   GESTION DE LA NAVIGATION MOBILE (< 650px)
-======================================= */
 @media (max-width: 649px) {
-  /* Au sommaire : afficher la liste, masquer le contenu */
   .settings-container.is-summary .settings-sidebar {
     display: block;
   }
@@ -29,7 +24,6 @@
     display: none;
   }
 
-  /* Dans un onglet actif : masquer la liste, afficher le contenu */
   .settings-container.has-active-tab .settings-sidebar {
     display: none;
   }
@@ -45,9 +39,6 @@
   }
 }
 
-/* =======================================
-   GESTION DU LAYOUT DESKTOP (>= 650px)
-======================================= */
 @media (min-width: 650px) {
   .settings-container {
     padding-bottom: min(24px, 3svh);
@@ -67,7 +58,6 @@
   }
 }
 
-/* Menu latéral / Sommaire */
 .nav-card {
   padding: 12px;
 }
@@ -115,7 +105,6 @@
   align-items: center;
 }
 
-/* Cartes de section */
 .settings-panel {
   display: flex;
   flex-direction: column;
@@ -150,9 +139,6 @@
   line-height: 1.4;
 }
 
-/* =======================================
-   FORMULAIRES & FIX INPUT ÉCRASÉ
-======================================= */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -195,9 +181,6 @@
   min-height: 100px;
 }
 
-/* =======================================
-   TIMELINE RESTAURATION
-======================================= */
 .backup-timeline {
   display: flex;
   flex-direction: column;
@@ -328,7 +311,6 @@
   border: 1px solid rgba(96, 165, 250, 0.3);
 }
 
-/* Zone de danger & Divers */
 .danger-zone {
   border-color: rgba(220, 38, 38, 0.3);
   background: rgba(220, 38, 38, 0.05);
