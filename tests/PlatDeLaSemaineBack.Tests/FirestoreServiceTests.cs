@@ -41,34 +41,6 @@ public class FirestoreServiceTests
     }
 
     [Fact]
-    public async Task GetAllDishesAsync_WhenNotConnected_ReturnsEmptyList()
-    {
-        // Arrange
-        var service = new FirestoreService();
-
-        // Act
-        var result = await service.GetAllDishesAsync();
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetAllUsersAsync_WhenNotConnected_ReturnsEmptyList()
-    {
-        // Arrange
-        var service = new FirestoreService();
-
-        // Act
-        var result = await service.GetAllUsersAsync();
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
     public async Task InsertDishAsync_WhenNotConnected_ThrowsInvalidOperationException()
     {
         // Arrange

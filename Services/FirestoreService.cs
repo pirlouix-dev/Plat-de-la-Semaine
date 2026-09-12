@@ -70,14 +70,6 @@ public class FirestoreService : IFirestoreService
     // ── Dishes ──────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public async Task<List<Dish>> GetAllDishesAsync()
-    {
-        if (!IsConnected) return new List<Dish>();
-        var snapshot = await _db!.Collection("Dishes").GetSnapshotAsync();
-        return snapshot.Documents.Select(doc => doc.ConvertTo<Dish>()).ToList();
-    }
-
-    /// <inheritdoc />
     public async Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since)
     {
         if (!IsConnected) return new List<Dish>();
@@ -131,14 +123,6 @@ public class FirestoreService : IFirestoreService
     }
 
     // ── Users ───────────────────────────────────────────────────────
-
-    /// <inheritdoc />
-    public async Task<List<User>> GetAllUsersAsync()
-    {
-        if (!IsConnected) return new List<User>();
-        var snapshot = await _db!.Collection("Users").GetSnapshotAsync();
-        return snapshot.Documents.Select(doc => doc.ConvertTo<User>()).ToList();
-    }
 
     /// <inheritdoc />
     public async Task<User?> GetUserByIdAsync(string userId)

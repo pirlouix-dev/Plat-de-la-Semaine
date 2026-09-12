@@ -20,11 +20,6 @@ public interface IFirestoreService
     // ── Dishes ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Retrieves all dishes from Firestore (used by status endpoint).
-    /// </summary>
-    Task<List<Dish>> GetAllDishesAsync();
-
-    /// <summary>
     /// Retrieves all dishes for a given user, optionally filtered by a minimum UpdatedAt timestamp.
     /// </summary>
     Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since);
@@ -50,11 +45,6 @@ public interface IFirestoreService
     Task DeleteDishAsync(string dishId);
 
     // ── Users ───────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Retrieves all users from Firestore (used by status endpoint).
-    /// </summary>
-    Task<List<User>> GetAllUsersAsync();
 
     /// <summary>
     /// Retrieves a user by their ID.
