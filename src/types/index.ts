@@ -9,6 +9,10 @@ export type {
   Dish,
   CreateDishPayload,
   UpdateDishPayload,
+  DishImportItem,
+  DishImportError,
+  DishImportResponse,
+  ValidatedDishImportItem,
   DishDocType,
   SyncStatus,
 } from "./dish";

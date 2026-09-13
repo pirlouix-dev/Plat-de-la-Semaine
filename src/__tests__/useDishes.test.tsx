@@ -12,14 +12,20 @@ vi.mock("../db/DatabaseContext", () => ({
   useDatabase: (...args: unknown[]) => mockUseDatabase(...args),
 }));
 
-vi.mock("../repositories/dishRepository", () => ({
-  insertDish: vi.fn(),
-  editDish: vi.fn(),
-  softDeleteDish: vi.fn(),
-  observeDishes: vi.fn(() => ({
-    subscribe: () => ({ unsubscribe: vi.fn() }),
-  })),
-}));
+vi.mock("../repositories/dishRepository", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../repositories/dishRepository")>();
+  return {
+    ...actual,
+    insertDish: vi.fn(),
+    editDish: vi.fn(),
+    softDeleteDish: vi.fn(),
+    insertManyDishes: vi.fn(),
+    observeDishes: vi.fn(() => ({
+      subscribe: () => ({ unsubscribe: vi.fn() }),
+    })),
+  };
+});
 
 import * as dishRepository from "../repositories/dishRepository";
 
@@ -100,6 +106,53 @@ describe("useDishes", () => {
       await expect(result.current.removeDish("dish-2")).rejects.toThrow(
         "Database not ready",
       );
+    });
+  });
+
+  describe("importLocalDishes", () => {
+    it("builds pending_create docs and bulk-inserts them", async () => {
+      const { result } = renderHook(() => useDishes());
+      const items = [
+        {
+          name: "Ratatouille",
+          description: "Légumes",
+          course: 1,
+          seasons: [1, 2],
+        },
+      ] as Parameters<typeof result.current.importLocalDishes>[0];
+
+      await act(async () => {
+        await result.current.importLocalDishes(items);
+      });
+
+      expect(dishRepository.insertManyDishes).toHaveBeenCalledTimes(1);
+      const [calledDb, docs] = vi.mocked(dishRepository.insertManyDishes).mock
+        .calls[0];
+      expect(calledDb).toBe(mockDb);
+      expect(docs).toHaveLength(1);
+      expect(docs[0]).toMatchObject({
+        name: "Ratatouille",
+        description: "Légumes",
+        course: 1,
+        seasons: [1, 2],
+        serverId: "",
+        isDeleted: false,
+        syncStatus: "pending_create",
+      });
+    });
+
+    it("throws when database is not ready", async () => {
+      mockUseDatabase.mockReturnValue({
+        db: null,
+        isLoading: false,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useDishes());
+
+      await expect(
+        result.current.importLocalDishes([]),
+      ).rejects.toThrow("Database not ready");
     });
   });
 

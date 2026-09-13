@@ -8,11 +8,19 @@ import {
   UserIcon,
 } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
+import ImportDishesModal from "../../components/ImportDishesModal";
+import type { ImportOutcome } from "../../components/ImportDishesModal";
 import { useDatabase } from "../../db/DatabaseContext";
 import { useToast } from "../../components/toastContext";
 import { getBackups, restoreBackup } from "../../services/backupService";
+import { importDishes } from "../../services/dishService";
 import { getVersionInfo, submitFeedback } from "../../services/settingsService";
-import { getLastSyncAt } from "../../services/syncService";
+import { getLastSyncAt, refreshFromServer } from "../../services/syncService";
+import {
+  insertManyDishes,
+  buildPendingDishes,
+} from "../../repositories/dishRepository";
+import type { ValidatedDishImportItem } from "../../types/dish";
 import {
   updateUsername,
   resetPassword,
@@ -118,6 +126,7 @@ export function SettingsPage() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const handleUsernameSave = async () => {
     const trimmed = username.trim();
@@ -155,6 +164,38 @@ export function SettingsPage() {
       setDeleting(false);
       setShowDeleteModal(false);
     }
+  };
+
+  const handleImport = async (
+    items: ValidatedDishImportItem[],
+  ): Promise<ImportOutcome> => {
+    if (!navigator.onLine) {
+      if (!db) throw new Error("Database not ready");
+      await insertManyDishes(db, buildPendingDishes(items));
+      return { imported: items.length, failed: 0, errors: [], offline: true };
+    }
+
+    const result = await importDishes(items);
+    if (!result.ok) {
+      return {
+        imported: 0,
+        failed: items.length,
+        errors: [],
+        offline: false,
+        message: result.error.message,
+      };
+    }
+
+    if (db) {
+      await refreshFromServer(db);
+    }
+
+    return {
+      imported: Number(result.data.imported),
+      failed: Number(result.data.failed),
+      errors: result.data.errors,
+      offline: false,
+    };
   };
 
   const currentTab = activeTab ?? "account";
@@ -506,6 +547,22 @@ export function SettingsPage() {
                     })}
                   </div>
                 </section>
+
+                <section className="settings-section-card">
+                  <h2 className="section-title">Importer des plats</h2>
+                  <p className="section-description">
+                    Importez plusieurs plats d'un coup depuis un fichier JSON.
+                    Les plats valides sont ajoutés à votre liste.
+                  </p>
+                  <div className="form-actions">
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setShowImportModal(true)}
+                    >
+                      Importer un fichier JSON
+                    </button>
+                  </div>
+                </section>
               </div>
             ) : (
               <LoginPrompt />
@@ -580,6 +637,13 @@ export function SettingsPage() {
           )}
         </main>
       </div>
+
+      {showImportModal && (
+        <ImportDishesModal
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImport}
+        />
+      )}
     </div>
   );
 }

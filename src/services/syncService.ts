@@ -161,11 +161,16 @@ function isSyncStale(lastSyncAt: string): boolean {
 /**
  * Pulls remote dishes and merges them locally.
  * Returns the persisted lastSyncAt ISO timestamp on success, null on failure.
+ * @param forceFullSync ignores the stored last sync date and fetches everything.
  */
-async function pullAndMerge(db: AppDatabase): Promise<string | null> {
+async function pullAndMerge(
+  db: AppDatabase,
+  options?: { forceFullSync?: boolean },
+): Promise<string | null> {
   const lastSyncAt = await getLastSyncAt(db);
   const syncStartTime = new Date().toISOString();
-  const needsFullSync = !lastSyncAt || isSyncStale(lastSyncAt);
+  const needsFullSync =
+    !!options?.forceFullSync || !lastSyncAt || isSyncStale(lastSyncAt);
 
   const result = await getDishes({ since: needsFullSync ? undefined : lastSyncAt });
   if (!result.ok) return null;
@@ -244,6 +249,18 @@ async function pullAndMerge(db: AppDatabase): Promise<string | null> {
   await setLastSyncAt(db, syncStartTime);
 
   return syncStartTime;
+}
+
+/**
+ * Force a full pull of remote dishes and merge them into the local database.
+ * Used after operations that mutate data server-side (e.g. bulk import) so the
+ * local store reflects the result without waiting for the next scheduled sync.
+ * Returns `true` when the pull succeeded.
+ */
+export async function refreshFromServer(db: AppDatabase): Promise<boolean> {
+  if (!isOnline() || !db?.dishes || !isLoggedIn()) return false;
+  const result = await pullAndMerge(db, { forceFullSync: true });
+  return result !== null;
 }
 
 export async function sync(db: AppDatabase): Promise<void> {

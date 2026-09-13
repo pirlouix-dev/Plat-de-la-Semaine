@@ -1,7 +1,10 @@
 import { useDatabase } from "../db/DatabaseContext";
 import type { DishDocType } from "../db/schemas/dishes";
+import type { ValidatedDishImportItem } from "../types/dish";
 import {
   insertDish,
+  insertManyDishes,
+  buildPendingDishes,
   editDish as repoEditDish,
   softDeleteDish,
   observeDishes,
@@ -43,6 +46,17 @@ export function useDishes() {
     await insertDish(db, dish);
   }
 
+  /**
+   * Store imported dishes locally as unsynced creations.
+   * Used when the backend is unreachable so the sync engine can push them later.
+   */
+  async function importLocalDishes(
+    items: ValidatedDishImportItem[],
+  ): Promise<void> {
+    if (!db) throw new Error("Database not ready");
+    await insertManyDishes(db, buildPendingDishes(items));
+  }
+
   async function editDish(
     id: string,
     fields: { name: string; description: string; course: number; seasons: number[] }
@@ -56,5 +70,12 @@ export function useDishes() {
     await softDeleteDish(db, id);
   }
 
-  return { dishes, isLoaded, addDish, editDish, removeDish };
+  return {
+    dishes,
+    isLoaded,
+    addDish,
+    importLocalDishes,
+    editDish,
+    removeDish,
+  };
 }

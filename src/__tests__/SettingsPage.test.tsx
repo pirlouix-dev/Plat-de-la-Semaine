@@ -26,6 +26,10 @@ const mockRestoreBackup = vi.fn();
 const mockGetVersionInfo = vi.fn();
 const mockSubmitFeedback = vi.fn();
 const mockGetLastSyncAt = vi.fn();
+const mockRefreshFromServer = vi.fn();
+const mockImportDishes = vi.fn();
+const mockInsertManyDishes = vi.fn();
+const mockBuildPendingDishes = vi.fn();
 const mockShowToast = vi.fn();
 const mockClearAuth = vi.fn();
 const mockUpdateUsername = vi.fn();
@@ -53,6 +57,16 @@ vi.mock("../services/settingsService", () => ({
 
 vi.mock("../services/syncService", () => ({
   getLastSyncAt: (...args: unknown[]) => mockGetLastSyncAt(...args),
+  refreshFromServer: (...args: unknown[]) => mockRefreshFromServer(...args),
+}));
+
+vi.mock("../services/dishService", () => ({
+  importDishes: (...args: unknown[]) => mockImportDishes(...args),
+}));
+
+vi.mock("../repositories/dishRepository", () => ({
+  insertManyDishes: (...args: unknown[]) => mockInsertManyDishes(...args),
+  buildPendingDishes: (...args: unknown[]) => mockBuildPendingDishes(...args),
 }));
 
 vi.mock("../services/api", () => ({
@@ -92,6 +106,15 @@ describe("SettingsPage", () => {
     mockGetVersionInfo.mockResolvedValue({ ok: true, data: null });
     mockSubmitFeedback.mockResolvedValue({ ok: true, data: undefined });
     mockGetLastSyncAt.mockResolvedValue(null);
+    mockRefreshFromServer.mockResolvedValue(true);
+    mockImportDishes.mockResolvedValue({
+      ok: true,
+      data: { imported: 1, failed: 0, errors: [] },
+    });
+    mockInsertManyDishes.mockResolvedValue(undefined);
+    mockBuildPendingDishes.mockReturnValue([
+      { id: "local-1", syncStatus: "pending_create" },
+    ]);
     mockClearAuth.mockImplementation(() => {});
     mockUpdateUsername.mockResolvedValue({ ok: true, data: undefined });
     mockResetPassword.mockResolvedValue({ ok: true, data: undefined });
@@ -100,6 +123,7 @@ describe("SettingsPage", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     localStorage.clear();
     vi.clearAllMocks();
@@ -250,6 +274,96 @@ describe("SettingsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Aucune sauvegarde disponible.")).toBeTruthy();
+      });
+    });
+
+    describe("JSON import", () => {
+      function openImportWithFile(content: string) {
+        mockMatchMedia(false);
+        const rendered = renderSettingsPage();
+        fireEvent.click(
+          screen.getByRole("button", { name: /données & plats/i }),
+        );
+        fireEvent.click(
+          screen.getByRole("button", { name: /importer un fichier json/i }),
+        );
+
+        const input = rendered.container.querySelector(
+          'input[type="file"]',
+        ) as HTMLInputElement;
+        const file = new File([content], "dishes.json", {
+          type: "application/json",
+        });
+        fireEvent.change(input, { target: { files: [file] } });
+        return rendered;
+      }
+
+      it("imports a file through the API and refreshes local data", async () => {
+        openImportWithFile(
+          JSON.stringify([
+            { name: "Ratatouille", course: 1, seasons: [1] },
+          ]),
+        );
+
+        const importBtn = await screen.findByRole("button", {
+          name: /importer 1 plat/i,
+        });
+        fireEvent.click(importBtn);
+
+        await waitFor(() => {
+          expect(mockImportDishes).toHaveBeenCalledWith([
+            {
+              name: "Ratatouille",
+              description: "",
+              course: 1,
+              seasons: [1],
+            },
+          ]);
+          expect(mockRefreshFromServer).toHaveBeenCalled();
+          expect(
+            screen.getByText("1 plat(s) importé(s), 0 en échec."),
+          ).toBeTruthy();
+        });
+      });
+
+      it("stores dishes locally when offline", async () => {
+        vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+        openImportWithFile(
+          JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
+        );
+
+        const importBtn = await screen.findByRole("button", {
+          name: /importer 1 plat/i,
+        });
+        fireEvent.click(importBtn);
+
+        await waitFor(() => {
+          expect(mockImportDishes).not.toHaveBeenCalled();
+          expect(mockBuildPendingDishes).toHaveBeenCalled();
+          expect(mockInsertManyDishes).toHaveBeenCalled();
+          expect(
+            screen.getByText(/enregistré\(s\) localement/i),
+          ).toBeTruthy();
+        });
+      });
+
+      it("shows the API error message when the import fails", async () => {
+        mockImportDishes.mockResolvedValue({
+          ok: false,
+          error: { code: "SERVER_ERROR", message: "Import impossible" },
+        });
+        openImportWithFile(
+          JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
+        );
+
+        const importBtn = await screen.findByRole("button", {
+          name: /importer 1 plat/i,
+        });
+        fireEvent.click(importBtn);
+
+        await waitFor(() => {
+          expect(screen.getByText("Import impossible")).toBeTruthy();
+        });
       });
     });
   });
