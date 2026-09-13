@@ -258,6 +258,167 @@ public class DishServiceTests
     }
 
     [Fact]
+    public async Task ImportDishes_AllValid_PersistsAllAndCreatesSingleBackup()
+    {
+        // Arrange
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+
+        var items = new List<DishImportItem>
+        {
+            new() { Name = "Pizza", Course = 1, Seasons = [0, 1] },
+            new() { Name = "Salad", Description = "Green", Course = 0, Seasons = [2] }
+        };
+
+        // Act
+        var result = await _service.ImportDishesAsync(userId, items);
+
+        // Assert
+        Assert.Equal(2, result.Imported);
+        Assert.Equal(0, result.Failed);
+        Assert.Empty(result.Errors);
+        await _firestore.Received(2).InsertDishAsync(Arg.Any<Dish>());
+        await _firestore.Received(1).InsertBackupAsync(Arg.Any<Backup>());
+    }
+
+    [Fact]
+    public async Task ImportDishes_PartialFailure_PersistsValidAndReportsInvalid()
+    {
+        // Arrange
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+
+        var items = new List<DishImportItem>
+        {
+            new() { Name = "Valid 1", Course = 1, Seasons = [0] },
+            new() { Name = "Invalid", Course = 5, Seasons = [0] },
+            new() { Name = "Valid 2", Course = 2, Seasons = [1] }
+        };
+
+        // Act
+        var result = await _service.ImportDishesAsync(userId, items);
+
+        // Assert
+        Assert.Equal(2, result.Imported);
+        Assert.Equal(1, result.Failed);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal(1, error.Index);
+        Assert.Equal("Invalid", error.Name);
+        Assert.Contains(error.Errors, e => e.Field == "Course");
+        await _firestore.Received(2).InsertDishAsync(Arg.Any<Dish>());
+    }
+
+    [Fact]
+    public async Task ImportDishes_MissingRequiredFields_ReportsErrors()
+    {
+        // Arrange
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+
+        var items = new List<DishImportItem>
+        {
+            new() { Course = 1, Seasons = [0] },
+            new() { Name = "No Course", Seasons = [0] },
+            new() { Name = "No Seasons", Course = 1 }
+        };
+
+        // Act
+        var result = await _service.ImportDishesAsync(userId, items);
+
+        // Assert
+        Assert.Equal(0, result.Imported);
+        Assert.Equal(3, result.Failed);
+        Assert.Contains(result.Errors, e => e.Errors.Any(x => x.Field == "Name"));
+        Assert.Contains(result.Errors, e => e.Errors.Any(x => x.Field == "Course"));
+        Assert.Contains(result.Errors, e => e.Errors.Any(x => x.Field == "Seasons"));
+        await _firestore.DidNotReceive().InsertDishAsync(Arg.Any<Dish>());
+    }
+
+    [Fact]
+    public async Task ImportDishes_InsertFails_ReportsItemAndContinues()
+    {
+        // Arrange
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.InsertDishAsync(Arg.Is<Dish>(d => d.Name == "Broken"))
+            .Returns(Task.FromException<Dish>(new InvalidOperationException("write failed")));
+
+        var items = new List<DishImportItem>
+        {
+            new() { Name = "Broken", Course = 1, Seasons = [0] },
+            new() { Name = "Fine", Course = 1, Seasons = [0] }
+        };
+
+        // Act
+        var result = await _service.ImportDishesAsync(userId, items);
+
+        // Assert
+        Assert.Equal(1, result.Imported);
+        Assert.Equal(1, result.Failed);
+        Assert.Equal(0, Assert.Single(result.Errors).Index);
+    }
+
+    [Fact]
+    public async Task ImportDishes_EmptyList_ReturnsZeroAndNoBackup()
+    {
+        // Arrange
+        var items = new List<DishImportItem>();
+
+        // Act
+        var result = await _service.ImportDishesAsync("user1", items);
+
+        // Assert
+        Assert.Equal(0, result.Imported);
+        Assert.Equal(0, result.Failed);
+        Assert.Empty(result.Errors);
+        await _firestore.DidNotReceive().InsertBackupAsync(Arg.Any<Backup>());
+        await _firestore.DidNotReceive().InsertDishAsync(Arg.Any<Dish>());
+    }
+
+    [Fact]
+    public async Task ImportDishes_ExceedsMaxSize_ThrowsArgumentException()
+    {
+        // Arrange
+        var items = Enumerable.Range(0, 501)
+            .Select(_ => new DishImportItem { Name = "Dish", Course = 1, Seasons = [0] })
+            .ToList();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _service.ImportDishesAsync("user1", items));
+        await _firestore.DidNotReceive().InsertBackupAsync(Arg.Any<Backup>());
+    }
+
+    [Fact]
+    public async Task ImportDishes_UsesServerGeneratedId()
+    {
+        // Arrange
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+
+        var items = new List<DishImportItem>
+        {
+            new() { Name = "No Id", Course = 1, Seasons = [0] }
+        };
+
+        // Act
+        await _service.ImportDishesAsync(userId, items);
+
+        // Assert
+        await _firestore.Received(1).InsertDishAsync(Arg.Is<Dish>(d => d.Id == null && d.UserId == userId));
+    }
+
+    [Fact]
     public async Task CreateBackup_EvictsOldestWhenOverMax()
     {
         // Arrange

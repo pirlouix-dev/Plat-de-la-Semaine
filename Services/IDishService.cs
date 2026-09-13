@@ -28,6 +28,11 @@ public interface IDishService
     Task DeleteDishAsync(string userId, string dishId);
 
     /// <summary>
+    /// Bulk-imports dishes, persisting valid entries and reporting invalid ones.
+    /// </summary>
+    Task<DishImportResponse> ImportDishesAsync(string userId, List<DishImportItem> items);
+
+    /// <summary>
     /// Creates a backup of the user's current dishes and manages the max backup limit.
     /// </summary>
     Task CreateBackupAsync(string userId);

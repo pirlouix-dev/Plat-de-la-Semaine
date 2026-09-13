@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using PlatDeLaSemaineBack.Models;
 
 namespace PlatDeLaSemaineBack.Services;
@@ -9,6 +10,7 @@ public class DishService : IDishService
 {
     private readonly IFirestoreService _firestore;
     private const int MaxBackups = 5;
+    private const int MaxImportSize = 500;
 
     public DishService(IFirestoreService firestore)
     {
@@ -89,6 +91,99 @@ public class DishService : IDishService
         existing.IsDeleted = true;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
         await _firestore.UpdateDishAsync(existing);
+    }
+
+    /// <inheritdoc />
+    public async Task<DishImportResponse> ImportDishesAsync(string userId, List<DishImportItem> items)
+    {
+        if (items.Count > MaxImportSize)
+            throw new ArgumentException($"A maximum of {MaxImportSize} dishes can be imported at once.");
+
+        if (items.Count == 0)
+            return new DishImportResponse { Imported = 0, Failed = 0, Errors = [] };
+
+        await CreateBackupAsync(userId);
+
+        var imported = 0;
+        var errors = new List<DishImportError>();
+
+        for (var index = 0; index < items.Count; index++)
+        {
+            var item = items[index];
+            var validationResults = ValidateImportItem(item);
+
+            if (validationResults.Count > 0)
+            {
+                errors.Add(new DishImportError
+                {
+                    Index = index,
+                    Name = item.Name,
+                    Errors = validationResults
+                });
+                continue;
+            }
+
+            try
+            {
+                await _firestore.InsertDishAsync(new Dish
+                {
+                    UserId = userId,
+                    Name = item.Name!,
+                    Description = item.Description ?? string.Empty,
+                    Course = item.Course!.Value,
+                    Seasons = item.Seasons!,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                });
+
+                imported++;
+            }
+            catch (Exception ex)
+            {
+                errors.Add(new DishImportError
+                {
+                    Index = index,
+                    Name = item.Name,
+                    Errors = [new ApiFieldError { Message = ex.Message }]
+                });
+            }
+        }
+
+        return new DishImportResponse
+        {
+            Imported = imported,
+            Failed = errors.Count,
+            Errors = errors
+        };
+    }
+
+    /// <summary>
+    /// Validates a single import item, reusing the create-dish rules.
+    /// </summary>
+    private static List<ApiFieldError> ValidateImportItem(DishImportItem item)
+    {
+        var payload = new CreateDishPayload
+        {
+            Name = item.Name ?? string.Empty,
+            Description = item.Description ?? string.Empty,
+            Course = item.Course ?? 0,
+            Seasons = item.Seasons ?? Array.Empty<int>()
+        };
+
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(payload, new ValidationContext(payload), results, validateAllProperties: true);
+
+        if (item.Course is null)
+        {
+            results.Add(new ValidationResult("Course is required.", [nameof(item.Course)]));
+        }
+
+        return results
+            .Select(result => new ApiFieldError
+            {
+                Field = result.MemberNames.FirstOrDefault() ?? string.Empty,
+                Message = result.ErrorMessage ?? "Invalid value."
+            })
+            .ToList();
     }
 
     /// <summary>

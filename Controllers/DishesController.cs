@@ -52,6 +52,22 @@ public class DishesController : BaseController
     }
 
     /// <summary>
+    /// Bulk-import dishes from a JSON array, skipping invalid entries.
+    /// </summary>
+    [HttpPost("import")]
+    [EndpointSummary("Bulk-import dishes from a JSON array")]
+    [ProducesResponseType(typeof(DishImportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Import([FromBody] List<DishImportItem> items)
+    {
+        var userId = await GetUserIdAsync();
+        var response = await _dishService.ImportDishesAsync(userId, items);
+        return Ok(response);
+    }
+
+    /// <summary>
     /// Update an existing dish.
     /// </summary>
     [HttpPut("{id}")]

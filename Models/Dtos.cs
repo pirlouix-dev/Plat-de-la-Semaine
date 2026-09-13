@@ -112,6 +112,64 @@ public class DishSingleResponse
 }
 
 /// <summary>
+/// A single dish entry inside a bulk import request.
+/// Fields are nullable and carry no validation attributes so that one invalid
+/// entry does not reject the whole request; validation happens per item.
+/// </summary>
+public class DishImportItem
+{
+    public string? Name { get; set; }
+
+    public string? Description { get; set; }
+
+    public int? Course { get; set; }
+
+    public int[]? Seasons { get; set; }
+}
+
+/// <summary>
+/// Validation errors for a single rejected item in a bulk import.
+/// </summary>
+public class DishImportError
+{
+    /// <summary>
+    /// Zero-based position of the item in the submitted array.
+    /// </summary>
+    public required int Index { get; set; }
+
+    /// <summary>
+    /// The item's name, when it could be read, to help the client identify it.
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// Field-level validation errors for the item.
+    /// </summary>
+    public required List<ApiFieldError> Errors { get; set; } = new();
+}
+
+/// <summary>
+/// Response from a bulk dish import.
+/// </summary>
+public class DishImportResponse
+{
+    /// <summary>
+    /// Number of dishes that were persisted.
+    /// </summary>
+    public required int Imported { get; set; }
+
+    /// <summary>
+    /// Number of dishes that were rejected.
+    /// </summary>
+    public required int Failed { get; set; }
+
+    /// <summary>
+    /// Details of each rejected dish.
+    /// </summary>
+    public required List<DishImportError> Errors { get; set; } = new();
+}
+
+/// <summary>
 /// Backup summary information.
 /// </summary>
 public class BackupSummary
