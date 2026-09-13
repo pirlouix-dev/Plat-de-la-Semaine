@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CharacterCounter from "../../components/CharacterCounter";
-import { apiPost } from "../../services/api";
+import { apiPost, notifyAuthChange } from "../../services/api";
 import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
 import logo_img from "../../../assets/logo.png";
@@ -34,9 +34,16 @@ function RegisterPage() {
       return;
     }
 
-    navigate("/login", {
-      state: { justRegistered: true, email, idToken: result.data.idToken },
-    });
+    localStorage.setItem("auth_token", result.data.idToken);
+    localStorage.setItem("refresh_token", result.data.refreshToken);
+    localStorage.setItem("user_id", result.data.userId);
+    localStorage.setItem("user_username", result.data.username);
+    localStorage.setItem(
+      "token_expiry",
+      String(Date.now() + Number(result.data.expiresIn) * 1000),
+    );
+    notifyAuthChange();
+    navigate("/");
   };
 
   return (

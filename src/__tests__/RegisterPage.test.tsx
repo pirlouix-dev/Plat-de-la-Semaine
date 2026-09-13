@@ -36,6 +36,7 @@ function renderPage() {
 
 describe("RegisterPage", () => {
   afterEach(() => {
+    localStorage.clear();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -67,6 +68,7 @@ describe("RegisterPage", () => {
       refreshToken: "refresh-abc",
       expiresIn: "3600",
       userId: "user-42",
+      username: "testuser",
     });
 
     renderPage();
@@ -95,6 +97,40 @@ describe("RegisterPage", () => {
         password: "password123",
       }),
     );
+  });
+
+  it("stores auth tokens after successful registration", async () => {
+    mockFetchSuccess({
+      idToken: "token-123",
+      refreshToken: "refresh-abc",
+      expiresIn: "3600",
+      userId: "user-42",
+      username: "testuser",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText("S'inscrire"));
+
+    await vi.waitFor(() => {
+      expect(localStorage.getItem("auth_token")).toBe("token-123");
+      expect(localStorage.getItem("refresh_token")).toBe("refresh-abc");
+      expect(localStorage.getItem("user_id")).toBe("user-42");
+      expect(localStorage.getItem("user_username")).toBe("testuser");
+      const tokenExpiry = localStorage.getItem("token_expiry");
+      expect(tokenExpiry).toBeTruthy();
+      expect(Number(tokenExpiry)).toBeGreaterThan(Date.now());
+    });
   });
 
   it("shows error message when registration fails", async () => {
