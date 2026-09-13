@@ -337,6 +337,37 @@ describe("SettingsPage", () => {
         });
       });
 
+      it("disables the import button while the import is running", async () => {
+        let resolveImport!: (value: unknown) => void;
+        mockImportDishes.mockReturnValue(
+          new Promise((resolve) => {
+            resolveImport = resolve;
+          }),
+        );
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
+        );
+
+        expect(
+          screen.getByRole("button", { name: /importer un fichier json…/i }),
+        ).toBeDisabled();
+
+        await act(async () => {
+          resolveImport({
+            ok: true,
+            data: { imported: 1, failed: 0, errors: [] },
+          });
+        });
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole("button", { name: /importer un fichier json$/i }),
+          ).toBeEnabled();
+        });
+      });
+
       it("rejects malformed JSON with an error toast", async () => {
         const { container } = renderDataTab();
         await selectFile(container, "{ not json");
