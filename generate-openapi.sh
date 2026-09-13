@@ -35,7 +35,7 @@ for i in $(seq 1 30); do
 done
 
 echo "Fetching OpenAPI spec..."
-curl -sf "$OPENAPI_URL" | python3 -c "
+curl -sf "$OPENAPI_URL" | ./venv/bin/python3 -c "
 import json, yaml, sys
 spec = json.load(sys.stdin)
 with open('$OUTPUT', 'w') as f:

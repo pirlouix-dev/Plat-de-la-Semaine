@@ -42,7 +42,6 @@ public class AuthResponse
     public required string ExpiresIn { get; set; } = string.Empty;
     public required string UserId { get; set; } = string.Empty;
     public required string Username { get; set; } = string.Empty;
-    public bool EmailVerified { get; set; }
 }
 
 /// <summary>
@@ -54,14 +53,6 @@ public class RefreshResponse
     public required string IdToken { get; set; } = string.Empty;
     public required string RefreshToken { get; set; } = string.Empty;
     public required string ExpiresIn { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Request payload for sending a verification email.
-/// </summary>
-public class SendVerificationPayload
-{
-    public required string IdToken { get; set; } = string.Empty;
 }
 
 /// <summary>

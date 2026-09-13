@@ -23,11 +23,6 @@ public interface IAuthService
     Task<RefreshResponse> RefreshTokenAsync(string refreshToken);
 
     /// <summary>
-    /// Sends an email verification message to the user associated with the given ID token.
-    /// </summary>
-    Task SendVerificationEmailAsync(string idToken);
-
-    /// <summary>
     /// Updates the username of the authenticated user.
     /// </summary>
     Task UpdateUsernameAsync(string userId, string username);

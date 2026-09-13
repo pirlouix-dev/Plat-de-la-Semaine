@@ -35,6 +35,7 @@ public class AuthService : IAuthService
         {
             Email = email,
             Password = password,
+            EmailVerified = true,
         };
 
         var userRecord = await FirebaseAuth.DefaultInstance.CreateUserAsync(userRecordArgs);
@@ -48,16 +49,13 @@ public class AuthService : IAuthService
 
         var result = await SignInInternalAsync(email, password);
 
-        await SendVerificationEmailAsync(result.IdToken);
-
         return new AuthResponse
         {
             IdToken = result.IdToken,
             RefreshToken = result.RefreshToken,
             ExpiresIn = result.ExpiresIn,
             UserId = result.LocalId,
-            Username = username,
-            EmailVerified = result.EmailVerified
+            Username = username
         };
     }
 
@@ -65,11 +63,6 @@ public class AuthService : IAuthService
     public async Task<AuthResponse> LoginAsync(string email, string password)
     {
         var result = await SignInInternalAsync(email, password);
-
-        var emailVerified = await IsEmailVerifiedAsync(result.IdToken);
-
-        if (!emailVerified)
-            await SendVerificationEmailAsync(result.IdToken);
 
         var user = await _firestore.GetUserByIdAsync(result.LocalId)
             ?? throw new InvalidOperationException("User not found in Firestore.");
@@ -80,8 +73,7 @@ public class AuthService : IAuthService
             RefreshToken = result.RefreshToken,
             ExpiresIn = result.ExpiresIn,
             UserId = result.LocalId,
-            Username = user.Username,
-            EmailVerified = emailVerified
+            Username = user.Username
         };
     }
 
@@ -128,42 +120,6 @@ public class AuthService : IAuthService
 
         return await response.Content.ReadFromJsonAsync<SignInResponse>()
             ?? throw new InvalidOperationException("Invalid response from Firebase.");
-    }
-
-    private async Task<bool> IsEmailVerifiedAsync(string idToken)
-    {
-        var request = new Dictionary<string, string>
-        {
-            { "idToken", idToken }
-        };
-
-        var response = await _http.PostAsJsonAsync(
-            $"{IdentityToolkitUrl}:lookup?key={_apiKey}", request);
-
-        response.EnsureSuccessStatusCode();
-
-        var result = await response.Content.ReadFromJsonAsync<LookupResponse>();
-        return result?.Users?.FirstOrDefault()?.EmailVerified ?? false;
-    }
-
-    /// <inheritdoc />
-    public async Task SendVerificationEmailAsync(string idToken)
-    {
-        var request = new Dictionary<string, string>
-        {
-            { "requestType", "VERIFY_EMAIL" },
-            { "idToken", idToken }
-        };
-
-        var response = await _http.PostAsJsonAsync(
-            $"{IdentityToolkitUrl}:sendOobCode?key={_apiKey}", request);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadFromJsonAsync<SignInErrorResponse>();
-            var errorMessage = errorBody?.Error?.Message ?? "Failed to send verification email.";
-            throw new InvalidOperationException(errorMessage);
-        }
     }
 
     /// <inheritdoc />
@@ -229,9 +185,6 @@ internal class SignInResponse
 
     [JsonPropertyName("localId")]
     public string LocalId { get; set; } = string.Empty;
-
-    [JsonPropertyName("emailVerified")]
-    public bool EmailVerified { get; set; }
 }
 
 internal class SecureTokenResponse
@@ -259,16 +212,4 @@ internal class SignInError
 {
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
-}
-
-internal class LookupResponse
-{
-    [JsonPropertyName("users")]
-    public List<LookupUser>? Users { get; set; }
-}
-
-internal class LookupUser
-{
-    [JsonPropertyName("emailVerified")]
-    public bool EmailVerified { get; set; }
 }

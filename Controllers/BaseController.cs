@@ -24,10 +24,6 @@ public abstract class BaseController : ControllerBase
         var token = authHeader["Bearer ".Length..];
         var decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
 
-        if (decoded.Claims.TryGetValue("email_verified", out var verified)
-            && verified is bool isVerified && !isVerified)
-            throw new EmailNotVerifiedException();
-
         return decoded.Uid;
     }
 }

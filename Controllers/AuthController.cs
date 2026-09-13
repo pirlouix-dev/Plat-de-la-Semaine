@@ -60,19 +60,6 @@ public class AuthController : BaseController
     }
 
     /// <summary>
-    /// Send an email verification to the authenticated user.
-    /// </summary>
-    [HttpPost("send-verification")]
-    [EndpointSummary("Send email verification")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SendVerificationEmail([FromBody] SendVerificationPayload payload)
-    {
-        await _authService.SendVerificationEmailAsync(payload.IdToken);
-        return Ok();
-    }
-
-    /// <summary>
     /// Send a password reset email to the given address.
     /// </summary>
     [HttpPost("forgot-password")]
