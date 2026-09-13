@@ -67,6 +67,21 @@ export type Dish = components["schemas"]["Dish"];
 export type CreateDishPayload = components["schemas"]["CreateDishPayload"];
 export type UpdateDishPayload = components["schemas"]["UpdateDishPayload"];
 
+export type DishImportItem = components["schemas"]["DishImportItem"];
+export type DishImportError = components["schemas"]["DishImportError"];
+export type DishImportResponse = components["schemas"]["DishImportResponse"];
+
+/**
+ * A dish import entry that passed client-side validation.
+ * Unlike the nullable API `DishImportItem`, every field is guaranteed present.
+ */
+export interface ValidatedDishImportItem {
+  name: string;
+  description: string;
+  course: Course;
+  seasons: Season[];
+}
+
 export type { DishDocType } from "../db/schemas/dishes";
 
 export type SyncStatus =

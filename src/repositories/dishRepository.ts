@@ -1,11 +1,41 @@
 import type { AppDatabase } from "../db/DatabaseContext";
 import type { DishDocType } from "../db/schemas/dishes";
+import type { ValidatedDishImportItem } from "../types/dish";
+
+/**
+ * Turn validated import entries into locally-created dish documents that the
+ * sync engine will push to the backend on the next run.
+ */
+export function buildPendingDishes(
+  items: ValidatedDishImportItem[],
+  now: string = new Date().toISOString()
+): DishDocType[] {
+  return items.map((item) => ({
+    id: crypto.randomUUID(),
+    serverId: "",
+    name: item.name,
+    description: item.description,
+    course: item.course,
+    seasons: item.seasons,
+    updatedAt: now,
+    isDeleted: false,
+    syncStatus: "pending_create",
+  }));
+}
 
 export async function insertDish(
   db: AppDatabase,
   dish: DishDocType
 ): Promise<void> {
   await db.dishes.insert(dish);
+}
+
+export async function insertManyDishes(
+  db: AppDatabase,
+  dishes: DishDocType[]
+): Promise<void> {
+  if (dishes.length === 0) return;
+  await db.dishes.bulkInsert(dishes);
 }
 
 export async function updateDish(

@@ -4,9 +4,15 @@ import {
   createDish,
   updateDish,
   deleteDish,
+  importDishes,
 } from "../services/dishService";
 import { setBaseUrl } from "../services/api";
-import type { Dish, CreateDishPayload, UpdateDishPayload } from "../types";
+import type {
+  Dish,
+  CreateDishPayload,
+  UpdateDishPayload,
+  DishImportItem,
+} from "../types";
 import { Course, Season } from "../types";
 
 // ── Test data ────────────────────────────────────────────────────────────────
@@ -244,6 +250,50 @@ describe("deleteDish", () => {
 
     const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
     expect(url).toBe(`${FAKE_BASE_URL}/api/dishes/dish%2Fwith%2Fslashes`);
+  });
+});
+
+describe("importDishes", () => {
+  const items: DishImportItem[] = [
+    {
+      name: "Ratatouille",
+      description: "Légumes mijotés",
+      course: Course.Main,
+      seasons: [Season.Summer],
+    },
+  ];
+
+  it("posts the array to the import endpoint and returns the summary", async () => {
+    const response = {
+      imported: 1,
+      failed: 0,
+      errors: [],
+    };
+    mockFetchResponse(200, response);
+
+    const result = await importDishes(items);
+
+    expect(result).toEqual({ ok: true, data: response });
+
+    const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(url).toBe(`${FAKE_BASE_URL}/api/dishes/import`);
+    const options = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body as string)).toEqual(items);
+  });
+
+  it("propagates API errors", async () => {
+    mockFetchResponse(400, {
+      code: "VALIDATION_ERROR",
+      message: "Invalid payload",
+    });
+
+    const result = await importDishes(items);
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "VALIDATION_ERROR", message: "Invalid payload" },
+    });
   });
 });
 

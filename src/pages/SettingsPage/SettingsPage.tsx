@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, type ComponentType } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ComponentType,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BackArrowIcon,
@@ -11,8 +17,14 @@ import CharacterCounter from "../../components/CharacterCounter";
 import { useDatabase } from "../../db/DatabaseContext";
 import { useToast } from "../../components/toastContext";
 import { getBackups, restoreBackup } from "../../services/backupService";
+import { importDishes } from "../../services/dishService";
 import { getVersionInfo, submitFeedback } from "../../services/settingsService";
-import { getLastSyncAt } from "../../services/syncService";
+import { getLastSyncAt, refreshFromServer } from "../../services/syncService";
+import {
+  insertManyDishes,
+  buildPendingDishes,
+} from "../../repositories/dishRepository";
+import { parseDishImportJson } from "../../utils/validateDishImport";
 import {
   updateUsername,
   resetPassword,
@@ -118,6 +130,8 @@ export function SettingsPage() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleUsernameSave = async () => {
     const trimmed = username.trim();
@@ -154,6 +168,65 @@ export function SettingsPage() {
       showToast(result.error.message, "error");
       setDeleting(false);
       setShowDeleteModal(false);
+    }
+  };
+
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      let text: string;
+      try {
+        text = await file.text();
+      } catch {
+        showToast("Impossible de lire le fichier.", "error");
+        return;
+      }
+
+      const parsed = parseDishImportJson(text);
+      if (!parsed.ok) {
+        showToast(parsed.error, "error");
+        return;
+      }
+
+      if (parsed.items.length === 0) {
+        showToast("Aucun plat valide dans le fichier.", "error");
+        return;
+      }
+
+      try {
+        const offline = !navigator.onLine;
+        let imported: number;
+        let failed = 0;
+        if (offline) {
+          if (!db) throw new Error("Database not ready");
+          await insertManyDishes(db, buildPendingDishes(parsed.items));
+          imported = parsed.items.length;
+        } else {
+          const result = await importDishes(parsed.items);
+          if (!result.ok) {
+            showToast(result.error.message, "error");
+            return;
+          }
+          if (db) {
+            await refreshFromServer(db);
+          }
+          imported = Number(result.data.imported);
+          failed = Number(result.data.failed);
+        }
+
+        const rejected = parsed.errors.length + failed;
+        const parts = offline
+          ? [`${imported} plat(s) enregistré(s) localement`]
+          : [`${imported} plat(s) importé(s)`];
+        if (rejected > 0) parts.push(`${rejected} en échec`);
+        showToast(parts.join(", "), rejected > 0 ? "error" : "success");
+      } catch {
+        showToast("Erreur lors de l'import", "error");
+      }
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -426,6 +499,35 @@ export function SettingsPage() {
           {currentTab === "data" &&
             (isLoggedIn ? (
               <div className="settings-panel">
+                <section className="settings-section-card">
+                  <h2 className="section-title">Importer des plats</h2>
+                  <p className="section-description">
+                    Importez plusieurs plats d'un coup depuis un fichier JSON.
+                  </p>
+                  <div className="form-actions">
+                    <input
+                      ref={importInputRef}
+                      type="file"
+                      accept="application/json,.json"
+                      hidden
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        void handleImportFile(file);
+                      }}
+                    />
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => importInputRef.current?.click()}
+                      disabled={importing}
+                    >
+                      {importing
+                        ? "Importer un fichier JSON…"
+                        : "Importer un fichier JSON"}
+                    </button>
+                  </div>
+                </section>
+
                 <section className="settings-section-card">
                   <h2 className="section-title">Restauration des données</h2>
                   <p className="section-description">

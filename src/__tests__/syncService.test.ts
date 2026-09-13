@@ -35,7 +35,12 @@ import {
   updateDish,
   deleteDish,
 } from "../services/dishService";
-import { sync, startAutoSync, _resetSyncState } from "../services/syncService";
+import {
+  sync,
+  startAutoSync,
+  refreshFromServer,
+  _resetSyncState,
+} from "../services/syncService";
 import { getSyncState } from "../services/syncStatusStore";
 
 const mockGetDishes = vi.mocked(getDishes);
@@ -979,5 +984,53 @@ describe("sync status reporting", () => {
     await sync(db);
 
     expect(getSyncState().phase).toBe("idle");
+  });
+});
+
+// ── refreshFromServer ────────────────────────────────────────────────────────
+
+describe("refreshFromServer", () => {
+  it("skips when offline", async () => {
+    vi.stubGlobal("navigator", { onLine: false });
+
+    const ok = await refreshFromServer(db);
+
+    expect(ok).toBe(false);
+    expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
+  it("skips when not logged in", async () => {
+    localStorage.removeItem("user_id");
+
+    const ok = await refreshFromServer(db);
+
+    expect(ok).toBe(false);
+    expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
+  it("forces a full pull and merges remote dishes", async () => {
+    mockGetDishes.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: "srv-import-1",
+          userId: "u1",
+          name: "Plat importé",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-01-02T00:00:00Z",
+          isDeleted: false,
+        },
+      ],
+    });
+
+    const ok = await refreshFromServer(db);
+
+    expect(ok).toBe(true);
+    expect(mockGetDishes).toHaveBeenCalledWith({ since: undefined });
+    const docs = await db.dishes.find().exec();
+    expect(docs.map((d) => d.get("serverId"))).toContain("srv-import-1");
+    expect(docs.map((d) => d.get("syncStatus"))).toContain("synced");
   });
 });

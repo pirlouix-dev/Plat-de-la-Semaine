@@ -16,6 +16,7 @@ export {
   createDish,
   updateDish,
   deleteDish,
+  importDishes,
 } from "./dishService";
 
 // ── Backup service ───────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 
 function LocationProbe() {
@@ -26,6 +26,10 @@ const mockRestoreBackup = vi.fn();
 const mockGetVersionInfo = vi.fn();
 const mockSubmitFeedback = vi.fn();
 const mockGetLastSyncAt = vi.fn();
+const mockRefreshFromServer = vi.fn();
+const mockImportDishes = vi.fn();
+const mockInsertManyDishes = vi.fn();
+const mockBuildPendingDishes = vi.fn();
 const mockShowToast = vi.fn();
 const mockClearAuth = vi.fn();
 const mockUpdateUsername = vi.fn();
@@ -53,6 +57,16 @@ vi.mock("../services/settingsService", () => ({
 
 vi.mock("../services/syncService", () => ({
   getLastSyncAt: (...args: unknown[]) => mockGetLastSyncAt(...args),
+  refreshFromServer: (...args: unknown[]) => mockRefreshFromServer(...args),
+}));
+
+vi.mock("../services/dishService", () => ({
+  importDishes: (...args: unknown[]) => mockImportDishes(...args),
+}));
+
+vi.mock("../repositories/dishRepository", () => ({
+  insertManyDishes: (...args: unknown[]) => mockInsertManyDishes(...args),
+  buildPendingDishes: (...args: unknown[]) => mockBuildPendingDishes(...args),
 }));
 
 vi.mock("../services/api", () => ({
@@ -92,6 +106,15 @@ describe("SettingsPage", () => {
     mockGetVersionInfo.mockResolvedValue({ ok: true, data: null });
     mockSubmitFeedback.mockResolvedValue({ ok: true, data: undefined });
     mockGetLastSyncAt.mockResolvedValue(null);
+    mockRefreshFromServer.mockResolvedValue(true);
+    mockImportDishes.mockResolvedValue({
+      ok: true,
+      data: { imported: 1, failed: 0, errors: [] },
+    });
+    mockInsertManyDishes.mockResolvedValue(undefined);
+    mockBuildPendingDishes.mockReturnValue([
+      { id: "local-1", syncStatus: "pending_create" },
+    ]);
     mockClearAuth.mockImplementation(() => {});
     mockUpdateUsername.mockResolvedValue({ ok: true, data: undefined });
     mockResetPassword.mockResolvedValue({ ok: true, data: undefined });
@@ -100,6 +123,7 @@ describe("SettingsPage", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     localStorage.clear();
     vi.clearAllMocks();
@@ -250,6 +274,170 @@ describe("SettingsPage", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Aucune sauvegarde disponible.")).toBeTruthy();
+      });
+    });
+
+    describe("JSON import", () => {
+      function renderDataTab() {
+        mockMatchMedia(false);
+        const rendered = renderSettingsPage();
+        fireEvent.click(
+          screen.getByRole("button", { name: /données & plats/i }),
+        );
+        return rendered;
+      }
+
+      async function selectFile(container: HTMLElement, content: string) {
+        const input = container.querySelector(
+          'input[type="file"]',
+        ) as HTMLInputElement;
+        const file = new File([content], "dishes.json", {
+          type: "application/json",
+        });
+        await act(async () => {
+          fireEvent.change(input, { target: { files: [file] } });
+        });
+      }
+
+      it("opens the file picker when the import button is clicked", () => {
+        const { container } = renderDataTab();
+        const input = container.querySelector(
+          'input[type="file"]',
+        ) as HTMLInputElement;
+        const clickSpy = vi.spyOn(input, "click");
+
+        fireEvent.click(
+          screen.getByRole("button", { name: /importer un fichier json/i }),
+        );
+
+        expect(clickSpy).toHaveBeenCalled();
+      });
+
+      it("imports a selected file through the API and refreshes local data", async () => {
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([{ name: "Ratatouille", course: 1, seasons: [1] }]),
+        );
+
+        await waitFor(() => {
+          expect(mockImportDishes).toHaveBeenCalledWith([
+            {
+              name: "Ratatouille",
+              description: "",
+              course: 1,
+              seasons: [1],
+            },
+          ]);
+          expect(mockRefreshFromServer).toHaveBeenCalled();
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "1 plat(s) importé(s)",
+            "success",
+          );
+        });
+      });
+
+      it("disables the import button while the import is running", async () => {
+        let resolveImport!: (value: unknown) => void;
+        mockImportDishes.mockReturnValue(
+          new Promise((resolve) => {
+            resolveImport = resolve;
+          }),
+        );
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
+        );
+
+        expect(
+          screen.getByRole("button", { name: /importer un fichier json…/i }),
+        ).toBeDisabled();
+
+        await act(async () => {
+          resolveImport({
+            ok: true,
+            data: { imported: 1, failed: 0, errors: [] },
+          });
+        });
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole("button", { name: /importer un fichier json$/i }),
+          ).toBeEnabled();
+        });
+      });
+
+      it("rejects malformed JSON with an error toast", async () => {
+        const { container } = renderDataTab();
+        await selectFile(container, "{ not json");
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Le fichier n'est pas un JSON valide.",
+            "error",
+          );
+        });
+        expect(mockImportDishes).not.toHaveBeenCalled();
+      });
+
+      it("stores dishes locally when offline", async () => {
+        vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
+        );
+
+        await waitFor(() => {
+          expect(mockImportDishes).not.toHaveBeenCalled();
+          expect(mockBuildPendingDishes).toHaveBeenCalled();
+          expect(mockInsertManyDishes).toHaveBeenCalled();
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "1 plat(s) enregistré(s) localement",
+            "success",
+          );
+        });
+      });
+
+      it("skips invalid items and reports them", async () => {
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([
+            { name: "Ok", course: 1, seasons: [0] },
+            { name: "", course: 1, seasons: [0] },
+          ]),
+        );
+
+        await waitFor(() => {
+          expect(mockImportDishes).toHaveBeenCalledWith([
+            { name: "Ok", description: "", course: 1, seasons: [0] },
+          ]);
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "1 plat(s) importé(s), 1 en échec",
+            "error",
+          );
+        });
+      });
+
+      it("shows the API error message when the import fails", async () => {
+        mockImportDishes.mockResolvedValue({
+          ok: false,
+          error: { code: "SERVER_ERROR", message: "Import impossible" },
+        });
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
+        );
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Import impossible",
+            "error",
+          );
+        });
       });
     });
   });
