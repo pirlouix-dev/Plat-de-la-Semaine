@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { apiPost, notifyAuthChange } from "../../services/api";
 import type { components } from "../../schema";
-import { MailIcon } from "../../components/Icons";
 import { useToast } from "../../components/toastContext";
 import logo_img from "../../../assets/logo.png";
 import "./LoginPage.css";
@@ -17,43 +16,8 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const [showPopup, setShowPopup] = useState(!!location.state?.justRegistered);
-  const [idToken, setIdToken] = useState<string | null>(
-    location.state?.idToken ?? null,
-  );
   const { showToast } = useToast();
-  const [cooldown, setCooldown] = useState(
-    location.state?.justRegistered ? 10 : 0,
-  );
-  const [sending, setSending] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
-
-  useEffect(() => {
-    if (location.state?.justRegistered) {
-      window.history.replaceState({}, "");
-    }
-  }, [location.state?.justRegistered]);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [cooldown]);
-
-  const handleResend = async () => {
-    if (cooldown > 0 || sending || !idToken) return;
-    setSending(true);
-    const result = await apiPost<undefined>("/api/auth/send-verification", {
-      idToken,
-    });
-    if (result.ok) {
-      setCooldown(10);
-    } else {
-      setError(result.error.message);
-    }
-    setSending(false);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,11 +29,7 @@ function LoginPage() {
       password,
     });
 
-    if (result.ok && result.data.emailVerified === false) {
-      setIdToken(result.data.idToken);
-      setShowPopup(true);
-      setCooldown(10);
-    } else if (result.ok) {
+    if (result.ok) {
       localStorage.setItem("auth_token", result.data.idToken);
       localStorage.setItem("refresh_token", result.data.refreshToken);
       localStorage.setItem("user_id", result.data.userId);
@@ -110,41 +70,6 @@ function LoginPage() {
 
   return (
     <div className="auth-container">
-      {showPopup && (
-        <div className="popup-overlay">
-          <div className="popup-card">
-            <button
-              className="popup-close"
-              onClick={() => setShowPopup(false)}
-              aria-label="Fermer"
-            >
-              ✕
-            </button>
-            <div className="popup-icon">
-              <MailIcon size={56} />
-            </div>
-            <h2>Vérifiez votre email</h2>
-            <p>
-              Un email de vérification a été envoyé à <strong>{email}</strong>.
-            </p>
-            <p className="popup-hint">
-              <strong>Il se situe probablement dans vos spams.</strong>
-            </p>
-            <button
-              className="btn btn-primary"
-              onClick={handleResend}
-              disabled={cooldown > 0 || sending || !idToken}
-            >
-              {sending
-                ? "Envoi..."
-                : cooldown > 0
-                  ? `Renvoyer (${cooldown}s)`
-                  : "Renvoyer l'email"}
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="register-logo-wrapper">
         <img
           src={logo_img}
