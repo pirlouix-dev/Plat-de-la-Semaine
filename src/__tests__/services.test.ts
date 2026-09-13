@@ -35,6 +35,7 @@ describe("services barrel exports", () => {
     const services = await import("../services");
     expect(typeof services.getVersionInfo).toBe("function");
     expect(typeof services.submitFeedback).toBe("function");
+    expect(typeof services.pingServer).toBe("function");
   });
 
   it("module loads without error", async () => {

@@ -4,6 +4,7 @@ import CharacterCounter from "../../components/CharacterCounter";
 import { apiPost, notifyAuthChange } from "../../services/api";
 import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
+import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
 import "./RegisterPage.css";
 
@@ -16,6 +17,8 @@ function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useWarmupPing();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

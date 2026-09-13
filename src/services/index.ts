@@ -29,5 +29,6 @@ export {
 export {
   getVersionInfo,
   submitFeedback,
+  pingServer,
 } from "./settingsService";
 export type { VersionInfo, FeedbackPayload } from "./settingsService";

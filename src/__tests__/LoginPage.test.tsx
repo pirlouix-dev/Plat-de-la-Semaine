@@ -6,6 +6,14 @@ import LoginPage from "../pages/LoginPage/LoginPage";
 
 beforeEach(() => {
   localStorage.clear();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({}),
+    }),
+  );
 });
 
 const AUTH_RESPONSE = {
@@ -73,9 +81,12 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByText("Se connecter"));
 
     const fetchMock = vi.mocked(fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const loginCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/auth/login"),
+    );
+    expect(loginCall).toBeTruthy();
 
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = loginCall as [string, RequestInit];
     expect(url).toContain("/api/auth/login");
     expect(options.body).toBe(
       JSON.stringify({
@@ -144,9 +155,12 @@ describe("LoginPage", () => {
     );
 
     const fetchMock = vi.mocked(fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const forgotCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/auth/forgot-password"),
+    );
+    expect(forgotCall).toBeTruthy();
 
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = forgotCall as [string, RequestInit];
     expect(url).toContain("/api/auth/forgot-password");
     expect(options.body).toBe(JSON.stringify({ email: "user@example.com" }));
 
@@ -219,5 +233,18 @@ describe("LoginPage", () => {
     expect(
       screen.getByText("Veuillez entrer une adresse email valide."),
     ).toBeTruthy();
+  });
+
+  it("pings the backend on mount to warm it up", async () => {
+    renderLogin();
+
+    await vi.waitFor(() => {
+      const fetchMock = vi.mocked(fetch);
+      expect(
+        fetchMock.mock.calls.some(([url]) =>
+          String(url).includes("/api/ping"),
+        ),
+      ).toBe(true);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HomePage from "../pages/HomePage/HomePage";
@@ -22,6 +22,14 @@ function mockSyncStatus(overrides: Partial<SyncDisplay> = {}): void {
 beforeEach(() => {
   localStorage.clear();
   mockSyncStatus();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({}),
+    }),
+  );
 });
 
 describe("HomePage component", () => {
@@ -168,4 +176,39 @@ describe("HomePage component", () => {
       screen.getByText("Connectez-vous pour sauvegarder vos plats"),
     ).toBeTruthy();
   });
+
+  it("pings the backend on mount when visiting as a guest", async () => {
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    await vi.waitFor(() => {
+      const fetchMock = vi.mocked(fetch);
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).includes("/api/ping")),
+      ).toBe(true);
+    });
+  });
+
+  it("does not ping the backend when logged in (sync warms the server)", async () => {
+    localStorage.setItem("user_id", "user-42");
+    localStorage.setItem("user_username", "Mathéo");
+
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
