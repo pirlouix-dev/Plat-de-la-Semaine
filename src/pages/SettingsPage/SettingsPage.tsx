@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, type ComponentType } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ComponentType,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BackArrowIcon,
@@ -8,8 +14,6 @@ import {
   UserIcon,
 } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
-import ImportDishesModal from "../../components/ImportDishesModal";
-import type { ImportOutcome } from "../../components/ImportDishesModal";
 import { useDatabase } from "../../db/DatabaseContext";
 import { useToast } from "../../components/toastContext";
 import { getBackups, restoreBackup } from "../../services/backupService";
@@ -20,7 +24,7 @@ import {
   insertManyDishes,
   buildPendingDishes,
 } from "../../repositories/dishRepository";
-import type { ValidatedDishImportItem } from "../../types/dish";
+import { parseDishImportJson } from "../../utils/validateDishImport";
 import {
   updateUsername,
   resetPassword,
@@ -126,7 +130,7 @@ export function SettingsPage() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleUsernameSave = async () => {
     const trimmed = username.trim();
@@ -166,36 +170,58 @@ export function SettingsPage() {
     }
   };
 
-  const handleImport = async (
-    items: ValidatedDishImportItem[],
-  ): Promise<ImportOutcome> => {
-    if (!navigator.onLine) {
-      if (!db) throw new Error("Database not ready");
-      await insertManyDishes(db, buildPendingDishes(items));
-      return { imported: items.length, failed: 0, errors: [], offline: true };
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return;
+
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      showToast("Impossible de lire le fichier.", "error");
+      return;
     }
 
-    const result = await importDishes(items);
-    if (!result.ok) {
-      return {
-        imported: 0,
-        failed: items.length,
-        errors: [],
-        offline: false,
-        message: result.error.message,
-      };
+    const parsed = parseDishImportJson(text);
+    if (!parsed.ok) {
+      showToast(parsed.error, "error");
+      return;
     }
 
-    if (db) {
-      await refreshFromServer(db);
+    if (parsed.items.length === 0) {
+      showToast("Aucun plat valide dans le fichier.", "error");
+      return;
     }
 
-    return {
-      imported: Number(result.data.imported),
-      failed: Number(result.data.failed),
-      errors: result.data.errors,
-      offline: false,
-    };
+    try {
+      const offline = !navigator.onLine;
+      let imported: number;
+      let failed = 0;
+      if (offline) {
+        if (!db) throw new Error("Database not ready");
+        await insertManyDishes(db, buildPendingDishes(parsed.items));
+        imported = parsed.items.length;
+      } else {
+        const result = await importDishes(parsed.items);
+        if (!result.ok) {
+          showToast(result.error.message, "error");
+          return;
+        }
+        if (db) {
+          await refreshFromServer(db);
+        }
+        imported = Number(result.data.imported);
+        failed = Number(result.data.failed);
+      }
+
+      const rejected = parsed.errors.length + failed;
+      const parts = offline
+        ? [`${imported} plat(s) enregistré(s) localement`]
+        : [`${imported} plat(s) importé(s)`];
+      if (rejected > 0) parts.push(`${rejected} en échec`);
+      showToast(parts.join(", "), rejected > 0 ? "error" : "success");
+    } catch {
+      showToast("Erreur lors de l'import", "error");
+    }
   };
 
   const currentTab = activeTab ?? "account";
@@ -555,9 +581,20 @@ export function SettingsPage() {
                     Les plats valides sont ajoutés à votre liste.
                   </p>
                   <div className="form-actions">
+                    <input
+                      ref={importInputRef}
+                      type="file"
+                      accept="application/json,.json"
+                      hidden
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        void handleImportFile(file);
+                      }}
+                    />
                     <button
                       className="btn btn-primary"
-                      onClick={() => setShowImportModal(true)}
+                      onClick={() => importInputRef.current?.click()}
                     >
                       Importer un fichier JSON
                     </button>
@@ -637,13 +674,6 @@ export function SettingsPage() {
           )}
         </main>
       </div>
-
-      {showImportModal && (
-        <ImportDishesModal
-          onClose={() => setShowImportModal(false)}
-          onImport={handleImport}
-        />
-      )}
     </div>
   );
 }

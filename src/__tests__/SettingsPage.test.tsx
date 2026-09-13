@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 
 function LocationProbe() {
@@ -278,37 +278,47 @@ describe("SettingsPage", () => {
     });
 
     describe("JSON import", () => {
-      function openImportWithFile(content: string) {
+      function renderDataTab() {
         mockMatchMedia(false);
         const rendered = renderSettingsPage();
         fireEvent.click(
           screen.getByRole("button", { name: /données & plats/i }),
         );
-        fireEvent.click(
-          screen.getByRole("button", { name: /importer un fichier json/i }),
-        );
+        return rendered;
+      }
 
-        const input = rendered.container.querySelector(
+      async function selectFile(container: HTMLElement, content: string) {
+        const input = container.querySelector(
           'input[type="file"]',
         ) as HTMLInputElement;
         const file = new File([content], "dishes.json", {
           type: "application/json",
         });
-        fireEvent.change(input, { target: { files: [file] } });
-        return rendered;
+        await act(async () => {
+          fireEvent.change(input, { target: { files: [file] } });
+        });
       }
 
-      it("imports a file through the API and refreshes local data", async () => {
-        openImportWithFile(
-          JSON.stringify([
-            { name: "Ratatouille", course: 1, seasons: [1] },
-          ]),
+      it("opens the file picker when the import button is clicked", () => {
+        const { container } = renderDataTab();
+        const input = container.querySelector(
+          'input[type="file"]',
+        ) as HTMLInputElement;
+        const clickSpy = vi.spyOn(input, "click");
+
+        fireEvent.click(
+          screen.getByRole("button", { name: /importer un fichier json/i }),
         );
 
-        const importBtn = await screen.findByRole("button", {
-          name: /importer 1 plat/i,
-        });
-        fireEvent.click(importBtn);
+        expect(clickSpy).toHaveBeenCalled();
+      });
+
+      it("imports a selected file through the API and refreshes local data", async () => {
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([{ name: "Ratatouille", course: 1, seasons: [1] }]),
+        );
 
         await waitFor(() => {
           expect(mockImportDishes).toHaveBeenCalledWith([
@@ -320,30 +330,63 @@ describe("SettingsPage", () => {
             },
           ]);
           expect(mockRefreshFromServer).toHaveBeenCalled();
-          expect(
-            screen.getByText("1 plat(s) importé(s), 0 en échec."),
-          ).toBeTruthy();
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "1 plat(s) importé(s)",
+            "success",
+          );
         });
+      });
+
+      it("rejects malformed JSON with an error toast", async () => {
+        const { container } = renderDataTab();
+        await selectFile(container, "{ not json");
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Le fichier n'est pas un JSON valide.",
+            "error",
+          );
+        });
+        expect(mockImportDishes).not.toHaveBeenCalled();
       });
 
       it("stores dishes locally when offline", async () => {
         vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
-        openImportWithFile(
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
           JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
         );
-
-        const importBtn = await screen.findByRole("button", {
-          name: /importer 1 plat/i,
-        });
-        fireEvent.click(importBtn);
 
         await waitFor(() => {
           expect(mockImportDishes).not.toHaveBeenCalled();
           expect(mockBuildPendingDishes).toHaveBeenCalled();
           expect(mockInsertManyDishes).toHaveBeenCalled();
-          expect(
-            screen.getByText(/enregistré\(s\) localement/i),
-          ).toBeTruthy();
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "1 plat(s) enregistré(s) localement",
+            "success",
+          );
+        });
+      });
+
+      it("skips invalid items and reports them", async () => {
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
+          JSON.stringify([
+            { name: "Ok", course: 1, seasons: [0] },
+            { name: "", course: 1, seasons: [0] },
+          ]),
+        );
+
+        await waitFor(() => {
+          expect(mockImportDishes).toHaveBeenCalledWith([
+            { name: "Ok", description: "", course: 1, seasons: [0] },
+          ]);
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "1 plat(s) importé(s), 1 en échec",
+            "error",
+          );
         });
       });
 
@@ -352,17 +395,17 @@ describe("SettingsPage", () => {
           ok: false,
           error: { code: "SERVER_ERROR", message: "Import impossible" },
         });
-        openImportWithFile(
+        const { container } = renderDataTab();
+        await selectFile(
+          container,
           JSON.stringify([{ name: "Quiche", course: 1, seasons: [0] }]),
         );
 
-        const importBtn = await screen.findByRole("button", {
-          name: /importer 1 plat/i,
-        });
-        fireEvent.click(importBtn);
-
         await waitFor(() => {
-          expect(screen.getByText("Import impossible")).toBeTruthy();
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Import impossible",
+            "error",
+          );
         });
       });
     });
