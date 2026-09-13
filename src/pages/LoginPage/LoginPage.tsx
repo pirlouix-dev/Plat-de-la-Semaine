@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { apiPost, notifyAuthChange } from "../../services/api";
 import type { components } from "../../schema";
 import { useToast } from "../../components/toastContext";
+import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
 import "./LoginPage.css";
 
@@ -18,6 +19,8 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  useWarmupPing();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

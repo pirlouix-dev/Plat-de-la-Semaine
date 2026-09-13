@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import "./HomePage.css";
 
 import { useSyncStatus } from "../../hooks/useSyncStatus";
+import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
+import { useWarmupPing } from "../../hooks/useWarmupPing";
 
 import logo_img from "../../../assets/logo.png";
 import book_img from "../../../assets/book.webp";
@@ -19,10 +21,11 @@ const mainMenuItems = [
 
 function HomePage() {
   const navigate = useNavigate();
-  const userId = localStorage.getItem("user_id");
   const username = localStorage.getItem("user_username");
-  const isLoggedIn = !!userId;
+  const isLoggedIn = useIsLoggedIn();
   const syncDisplay = useSyncStatus();
+
+  useWarmupPing(!isLoggedIn);
 
   return (
     <div className="app-container">
