@@ -1,11 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../components/Toast";
 import LoginPage from "../pages/LoginPage/LoginPage";
 
 beforeEach(() => {
   localStorage.clear();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({}),
+    }),
+  );
 });
 
 const AUTH_RESPONSE = {
@@ -41,23 +49,9 @@ function mockFetchError(
   );
 }
 
-function renderLogin(options?: {
-  justRegistered?: boolean;
-  email?: string;
-  idToken?: string;
-}) {
-  const state = options?.justRegistered
-    ? {
-        justRegistered: true,
-        email: options.email ?? "",
-        idToken: options.idToken ?? null,
-      }
-    : undefined;
-
-  const initialEntries = state ? [{ pathname: "/login", state }] : ["/login"];
-
+function renderLogin() {
   return render(
-    <MemoryRouter initialEntries={initialEntries}>
+    <MemoryRouter initialEntries={["/login"]}>
       <ToastProvider>
         <LoginPage />
       </ToastProvider>
@@ -70,16 +64,6 @@ describe("LoginPage", () => {
     localStorage.clear();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-  });
-
-  it("hides verification popup when close button is clicked", () => {
-    renderLogin({
-      justRegistered: true,
-      email: "test@example.com",
-      idToken: "t",
-    });
-    fireEvent.click(screen.getByLabelText("Fermer"));
-    expect(screen.queryByText("Vérifiez votre email")).toBeNull();
   });
 
   it("calls /api/auth/login with email and password on submit", async () => {
@@ -97,9 +81,12 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByText("Se connecter"));
 
     const fetchMock = vi.mocked(fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const loginCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/auth/login"),
+    );
+    expect(loginCall).toBeTruthy();
 
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = loginCall as [string, RequestInit];
     expect(url).toContain("/api/auth/login");
     expect(options.body).toBe(
       JSON.stringify({
@@ -154,125 +141,6 @@ describe("LoginPage", () => {
     ).toBeTruthy();
   });
 
-  it("shows verification popup when login returns emailVerified false", async () => {
-    mockFetchSuccess({ ...AUTH_RESPONSE, emailVerified: false });
-
-    renderLogin();
-
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "unverified@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
-      target: { value: "pwd" },
-    });
-    fireEvent.click(screen.getByText("Se connecter"));
-
-    expect(await screen.findByText("Vérifiez votre email")).toBeTruthy();
-  });
-
-  it("enables resend after cooldown and sends verification with the login idToken", async () => {
-    vi.useFakeTimers();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: vi
-          .fn()
-          .mockResolvedValue({
-            ...AUTH_RESPONSE,
-            idToken: "login-id-token",
-            emailVerified: false,
-          }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: vi.fn().mockResolvedValue({}),
-      });
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderLogin();
-
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "unverified@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
-      target: { value: "pwd" },
-    });
-    fireEvent.click(screen.getByText("Se connecter"));
-
-    await act(async () => {});
-
-    for (let i = 0; i < 10; i++) {
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1000);
-      });
-    }
-
-    fireEvent.click(screen.getByText("Renvoyer l'email"));
-
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-
-    const [url, options] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(url).toContain("/api/auth/send-verification");
-    expect(options.body).toBe(JSON.stringify({ idToken: "login-id-token" }));
-
-    vi.useRealTimers();
-  });
-
-  it("calls /api/auth/send-verification when resend button is clicked", async () => {
-    vi.useFakeTimers();
-    mockFetchSuccess({});
-
-    renderLogin({
-      justRegistered: true,
-      email: "test@example.com",
-      idToken: "resend-token",
-    });
-
-    for (let i = 0; i < 10; i++) {
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1000);
-      });
-    }
-
-    fireEvent.click(screen.getByText("Renvoyer l'email"));
-
-    const fetchMock = vi.mocked(fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain("/api/auth/send-verification");
-    expect(options.body).toBe(JSON.stringify({ idToken: "resend-token" }));
-
-    vi.useRealTimers();
-  });
-
-  it("starts cooldown again after resend", async () => {
-    vi.useFakeTimers();
-    mockFetchSuccess({});
-
-    renderLogin({
-      justRegistered: true,
-      email: "test@example.com",
-      idToken: "cooldown-token",
-    });
-
-    for (let i = 0; i < 10; i++) {
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1000);
-      });
-    }
-
-    fireEvent.click(screen.getByText("Renvoyer l'email"));
-
-    vi.useRealTimers();
-    await vi.waitFor(() => {
-      expect(screen.getByText(/Renvoyer \(10s\)/)).toBeDisabled();
-    });
-  });
-
   it("calls /api/auth/forgot-password with email and shows success toast", async () => {
     mockFetchSuccess({});
 
@@ -287,9 +155,12 @@ describe("LoginPage", () => {
     );
 
     const fetchMock = vi.mocked(fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const forgotCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/auth/forgot-password"),
+    );
+    expect(forgotCall).toBeTruthy();
 
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = forgotCall as [string, RequestInit];
     expect(url).toContain("/api/auth/forgot-password");
     expect(options.body).toBe(JSON.stringify({ email: "user@example.com" }));
 
@@ -362,5 +233,18 @@ describe("LoginPage", () => {
     expect(
       screen.getByText("Veuillez entrer une adresse email valide."),
     ).toBeTruthy();
+  });
+
+  it("pings the backend on mount to warm it up", async () => {
+    renderLogin();
+
+    await vi.waitFor(() => {
+      const fetchMock = vi.mocked(fetch);
+      expect(
+        fetchMock.mock.calls.some(([url]) =>
+          String(url).includes("/api/ping"),
+        ),
+      ).toBe(true);
+    });
   });
 });

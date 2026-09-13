@@ -169,57 +169,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/send-verification": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Send email verification */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SendVerificationPayload"];
-                    "text/json": components["schemas"]["SendVerificationPayload"];
-                    "application/*+json": components["schemas"]["SendVerificationPayload"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -749,6 +698,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dishes/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk-import dishes from a JSON array */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DishImportItem"][];
+                    "text/json": components["schemas"]["DishImportItem"][];
+                    "application/*+json": components["schemas"]["DishImportItem"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["DishImportResponse"];
+                        "application/json": components["schemas"]["DishImportResponse"];
+                        "text/json": components["schemas"]["DishImportResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dishes/{id}": {
         parameters: {
             query?: never;
@@ -987,13 +1013,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/status": {
+    "/api/ping": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        /** Ping the server to warm it up */
         get: {
             parameters: {
                 query?: never;
@@ -1092,7 +1119,6 @@ export interface components {
             expiresIn: string;
             userId: string;
             username: string;
-            emailVerified?: boolean;
         };
         BackupListResponse: {
             data: components["schemas"]["BackupSummary"][];
@@ -1128,6 +1154,26 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             isDeleted?: boolean;
+        };
+        DishImportError: {
+            /** Format: int32 */
+            index: number | string;
+            name?: null | string;
+            errors: components["schemas"]["ApiFieldError"][];
+        };
+        DishImportItem: {
+            name?: null | string;
+            description?: null | string;
+            /** Format: int32 */
+            course?: null | number | string;
+            seasons?: null | (number | string)[];
+        };
+        DishImportResponse: {
+            /** Format: int32 */
+            imported: number | string;
+            /** Format: int32 */
+            failed: number | string;
+            errors: components["schemas"]["DishImportError"][];
         };
         DishListResponse: {
             data: components["schemas"]["Dish"][];
@@ -1167,9 +1213,6 @@ export interface components {
             restoredCount: number | string;
             /** Format: date-time */
             safetyBackupCreatedAt: string;
-        };
-        SendVerificationPayload: {
-            idToken: string;
         };
         UpdateDishPayload: {
             name?: null | string;

@@ -32,3 +32,13 @@ export async function submitFeedback(
 ): Promise<ApiResult<void>> {
   return apiPost<void>("/api/feedback", payload, options);
 }
+
+/**
+ * Ping the backend to warm it up.
+ * Returns void on success (HTTP 200).
+ */
+export async function pingServer(
+  options?: { signal?: AbortSignal }
+): Promise<ApiResult<void>> {
+  return apiGet<void>("/api/ping", options);
+}

@@ -16,6 +16,7 @@ export {
   createDish,
   updateDish,
   deleteDish,
+  importDishes,
 } from "./dishService";
 
 // ── Backup service ───────────────────────────────────────────────────────────
@@ -28,5 +29,6 @@ export {
 export {
   getVersionInfo,
   submitFeedback,
+  pingServer,
 } from "./settingsService";
 export type { VersionInfo, FeedbackPayload } from "./settingsService";

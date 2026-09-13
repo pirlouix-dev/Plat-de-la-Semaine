@@ -10,6 +10,8 @@ import type { AppDatabase } from "../db/DatabaseContext";
 import { hashFunction } from "../db/hashFunction";
 import {
   insertDish,
+  insertManyDishes,
+  buildPendingDishes,
   updateDish,
   upsertDish,
   softDeleteDish,
@@ -310,5 +312,60 @@ describe("getPendingDishes", () => {
 
     const pending = await getPendingDishes(db);
     expect(pending).toEqual([]);
+  });
+});
+
+// ── buildPendingDishes ──────────────────────────────────────────────────────
+
+describe("buildPendingDishes", () => {
+  it("maps import items to unsynced local documents", () => {
+    const now = "2026-03-01T10:00:00.000Z";
+    const result = buildPendingDishes(
+      [
+        {
+          name: "Ratatouille",
+          description: "Légumes",
+          course: 1,
+          seasons: [1, 2],
+        },
+      ],
+      now,
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      name: "Ratatouille",
+      description: "Légumes",
+      course: 1,
+      seasons: [1, 2],
+      serverId: "",
+      updatedAt: now,
+      isDeleted: false,
+      syncStatus: "pending_create",
+    });
+    expect(result[0].id).toBeTruthy();
+  });
+
+  it("returns an empty array for no items", () => {
+    expect(buildPendingDishes([])).toEqual([]);
+  });
+});
+
+// ── insertManyDishes ────────────────────────────────────────────────────────
+
+describe("insertManyDishes", () => {
+  it("inserts all dishes in one call", async () => {
+    await insertManyDishes(db, [
+      makeDish({ id: "many-1", name: "A", syncStatus: "pending_create" }),
+      makeDish({ id: "many-2", name: "B", syncStatus: "pending_create" }),
+    ]);
+
+    const all = await getAllDishes(db);
+    expect(all).toHaveLength(2);
+  });
+
+  it("is a no-op for an empty array", async () => {
+    await expect(insertManyDishes(db, [])).resolves.toBeUndefined();
+    expect(await getAllDishes(db)).toEqual([]);
   });
 });

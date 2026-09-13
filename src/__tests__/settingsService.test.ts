@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getVersionInfo, submitFeedback } from "../services/settingsService";
+import {
+  getVersionInfo,
+  submitFeedback,
+  pingServer,
+} from "../services/settingsService";
 import { setBaseUrl } from "../services/api";
 import type { VersionInfo } from "../services/settingsService";
 
@@ -84,6 +88,29 @@ describe("getVersionInfo", () => {
 
     const result = await getVersionInfo();
     expect(result).toEqual({ ok: true, data: minimal });
+  });
+});
+
+describe("pingServer", () => {
+  it("calls GET /api/ping", async () => {
+    mockFetchResponse(200, {});
+
+    const result = await pingServer();
+
+    const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    const options = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
+
+    expect(url).toBe(`${FAKE_BASE_URL}/api/ping`);
+    expect(options.method ?? "GET").toBe("GET");
+    expect(result.ok).toBe(true);
+  });
+
+  it("resolves with an error result on network failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+
+    const result = await pingServer();
+
+    expect(result.ok).toBe(false);
   });
 });
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import RegisterPage from "../pages/RegisterPage/RegisterPage";
@@ -35,7 +35,19 @@ function renderPage() {
 }
 
 describe("RegisterPage", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({}),
+      }),
+    );
+  });
+
   afterEach(() => {
+    localStorage.clear();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -67,6 +79,7 @@ describe("RegisterPage", () => {
       refreshToken: "refresh-abc",
       expiresIn: "3600",
       userId: "user-42",
+      username: "testuser",
     });
 
     renderPage();
@@ -84,9 +97,12 @@ describe("RegisterPage", () => {
     fireEvent.click(screen.getByText("S'inscrire"));
 
     const fetchMock = vi.mocked(fetch);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const registerCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/auth/register"),
+    );
+    expect(registerCall).toBeTruthy();
 
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, options] = registerCall as [string, RequestInit];
     expect(url).toContain("/api/auth/register");
     expect(options.body).toBe(
       JSON.stringify({
@@ -95,6 +111,40 @@ describe("RegisterPage", () => {
         password: "password123",
       }),
     );
+  });
+
+  it("stores auth tokens after successful registration", async () => {
+    mockFetchSuccess({
+      idToken: "token-123",
+      refreshToken: "refresh-abc",
+      expiresIn: "3600",
+      userId: "user-42",
+      username: "testuser",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText("S'inscrire"));
+
+    await vi.waitFor(() => {
+      expect(localStorage.getItem("auth_token")).toBe("token-123");
+      expect(localStorage.getItem("refresh_token")).toBe("refresh-abc");
+      expect(localStorage.getItem("user_id")).toBe("user-42");
+      expect(localStorage.getItem("user_username")).toBe("testuser");
+      const tokenExpiry = localStorage.getItem("token_expiry");
+      expect(tokenExpiry).toBeTruthy();
+      expect(Number(tokenExpiry)).toBeGreaterThan(Date.now());
+    });
   });
 
   it("shows error message when registration fails", async () => {
@@ -138,5 +188,16 @@ describe("RegisterPage", () => {
     fireEvent.click(screen.getByText("S'inscrire"));
 
     expect(screen.getByText("Inscription...")).toBeDisabled();
+  });
+
+  it("pings the backend on mount to warm it up", async () => {
+    renderPage();
+
+    await vi.waitFor(() => {
+      const fetchMock = vi.mocked(fetch);
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).includes("/api/ping")),
+      ).toBe(true);
+    });
   });
 });
