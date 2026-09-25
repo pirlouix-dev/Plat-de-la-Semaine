@@ -2,6 +2,8 @@ using System.Text;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
+using Microsoft.Extensions.Options;
+using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Models;
 
 namespace PlatDeLaSemaineBack.Services;
@@ -11,20 +13,26 @@ namespace PlatDeLaSemaineBack.Services;
 /// </summary>
 public class FirestoreService : IFirestoreService
 {
+    private readonly FirebaseSettings _settings;
     private FirestoreDb? _db;
     private bool _initialized;
+
+    public FirestoreService(IOptions<FirebaseSettings> settings)
+    {
+        _settings = settings.Value;
+    }
 
     /// <inheritdoc />
     public bool IsConnected => _initialized && _db != null;
 
     /// <summary>
-    /// Initializes the Firebase Admin SDK and Firestore client using environment variables.
+    /// Initializes the Firebase Admin SDK and Firestore client using the configured settings.
     /// </summary>
     public Task<bool> InitializeAsync()
     {
         try
         {
-            var projectId = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID");
+            var projectId = _settings.ProjectId;
 
             if (string.IsNullOrEmpty(projectId))
             {
@@ -34,7 +42,7 @@ public class FirestoreService : IFirestoreService
 
             if (FirebaseApp.DefaultInstance == null)
             {
-                var credentialsJson = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_JSON");
+                var credentialsJson = _settings.CredentialsJson;
                 var credential = string.IsNullOrEmpty(credentialsJson)
                     ? GoogleCredential.GetApplicationDefault()
                     : CredentialFactory.FromJson<ServiceAccountCredential>(
