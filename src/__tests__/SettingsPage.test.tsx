@@ -1,10 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import {
+  MemoryRouter,
+  Routes,
+  Route,
+  useLocation,
+  createMemoryRouter,
+  RouterProvider,
+} from "react-router-dom";
 
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location">{location.pathname}</div>;
+}
+
+function HashProbe() {
+  const location = useLocation();
+  return <div data-testid="hash">{location.hash}</div>;
 }
 
 function mockMatchMedia(matches: boolean) {
@@ -89,12 +101,40 @@ function renderSettingsPage(entry = "/settings") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/settings"
+          element={
+            <>
+              <SettingsPage />
+              <HashProbe />
+            </>
+          }
+        />
         <Route path="/login" element={<div data-testid="login-page">Login</div>} />
         <Route path="/" element={<LocationProbe />} />
       </Routes>
     </MemoryRouter>,
   );
+}
+
+function renderSettingsWithHistory(entry = "/settings") {
+  const router = createMemoryRouter(
+    [
+      {
+        path: "/settings",
+        element: (
+          <>
+            <SettingsPage />
+            <HashProbe />
+          </>
+        ),
+      },
+      { path: "/", element: <LocationProbe /> },
+    ],
+    { initialEntries: [entry] },
+  );
+  const view = render(<RouterProvider router={router} />);
+  return { ...view, router };
 }
 
 describe("SettingsPage", () => {
@@ -143,6 +183,58 @@ describe("SettingsPage", () => {
     expect(screen.getByRole("heading", { name: "Paramètres" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Retour" }));
     expect(screen.getByTestId("location")).toHaveTextContent("/");
+  });
+
+  describe("URL-driven navigation", () => {
+    it("pushes the active tab into the URL hash on mobile", () => {
+      mockMatchMedia(true);
+      renderSettingsPage();
+      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+
+      expect(screen.getByTestId("hash")).toHaveTextContent("#data");
+    });
+
+    it("returns to the summary on browser back from a mobile subpage", async () => {
+      mockMatchMedia(true);
+      const { router } = renderSettingsWithHistory();
+      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      expect(
+        screen.getByRole("heading", { name: "Données & Plats" }),
+      ).toBeTruthy();
+
+      await act(async () => {
+        await router.navigate(-1);
+      });
+
+      expect(
+        screen.getByRole("heading", { name: "Paramètres" }),
+      ).toBeTruthy();
+      expect(screen.getByTestId("hash")).toHaveTextContent("");
+    });
+
+    it("replaces to the summary when leaving a deep-linked subpage", () => {
+      mockMatchMedia(true);
+      renderSettingsPage("/settings#data");
+
+      fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+
+      expect(
+        screen.getByRole("heading", { name: "Paramètres" }),
+      ).toBeTruthy();
+      expect(screen.getByTestId("hash")).toHaveTextContent("");
+      expect(screen.queryByTestId("location")).toBeNull();
+    });
+
+    it("leaves settings on desktop back even after switching tabs", () => {
+      mockMatchMedia(false);
+      renderSettingsPage();
+      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      expect(screen.getByTestId("hash")).toHaveTextContent("#data");
+
+      fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+
+      expect(screen.getByTestId("location")).toHaveTextContent("/");
+    });
   });
 
   it("calls clearAuth and navigates to / on logout", () => {
