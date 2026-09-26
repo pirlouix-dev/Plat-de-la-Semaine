@@ -181,8 +181,6 @@
   min-height: 100px;
 }
 
-/* === Backup Timeline Restylisé === */
-
 .backup-timeline {
   display: flex;
   flex-direction: column;
