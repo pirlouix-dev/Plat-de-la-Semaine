@@ -130,8 +130,6 @@ export function SettingsPage() {
   const isLoggedIn = useIsLoggedIn();
 
   const isMobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
-  // The active tab lives in the URL hash so the browser/OS back button returns
-  // to the settings summary instead of leaving the settings page.
   const activeTab: SettingsTab | null =
     parseTabHash(location.hash) ?? (isMobileLayout ? null : "account");
 
@@ -352,7 +350,6 @@ export function SettingsPage() {
 
   const handleBack = () => {
     if (isMobileLayout && activeTab !== null) {
-      // Entering a subpage pushed a history entry; pop it to reach the summary.
       // A deep link (initial entry) has nothing to pop, so replace instead.
       if (location.key === "default") {
         navigate({ pathname: location.pathname, hash: "" }, { replace: true });
