@@ -573,34 +573,34 @@ export function SettingsPage() {
                           </div>
 
                           <div className="timeline-card">
-                            <div className="timeline-card-header">
+                            <div className="backup-main-info">
                               <div className="backup-time-info">
                                 <span className="backup-date">{dateLabel}</span>
                                 <span className="backup-time">
-                                  {" "}
                                   à {timeLabel}
                                 </span>
                               </div>
+                              <div className="backup-meta-chips">
+                                <span className="meta-chip">
+                                  🍽️ {backup.dishCount} plats
+                                </span>
+                              </div>
+                            </div>
 
+                            <div className="backup-action">
                               {isCurrent ? (
                                 <span className="status-pill active-pill">
                                   ● Version active
                                 </span>
                               ) : (
                                 <button
-                                  className="btn btn-primary"
+                                  className="btn btn-primary btn-restore"
                                   disabled={isRestoring}
                                   onClick={() => handleRestore(backup.id)}
                                 >
                                   {isRestoring ? "Restauration…" : "Restaurer"}
                                 </button>
                               )}
-                            </div>
-
-                            <div className="backup-meta-chips">
-                              <span className="meta-chip">
-                                🍽️ {backup.dishCount} plats
-                              </span>
                             </div>
                           </div>
                         </div>
