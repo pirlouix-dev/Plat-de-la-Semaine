@@ -13,6 +13,7 @@ interface Toast {
 }
 
 const TOAST_DURATION_MS = 3000;
+const WARNING_TOAST_DURATION_MS = 7000;
 
 let nextId = 0;
 
@@ -32,14 +33,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const showToast = useCallback(
-    (message: string, type: ToastType = "success", duration = TOAST_DURATION_MS) => {
+    (message: string, type: ToastType = "success", duration?: number) => {
       const id = nextId++;
       setToasts((prev) => [...prev, { id, message, type, exiting: false }]);
 
+      const resolvedDuration =
+        duration ??
+        (type === "warning" ? WARNING_TOAST_DURATION_MS : TOAST_DURATION_MS);
       const timer = setTimeout(() => {
         timers.current.delete(id);
         removeToast(id);
-      }, duration);
+      }, resolvedDuration);
       timers.current.set(id, timer);
     },
     [removeToast],
