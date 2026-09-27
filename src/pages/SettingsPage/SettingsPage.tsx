@@ -161,7 +161,10 @@ export function SettingsPage() {
     setResettingPassword(true);
     const result = await resetPassword();
     if (result.ok) {
-      showToast("Email de réinitialisation envoyé", "success");
+      showToast(
+        "Email de réinitialisation envoyé. Il se situe probablement dans vos spams.",
+        "warning",
+      );
     } else {
       showToast(result.error.message, "error");
     }

@@ -675,8 +675,8 @@ describe("SettingsPage", () => {
       await waitFor(() => {
         expect(mockResetPassword).toHaveBeenCalled();
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Email de réinitialisation envoyé",
-          "success",
+          "Email de réinitialisation envoyé. Il se situe probablement dans vos spams.",
+          "warning",
         );
       });
     });
