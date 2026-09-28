@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Options;
-using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 using Xunit;
@@ -8,38 +6,45 @@ namespace PlatDeLaSemaineBack.Tests;
 
 public class FirestoreServiceTests
 {
-    private static FirestoreService CreateService(string? projectId = null)
-        => new(Options.Create(new FirebaseSettings { ProjectId = projectId }));
-
     [Fact]
     public void IsConnected_DefaultsToFalse()
     {
-        // Arrange
-        var service = CreateService();
+        // Arrange & Act
+        var service = new FirestoreService();
 
         // Assert
         Assert.False(service.IsConnected);
     }
 
     [Fact]
-    public async Task InitializeAsync_WithoutProjectId_ReturnsFalse()
+    public async Task InitializeAsync_WithoutEnvVar_ReturnsFalse()
     {
         // Arrange
-        var service = CreateService(projectId: null);
+        var service = new FirestoreService();
+        var original = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID");
 
-        // Act
-        var result = await service.InitializeAsync();
+        try
+        {
+            Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", null);
 
-        // Assert
-        Assert.False(result);
-        Assert.False(service.IsConnected);
+            // Act
+            var result = await service.InitializeAsync();
+
+            // Assert
+            Assert.False(result);
+            Assert.False(service.IsConnected);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", original);
+        }
     }
 
     [Fact]
     public async Task InsertDishAsync_WhenNotConnected_ThrowsInvalidOperationException()
     {
         // Arrange
-        var service = CreateService();
+        var service = new FirestoreService();
         var dish = new Dish { Name = "Test" };
 
         // Act & Assert
@@ -51,7 +56,7 @@ public class FirestoreServiceTests
     public async Task InsertUserAsync_WhenNotConnected_ThrowsInvalidOperationException()
     {
         // Arrange
-        var service = CreateService();
+        var service = new FirestoreService();
         var user = new User { CreatedAt = DateTimeOffset.UtcNow };
 
         // Act & Assert
@@ -60,16 +65,26 @@ public class FirestoreServiceTests
     }
 
     [Fact]
-    public async Task InitializeAsync_WithEmptyProjectId_ReturnsFalse()
+    public async Task InitializeAsync_WithEmptyEnvVar_ReturnsFalse()
     {
         // Arrange
-        var service = CreateService(projectId: "");
+        var service = new FirestoreService();
+        var original = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID");
 
-        // Act
-        var result = await service.InitializeAsync();
+        try
+        {
+            Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", "");
 
-        // Assert
-        Assert.False(result);
-        Assert.False(service.IsConnected);
+            // Act
+            var result = await service.InitializeAsync();
+
+            // Assert
+            Assert.False(result);
+            Assert.False(service.IsConnected);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", original);
+        }
     }
 }

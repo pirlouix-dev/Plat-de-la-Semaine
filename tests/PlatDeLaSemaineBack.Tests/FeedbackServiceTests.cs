@@ -1,7 +1,5 @@
 using System.Net;
-using Microsoft.Extensions.Options;
 using NSubstitute;
-using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 using Xunit;
@@ -42,9 +40,9 @@ public class FeedbackServiceTests
             DownloadUrl = "https://example.com"
         });
 
-        var settings = Options.Create(new FeedbackSettings { DiscordWebhookUrl = webhookUrl });
+        Environment.SetEnvironmentVariable("DISCORD_WEBHOOK_URL", webhookUrl);
 
-        return (new FeedbackService(http, firestore, settings), handler, firestore);
+        return (new FeedbackService(http, firestore), handler, firestore);
     }
 
     [Fact]
@@ -143,12 +141,9 @@ public class FeedbackServiceTests
         var firestore = Substitute.For<IFirestoreService>();
         firestore.GetVersionInfoAsync().Returns((VersionInfo?)null);
 
-        var settings = Options.Create(new FeedbackSettings
-        {
-            DiscordWebhookUrl = "https://discord.com/api/webhooks/fake/token"
-        });
+        Environment.SetEnvironmentVariable("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/fake/token");
 
-        var service = new FeedbackService(http, firestore, settings);
+        var service = new FeedbackService(http, firestore);
         var payload = new FeedbackPayload { Message = "msg", AppVersion = "1.0.0" };
 
         var result = await service.SubmitFeedbackAsync("user_empty_version", payload);

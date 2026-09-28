@@ -1,32 +1,13 @@
 using DotNetEnv;
-using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Middleware;
 using PlatDeLaSemaineBack.Services;
 
-// ── Environment ───────────────────────────────────────────────────
-// Load .env before the builder so its values feed configuration and can
-// select the environment. NoClobber keeps real host variables authoritative.
-Env.TraversePath().NoClobber().Load();
-
 var builder = WebApplication.CreateBuilder(args);
-
-// ── Configuration ─────────────────────────────────────────────────
-builder.Services.AddAppSettings();
 
 // ── Services ──────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-
-var allowedOrigins = CorsSettings.ResolveAllowedOrigins();
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
-{
-    if (allowedOrigins.Length > 0)
-    {
-        policy.WithOrigins(allowedOrigins)
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    }
-}));
+builder.Services.AddCors();
 
 // Register application services
 builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
@@ -39,15 +20,11 @@ builder.Services.AddScoped<IVersionService, VersionService>();
 // ── App Pipeline ──────────────────────────────────────────────────
 var app = builder.Build();
 
-if (allowedOrigins.Length == 0)
-{
-    app.Logger.LogWarning(
-        "No CORS origins configured. Cross-origin browser requests will be rejected. " +
-        "Set CORS_ALLOWED_ORIGINS or Cors:AllowedOrigins.");
-}
-
 app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseCors();
+app.UseCors(policy => policy
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
 
 app.MapControllers();
 
@@ -57,6 +34,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Startup Initialization ────────────────────────────────────────
+Env.Load();
+
 var firestoreService = app.Services.GetRequiredService<IFirestoreService>();
 await firestoreService.InitializeAsync();
 

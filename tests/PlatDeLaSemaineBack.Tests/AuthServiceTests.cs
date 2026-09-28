@@ -1,9 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using NSubstitute;
-using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 using Xunit;
@@ -15,11 +13,21 @@ public class AuthServiceTests
     private static (AuthService service, TestHttpMessageHandler handler, IFirestoreService firestore) CreateService(
         string? apiKey = "test-api-key")
     {
+        var previousApiKey = Environment.GetEnvironmentVariable("FIREBASE_API_KEY");
+        if (apiKey != null)
+            Environment.SetEnvironmentVariable("FIREBASE_API_KEY", apiKey);
+        else
+            Environment.SetEnvironmentVariable("FIREBASE_API_KEY", null);
+
         var handler = new TestHttpMessageHandler();
         var httpClient = new HttpClient(handler);
         var firestore = Substitute.For<IFirestoreService>();
-        var settings = Options.Create(new FirebaseSettings { ApiKey = apiKey });
-        var service = new AuthService(httpClient, firestore, settings);
+        var service = new AuthService(httpClient, firestore);
+
+        if (previousApiKey != null)
+            Environment.SetEnvironmentVariable("FIREBASE_API_KEY", previousApiKey);
+        else
+            Environment.SetEnvironmentVariable("FIREBASE_API_KEY", null);
 
         return (service, handler, firestore);
     }
@@ -28,13 +36,23 @@ public class AuthServiceTests
     public void Constructor_MissingApiKey_ThrowsInvalidOperationException()
     {
         // Arrange
-        var handler = new TestHttpMessageHandler();
-        var httpClient = new HttpClient(handler);
-        var firestore = Substitute.For<IFirestoreService>();
-        var settings = Options.Create(new FirebaseSettings());
+        var previousApiKey = Environment.GetEnvironmentVariable("FIREBASE_API_KEY");
+        Environment.SetEnvironmentVariable("FIREBASE_API_KEY", null);
 
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => new AuthService(httpClient, firestore, settings));
+        try
+        {
+            var handler = new TestHttpMessageHandler();
+            var httpClient = new HttpClient(handler);
+            var firestore = Substitute.For<IFirestoreService>();
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => new AuthService(httpClient, firestore));
+        }
+        finally
+        {
+            if (previousApiKey != null)
+                Environment.SetEnvironmentVariable("FIREBASE_API_KEY", previousApiKey);
+        }
     }
 
     [Fact]
