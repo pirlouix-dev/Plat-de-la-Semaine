@@ -3,6 +3,10 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ChooseDishesPage from "../pages/ChooseDishesPage/ChooseDishesPage";
 import type { DishDocType } from "../db/schemas/dishes";
+import {
+  installElementGeometryMock,
+  setElementGeometry,
+} from "./elementGeometry";
 
 const STORAGE_KEY = "pdls_choose_menu_state_v2";
 
@@ -128,6 +132,47 @@ describe("ChooseDishesPage queue construction", () => {
 
     expect(screen.getByText("Aucun plat disponible.")).toBeDefined();
     expect(screen.getByText("Ajouter un plat")).toBeDefined();
+  });
+});
+
+describe("ChooseDishesPage description see more", () => {
+  const longDescription =
+    "Ingrédients : Pommes, pâte brisée, sucre, vanille, cannelle, jus de citron, compote maison et quelques conseils de préparation supplémentaires.";
+
+  let restoreGeometry: () => void;
+
+  beforeEach(() => {
+    restoreGeometry = installElementGeometryMock();
+  });
+
+  afterEach(() => {
+    restoreGeometry();
+  });
+
+  function renderLongDish() {
+    mockDishes = [
+      makeDish({
+        id: "long-dish",
+        name: "Gratin & courgettes",
+        description: longDescription,
+        seasons: [0, 1, 2, 3],
+      }),
+    ];
+    renderPage();
+  }
+
+  it("shows the toggle when the active card description overflows", () => {
+    setElementGeometry(60, 120);
+    renderLongDish();
+
+    expect(screen.getByText("Voir plus")).toBeTruthy();
+  });
+
+  it("hides the toggle when a long description still fits the clamp", () => {
+    setElementGeometry(60, 60);
+    renderLongDish();
+
+    expect(screen.queryByText("Voir plus")).toBeNull();
   });
 });
 
