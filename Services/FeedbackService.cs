@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
+using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Models;
 
 namespace PlatDeLaSemaineBack.Services;
@@ -13,15 +15,17 @@ public class FeedbackService : IFeedbackService
 {
     private readonly HttpClient _http;
     private readonly IFirestoreService _firestore;
+    private readonly FeedbackSettings _settings;
 
     private static readonly ConcurrentDictionary<string, List<DateTimeOffset>> _submissions = new();
     private const int MaxMessages = 3;
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(5);
 
-    public FeedbackService(HttpClient http, IFirestoreService firestore)
+    public FeedbackService(HttpClient http, IFirestoreService firestore, IOptions<FeedbackSettings> settings)
     {
         _http = http;
         _firestore = firestore;
+        _settings = settings.Value;
     }
 
     /// <inheritdoc />
@@ -57,7 +61,7 @@ public class FeedbackService : IFeedbackService
             timestamps.Add(DateTimeOffset.UtcNow);
         }
 
-        var webhookUrl = Environment.GetEnvironmentVariable("DISCORD_WEBHOOK_URL");
+        var webhookUrl = _settings.DiscordWebhookUrl;
         if (string.IsNullOrEmpty(webhookUrl))
         {
             return new FeedbackResult

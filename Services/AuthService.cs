@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using FirebaseAdmin.Auth;
+using Microsoft.Extensions.Options;
+using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Models;
 
 using System.Linq;
@@ -19,13 +21,15 @@ public class AuthService : IAuthService
     private const string IdentityToolkitUrl = "https://identitytoolkit.googleapis.com/v1/accounts";
     private const string SecureTokenUrl = "https://securetoken.googleapis.com/v1/token";
 
-    public AuthService(HttpClient http, IFirestoreService firestore)
+    public AuthService(HttpClient http, IFirestoreService firestore, IOptions<FirebaseSettings> settings)
     {
         _http = http;
         _firestore = firestore;
 
-        _apiKey = Environment.GetEnvironmentVariable("FIREBASE_API_KEY")
-            ?? throw new InvalidOperationException("FIREBASE_API_KEY is not configured.");
+        if (string.IsNullOrEmpty(settings.Value.ApiKey))
+            throw new InvalidOperationException("FIREBASE_API_KEY is not configured.");
+
+        _apiKey = settings.Value.ApiKey;
     }
 
     /// <inheritdoc />
