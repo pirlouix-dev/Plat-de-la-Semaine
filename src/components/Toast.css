@@ -40,11 +40,6 @@
   border-left-color: #1d61e7;
 }
 
-.toast.toast-warning {
-  border-color: #f59e0b;
-  border-left-color: #f59e0b;
-}
-
 .toast.toast-exiting {
   animation: toast-out 0.2s ease-in forwards;
 }

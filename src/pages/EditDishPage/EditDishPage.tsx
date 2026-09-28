@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon, FilterIcon, TrashIcon } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
-import { ExpandableDescription } from "../../components/ExpandableDescription";
 import { useToast } from "../../components/toastContext";
 import { useDishes } from "../../hooks/useDishes";
 import type { DishDocType } from "../../db/schemas/dishes";
@@ -273,12 +272,29 @@ function EditDishPage() {
                   {renderSeasonsBadges(dish.seasons)}
                 </div>
 
-                <ExpandableDescription
-                  description={dish.description}
-                  descriptionClassName="dish-card-desc"
-                  expanded={!!expandedDishIds[dish.id]}
-                  onToggle={() => toggleExpand(dish.id)}
-                />
+                {dish.description && (
+                  <div className="description-wrapper">
+                    <p
+                      className={`dish-card-desc ${
+                        expandedDishIds[dish.id] ? "expanded" : ""
+                      }`}
+                    >
+                      {dish.description}
+                    </p>
+                    {dish.description.length > 90 && (
+                      <button
+                        type="button"
+                        className="see-more-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(dish.id);
+                        }}
+                      >
+                        {expandedDishIds[dish.id] ? "Voir moins" : "Voir plus"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

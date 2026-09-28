@@ -93,9 +93,6 @@ describe("RegisterPage", () => {
     fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
       target: { value: "password123" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
-      target: { value: "password123" },
-    });
 
     fireEvent.click(screen.getByText("S'inscrire"));
 
@@ -116,81 +113,6 @@ describe("RegisterPage", () => {
     );
   });
 
-  it("disables submit and does not register when the passwords do not match", () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({}),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderPage();
-
-    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
-      target: { value: "testuser" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
-      target: { value: "password123" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
-      target: { value: "password124" },
-    });
-
-    const submit = screen.getByText("S'inscrire");
-    expect(submit).toBeDisabled();
-
-    fireEvent.click(submit);
-
-    expect(
-      fetchMock.mock.calls.some(([url]) =>
-        String(url).includes("/api/auth/register"),
-      ),
-    ).toBe(false);
-    expect(
-      screen.getByText("Les mots de passe ne correspondent pas."),
-    ).toBeTruthy();
-  });
-
-  it("enables submit once the passwords match", () => {
-    renderPage();
-
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
-      target: { value: "password123" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
-      target: { value: "password124" },
-    });
-
-    expect(screen.getByText("S'inscrire")).toBeDisabled();
-
-    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
-      target: { value: "password123" },
-    });
-
-    expect(screen.queryByText("Les mots de passe ne correspondent pas.")).toBeNull();
-    expect(screen.getByText("S'inscrire")).toBeEnabled();
-  });
-
-  it("disables submit until the password reaches the minimum length", () => {
-    renderPage();
-
-    const passwordInput = screen.getByPlaceholderText("Mot de passe");
-    const confirmInput = screen.getByPlaceholderText("Confirmer le mot de passe");
-
-    fireEvent.change(passwordInput, { target: { value: "abc" } });
-    fireEvent.change(confirmInput, { target: { value: "abc" } });
-
-    expect(screen.getByText("S'inscrire")).toBeDisabled();
-
-    fireEvent.change(passwordInput, { target: { value: "abcdef" } });
-    fireEvent.change(confirmInput, { target: { value: "abcdef" } });
-
-    expect(screen.getByText("S'inscrire")).toBeEnabled();
-  });
-
   it("stores auth tokens after successful registration", async () => {
     mockFetchSuccess({
       idToken: "token-123",
@@ -209,9 +131,6 @@ describe("RegisterPage", () => {
       target: { value: "test@example.com" },
     });
     fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
-      target: { value: "password123" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
       target: { value: "password123" },
     });
 
@@ -245,9 +164,6 @@ describe("RegisterPage", () => {
     fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
       target: { value: "password123" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
-      target: { value: "password123" },
-    });
 
     fireEvent.click(screen.getByText("S'inscrire"));
 
@@ -266,9 +182,6 @@ describe("RegisterPage", () => {
       target: { value: "a@b.com" },
     });
     fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
-      target: { value: "password123" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
       target: { value: "password123" },
     });
 

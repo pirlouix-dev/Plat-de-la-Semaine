@@ -10,31 +10,19 @@ import "./RegisterPage.css";
 
 type AuthResponse = components["schemas"]["AuthResponse"];
 
-const MIN_PASSWORD_LENGTH = 6;
-
 function RegisterPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const passwordsMatch = password === confirmPassword;
-  const showMismatch = confirmPassword.length > 0 && !passwordsMatch;
-  const passwordTooShort = password.length < MIN_PASSWORD_LENGTH;
 
   useWarmupPing();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (passwordTooShort || !passwordsMatch) {
-      return;
-    }
-
     setLoading(true);
 
     const result = await apiPost<AuthResponse>("/api/auth/register", {
@@ -106,35 +94,14 @@ function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={MIN_PASSWORD_LENGTH}
+            minLength={6}
           />
-        </div>
-
-        <div className="input-group">
-          <input
-            type="password"
-            className="modern-input"
-            placeholder="Confirmer le mot de passe"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            minLength={MIN_PASSWORD_LENGTH}
-          />
-          {showMismatch && (
-            <span className="input-feedback">
-              Les mots de passe ne correspondent pas.
-            </span>
-          )}
         </div>
 
         {error && <div className="register-error">{error}</div>}
 
         <div className="register-actions">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading || passwordTooShort || !passwordsMatch}
-          >
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "Inscription..." : "S'inscrire"}
           </button>
           <button

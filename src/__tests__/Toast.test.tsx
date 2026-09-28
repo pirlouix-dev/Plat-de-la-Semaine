@@ -10,7 +10,6 @@ function TestConsumer() {
       <button onClick={() => showToast("Saved!")}>save</button>
       <button onClick={() => showToast("Oops", "error")}>error</button>
       <button onClick={() => showToast("Heads up", "info")}>info</button>
-      <button onClick={() => showToast("Check spam", "warning")}>warning</button>
       <button onClick={() => showToast("Long read", "info", 6000)}>custom duration</button>
     </div>
   );
@@ -66,34 +65,6 @@ describe("Toast", () => {
     });
     const toast = screen.getByText("Heads up");
     expect(toast.className).toContain("toast-info");
-  });
-
-  it("applies warning type class", () => {
-    renderToast();
-    act(() => {
-      screen.getByText("warning").click();
-    });
-    const toast = screen.getByText("Check spam");
-    expect(toast.className).toContain("toast-warning");
-  });
-
-  it("uses a 7s default duration for warning toasts", () => {
-    renderToast();
-    act(() => {
-      screen.getByText("warning").click();
-    });
-
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
-    expect(screen.getByText("Check spam").className).not.toContain(
-      "toast-exiting",
-    );
-
-    act(() => {
-      vi.advanceTimersByTime(4000);
-    });
-    expect(screen.getByText("Check spam").className).toContain("toast-exiting");
   });
 
   it("auto-dismisses after duration", () => {
