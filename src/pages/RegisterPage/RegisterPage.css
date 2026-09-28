@@ -56,6 +56,15 @@
   font-size: 16px;
 }
 
+.input-feedback {
+  display: block;
+  margin-top: 6px;
+  padding-left: 4px;
+  color: #ff5252;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .register-actions {
   display: flex;
   flex-direction: column;

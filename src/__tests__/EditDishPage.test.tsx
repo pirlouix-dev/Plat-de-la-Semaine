@@ -1,8 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import EditDishPage from "../pages/EditDishPage/EditDishPage";
 import type { DishDocType } from "../db/schemas/dishes";
+import {
+  installElementGeometryMock,
+  setElementGeometry,
+} from "./elementGeometry";
 
 function makeDish(overrides: Partial<DishDocType> = {}): DishDocType {
   return {
@@ -200,27 +204,41 @@ describe("EditDishPage", () => {
     const longDescription =
       "Ingrédients : Pommes, pâte brisée, sucre, vanille, cannelle, jus de citron, compote maison et quelques conseils de préparation supplémentaires.";
 
-    function renderWithLongDish() {
+    let restoreGeometry: () => void;
+
+    beforeEach(() => {
+      restoreGeometry = installElementGeometryMock();
+    });
+
+    afterEach(() => {
+      restoreGeometry();
+    });
+
+    function renderSingleDish(description: string) {
       dishes = [
-        ...defaultDishes,
-        makeDish({
-          id: "d5",
-          name: "Gigot & haricots",
-          description: longDescription,
-        }),
+        makeDish({ id: "d5", name: "Gigot & haricots", description }),
       ];
       renderPage();
     }
 
-    it("shows the toggle only for long descriptions", () => {
-      renderWithLongDish();
+    it("shows the toggle when the description overflows the clamp", () => {
+      setElementGeometry(40, 80);
+      renderSingleDish("Description courte");
 
       expect(screen.getByText("Voir plus")).toBeTruthy();
       expect(screen.queryByText("Voir moins")).toBeNull();
     });
 
+    it("hides the toggle when a long description still fits the clamp", () => {
+      setElementGeometry(40, 40);
+      renderSingleDish(longDescription);
+
+      expect(screen.queryByText("Voir plus")).toBeNull();
+    });
+
     it("toggles between Voir plus and Voir moins", () => {
-      renderWithLongDish();
+      setElementGeometry(40, 80);
+      renderSingleDish(longDescription);
 
       fireEvent.click(screen.getByText("Voir plus"));
       expect(screen.getByText("Voir moins")).toBeTruthy();
@@ -230,7 +248,8 @@ describe("EditDishPage", () => {
     });
 
     it("does not select the dish when toggling expansion", () => {
-      renderWithLongDish();
+      setElementGeometry(40, 80);
+      renderSingleDish(longDescription);
 
       fireEvent.click(screen.getByText("Voir plus"));
 

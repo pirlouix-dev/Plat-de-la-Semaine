@@ -61,9 +61,8 @@ function LoginPage() {
     });
     if (result.ok) {
       showToast(
-        "Si ce compte existe, un email de réinitialisation a été envoyé.",
-        "success",
-        7000,
+        "Si ce compte existe, un email de réinitialisation a été envoyé. Il se situe probablement dans vos spams.",
+        "warning",
       );
     } else {
       showToast(result.error.message ?? "Une erreur est survenue.", "error");

@@ -5,7 +5,7 @@ import {
   useRef,
   type ComponentType,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BackArrowIcon,
   BugIcon,
@@ -51,6 +51,15 @@ const TAB_CONFIG: Record<
   bugs: { title: "Signaler un bug", Icon: BugIcon },
   info: { title: "À propos", Icon: InfoIcon },
 };
+
+const SETTINGS_TABS = Object.keys(TAB_CONFIG) as SettingsTab[];
+
+function parseTabHash(hash: string): SettingsTab | null {
+  const value = hash.replace(/^#/, "");
+  return (SETTINGS_TABS as string[]).includes(value)
+    ? (value as SettingsTab)
+    : null;
+}
 
 function formatBackupDate(isoDate: string): {
   dateLabel: string;
@@ -115,13 +124,14 @@ function LoginPrompt() {
 
 export function SettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { db } = useDatabase();
   const { showToast } = useToast();
   const isLoggedIn = useIsLoggedIn();
 
-  const [activeTab, setActiveTab] = useState<SettingsTab | null>(() =>
-    window.matchMedia(MOBILE_LAYOUT_QUERY).matches ? null : "account",
-  );
+  const isMobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
+  const activeTab: SettingsTab | null =
+    parseTabHash(location.hash) ?? (isMobileLayout ? null : "account");
 
   const [username, setUsername] = useState(
     () => localStorage.getItem("user_username") ?? "",
@@ -151,7 +161,10 @@ export function SettingsPage() {
     setResettingPassword(true);
     const result = await resetPassword();
     if (result.ok) {
-      showToast("Email de réinitialisation envoyé", "success");
+      showToast(
+        "Email de réinitialisation envoyé. Il se situe probablement dans vos spams.",
+        "warning",
+      );
     } else {
       showToast(result.error.message, "error");
     }
@@ -331,9 +344,21 @@ export function SettingsPage() {
     };
   }, [currentTab, db, isLoggedIn]);
 
+  const handleSelectTab = (tab: SettingsTab) => {
+    navigate(
+      { pathname: location.pathname, hash: `#${tab}` },
+      { replace: !isMobileLayout },
+    );
+  };
+
   const handleBack = () => {
-    if (activeTab !== null && window.matchMedia(MOBILE_LAYOUT_QUERY).matches) {
-      setActiveTab(null);
+    if (isMobileLayout && activeTab !== null) {
+      // A deep link (initial entry) has nothing to pop, so replace instead.
+      if (location.key === "default") {
+        navigate({ pathname: location.pathname, hash: "" }, { replace: true });
+      } else {
+        navigate(-1);
+      }
     } else {
       navigate("/");
     }
@@ -362,13 +387,13 @@ export function SettingsPage() {
         <aside className="settings-sidebar">
           <div className="sidebar-card nav-card">
             <nav className="settings-nav-list">
-              {(Object.keys(TAB_CONFIG) as SettingsTab[]).map((tabKey) => {
+              {SETTINGS_TABS.map((tabKey) => {
                 const { title, Icon } = TAB_CONFIG[tabKey];
                 return (
                   <button
                     key={tabKey}
                     className={`nav-item-btn ${currentTab === tabKey && activeTab !== null ? "active" : ""}`}
-                    onClick={() => setActiveTab(tabKey)}
+                    onClick={() => handleSelectTab(tabKey)}
                   >
                     <span className="nav-icon">
                       <Icon size={20} />
@@ -573,34 +598,34 @@ export function SettingsPage() {
                           </div>
 
                           <div className="timeline-card">
-                            <div className="timeline-card-header">
+                            <div className="backup-main-info">
                               <div className="backup-time-info">
                                 <span className="backup-date">{dateLabel}</span>
                                 <span className="backup-time">
-                                  {" "}
                                   à {timeLabel}
                                 </span>
                               </div>
+                              <div className="backup-meta-chips">
+                                <span className="meta-chip">
+                                  🍽️ {backup.dishCount} plats
+                                </span>
+                              </div>
+                            </div>
 
+                            <div className="backup-action">
                               {isCurrent ? (
                                 <span className="status-pill active-pill">
                                   ● Version active
                                 </span>
                               ) : (
                                 <button
-                                  className="btn btn-primary"
+                                  className="btn btn-primary btn-restore"
                                   disabled={isRestoring}
                                   onClick={() => handleRestore(backup.id)}
                                 >
                                   {isRestoring ? "Restauration…" : "Restaurer"}
                                 </button>
                               )}
-                            </div>
-
-                            <div className="backup-meta-chips">
-                              <span className="meta-chip">
-                                🍽️ {backup.dishCount} plats
-                              </span>
                             </div>
                           </div>
                         </div>

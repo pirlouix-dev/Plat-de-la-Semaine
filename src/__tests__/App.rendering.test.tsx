@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-describe("App component — rendering states", () => {
+// Each test re-imports the whole app graph after resetModules; give the suite
+// more headroom than the 5s default so it doesn't need to run in isolation.
+describe("App component — rendering states", { timeout: 15_000 }, () => {
   beforeEach(() => {
     vi.resetModules();
     localStorage.clear();
