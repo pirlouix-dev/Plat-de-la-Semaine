@@ -43,3 +43,16 @@ if (!globalThis.matchMedia) {
     writable: true,
   });
 }
+
+if (!globalThis.ResizeObserver) {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: ResizeObserverStub,
+    configurable: true,
+    writable: true,
+  });
+}

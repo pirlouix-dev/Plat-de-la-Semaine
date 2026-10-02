@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { BackArrowIcon, TrashIcon } from "../../components/Icons";
+import { ExpandableDescription } from "../../components/ExpandableDescription";
 import {
   Course,
   Season,
@@ -208,32 +209,6 @@ export function ChooseDishesPage() {
     ));
   };
 
-  const renderDescription = (dish: DishDocType) => {
-    if (!dish.description) return null;
-    const isExpanded = !!expandedDishIds[dish.id];
-    const isLong = dish.description.length > 90;
-
-    return (
-      <div className="description-wrapper">
-        <p className={`dish-description ${isExpanded ? "expanded" : ""}`}>
-          {dish.description}
-        </p>
-        {isLong && (
-          <button
-            type="button"
-            className="see-more-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleExpand(dish.id);
-            }}
-          >
-            {isExpanded ? "Voir moins" : "Voir plus"}
-          </button>
-        )}
-      </div>
-    );
-  };
-
   const handleAccept = () => {
     if (!currentDish || cardAnimation || !session) return;
     setCardAnimation("accept");
@@ -355,7 +330,12 @@ export function ChooseDishesPage() {
                     {renderSeasonsBadges(currentDish.seasons as Season[])}
                   </div>
 
-                  {renderDescription(currentDish)}
+                  <ExpandableDescription
+                    description={currentDish.description}
+                    descriptionClassName="dish-description"
+                    expanded={!!expandedDishIds[currentDish.id]}
+                    onToggle={() => toggleExpand(currentDish.id)}
+                  />
 
                   <div className="card-decision-actions">
                     <button className="btn btn-refuse" onClick={handleReject}>
@@ -422,7 +402,12 @@ export function ChooseDishesPage() {
                       <div className="seasons-badges">
                         {renderSeasonsBadges(dish.seasons as Season[])}
                       </div>
-                      {renderDescription(dish)}
+                      <ExpandableDescription
+                        description={dish.description}
+                        descriptionClassName="dish-description"
+                        expanded={!!expandedDishIds[dish.id]}
+                        onToggle={() => toggleExpand(dish.id)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -491,7 +476,12 @@ export function ChooseDishesPage() {
                         className="dish-card recap-card"
                       >
                         <h4 className="dish-name">{dish.name}</h4>
-                        {renderDescription(dish)}
+                        <ExpandableDescription
+                          description={dish.description}
+                          descriptionClassName="dish-description"
+                          expanded={!!expandedDishIds[dish.id]}
+                          onToggle={() => toggleExpand(dish.id)}
+                        />
                       </div>
                     ))}
                   </div>

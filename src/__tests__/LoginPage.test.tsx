@@ -164,9 +164,10 @@ describe("LoginPage", () => {
     expect(url).toContain("/api/auth/forgot-password");
     expect(options.body).toBe(JSON.stringify({ email: "user@example.com" }));
 
-    expect(
-      await screen.findByText(/un email de réinitialisation a été envoyé/),
-    ).toBeTruthy();
+    const toast = await screen.findByText(
+      /un email de réinitialisation a été envoyé/,
+    );
+    expect(toast.className).toContain("toast-warning");
   });
 
   it("disables forgot-password button while request is in flight", async () => {
