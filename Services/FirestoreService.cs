@@ -232,9 +232,7 @@ public class FirestoreService : IFirestoreService
         if (!doc.Exists) return null;
         return new VersionInfo
         {
-            LatestVersion = doc.GetValue<string>("LatestVersion"),
-            Description = doc.GetValue<string>("Description"),
-            DownloadUrl = doc.GetValue<string>("DownloadUrl")
+            LatestVersion = doc.GetValue<string>("LatestVersion")
         };
     }
 }

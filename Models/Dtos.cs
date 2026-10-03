@@ -231,8 +231,6 @@ public class BackupRestoreResponse
 public class VersionInfo
 {
     public required string LatestVersion { get; set; } = string.Empty;
-    public required string Description { get; set; } = string.Empty;
-    public required string DownloadUrl { get; set; } = string.Empty;
 }
 
 /// <summary>

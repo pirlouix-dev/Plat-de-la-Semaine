@@ -138,14 +138,10 @@ public class ModelTests
         // Arrange & Act
         var info = new VersionInfo
         {
-            LatestVersion = "1.0.0",
-            Description = "Initial release",
-            DownloadUrl = "https://example.com"
+            LatestVersion = "1.0.0"
         };
 
         // Assert
         Assert.Equal("1.0.0", info.LatestVersion);
-        Assert.Equal("Initial release", info.Description);
-        Assert.Equal("https://example.com", info.DownloadUrl);
     }
 }

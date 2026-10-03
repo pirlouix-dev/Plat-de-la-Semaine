@@ -37,9 +37,7 @@ public class FeedbackServiceTests
         var firestore = Substitute.For<IFirestoreService>();
         firestore.GetVersionInfoAsync().Returns(new VersionInfo
         {
-            LatestVersion = latestVersion,
-            Description = "Test",
-            DownloadUrl = "https://example.com"
+            LatestVersion = latestVersion
         });
 
         var settings = Options.Create(new FeedbackSettings { DiscordWebhookUrl = webhookUrl });
