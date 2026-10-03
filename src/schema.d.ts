@@ -1226,8 +1226,6 @@ export interface components {
         };
         VersionInfo: {
             latestVersion: string;
-            description: string;
-            downloadUrl: string;
         };
     };
     responses: never;
