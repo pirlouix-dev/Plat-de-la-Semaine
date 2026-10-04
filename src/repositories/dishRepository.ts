@@ -86,6 +86,22 @@ export async function removeDish(
   }
 }
 
+/** RxDB primary keys are immutable, so changing one means remove + re-insert. */
+export async function regenerateDishId(
+  db: AppDatabase,
+  id: string,
+  newId: string = crypto.randomUUID()
+): Promise<string> {
+  const doc = await db.dishes.findOne(id).exec();
+  if (!doc) {
+    throw new Error(`Dish not found: ${id}`);
+  }
+  const json = doc.toJSON() as DishDocType;
+  await doc.remove();
+  await db.dishes.insert({ ...json, id: newId });
+  return newId;
+}
+
 export async function getDishById(
   db: AppDatabase,
   id: string
