@@ -65,8 +65,3 @@ warning is logged at startup.
 ```sh
 dotnet test
 ```
-
-## CI
-
-GitHub Actions builds and tests the solution on every push to `main` and on pull
-requests targeting `main`.
