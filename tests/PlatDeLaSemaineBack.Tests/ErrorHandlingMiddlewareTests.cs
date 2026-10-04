@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
+using PlatDeLaSemaineBack.Exceptions;
 using PlatDeLaSemaineBack.Middleware;
 using PlatDeLaSemaineBack.Models;
 using Xunit;
@@ -89,6 +90,35 @@ public class ErrorHandlingMiddlewareTests
         Assert.NotNull(response);
         Assert.Equal("BAD_REQUEST", response!.Code);
         Assert.Equal("Invalid dish name.", response.Message);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ConflictException_Returns409()
+    {
+        // Arrange
+        var middleware = new ErrorHandlingMiddleware(
+            _ => throw new ConflictException("A dish with this id already exists."),
+            NullLogger<ErrorHandlingMiddleware>.Instance);
+
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal(StatusCodes.Status409Conflict, context.Response.StatusCode);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        Assert.NotNull(response);
+        Assert.Equal("CONFLICT", response!.Code);
+        Assert.Equal("A dish with this id already exists.", response.Message);
     }
 
     [Fact]

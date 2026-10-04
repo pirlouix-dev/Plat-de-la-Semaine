@@ -44,6 +44,7 @@ public class DishesController : BaseController
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create([FromBody] CreateDishPayload payload)
     {
         var userId = await GetUserIdAsync();

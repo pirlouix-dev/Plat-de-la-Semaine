@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using PlatDeLaSemaineBack.Exceptions;
 using PlatDeLaSemaineBack.Models;
 
 namespace PlatDeLaSemaineBack.Services;
@@ -31,6 +32,15 @@ public class DishService : IDishService
     /// <inheritdoc />
     public async Task<DishSingleResponse> CreateDishAsync(string userId, CreateDishPayload payload)
     {
+        // A client may supply an id (e.g. for offline sync), but it must never be
+        // allowed to take over a document owned by another user.
+        if (payload.Id != null)
+        {
+            var existing = await _firestore.GetDishByIdAsync(payload.Id);
+            if (existing != null && existing.UserId != userId)
+                throw new ConflictException("A dish with this id already exists.");
+        }
+
         await CreateBackupAsync(userId);
 
         var dish = new Dish
