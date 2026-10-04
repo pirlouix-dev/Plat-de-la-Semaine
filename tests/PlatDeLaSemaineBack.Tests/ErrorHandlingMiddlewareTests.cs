@@ -2,7 +2,6 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
-using PlatDeLaSemaineBack.Exceptions;
 using PlatDeLaSemaineBack.Middleware;
 using PlatDeLaSemaineBack.Models;
 using Xunit;
@@ -93,35 +92,6 @@ public class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_ConflictException_Returns409()
-    {
-        // Arrange
-        var middleware = new ErrorHandlingMiddleware(
-            _ => throw new ConflictException("A dish with this id already exists."),
-            NullLogger<ErrorHandlingMiddleware>.Instance);
-
-        var context = new DefaultHttpContext();
-        context.Response.Body = new MemoryStream();
-
-        // Act
-        await middleware.InvokeAsync(context);
-
-        // Assert
-        Assert.Equal(StatusCodes.Status409Conflict, context.Response.StatusCode);
-
-        context.Response.Body.Seek(0, SeekOrigin.Begin);
-        var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
-
-        Assert.NotNull(response);
-        Assert.Equal("CONFLICT", response!.Code);
-        Assert.Equal("A dish with this id already exists.", response.Message);
-    }
-
-    [Fact]
     public async Task InvokeAsync_GenericException_Returns500()
     {
         // Arrange
@@ -147,5 +117,53 @@ public class ErrorHandlingMiddlewareTests
 
         Assert.NotNull(response);
         Assert.Equal("INVALID_OPERATION", response!.Code);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_UnauthorizedAccessException_Returns401()
+    {
+        // Arrange & Act
+        var (statusCode, body) = await CaptureAsync(
+            new UnauthorizedAccessException("Missing or invalid authorization header."));
+
+        // Assert
+        Assert.Equal(StatusCodes.Status401Unauthorized, statusCode);
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        Assert.NotNull(response);
+        Assert.Equal("UNAUTHORIZED", response!.Code);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_OwnershipFailure_IsIndistinguishableFromMissingResource()
+    {
+        // A resource that exists under another owner must produce byte-identical
+        // output to a resource that does not exist, so the response cannot be used
+        // as an existence oracle (issue #39).
+        // Arrange & Act
+        var missing = await CaptureAsync(new KeyNotFoundException("Dish not found."));
+        var unowned = await CaptureAsync(new KeyNotFoundException("You do not own this dish."));
+
+        // Assert
+        Assert.Equal(missing.StatusCode, unowned.StatusCode);
+        Assert.Equal(missing.Body, unowned.Body);
+    }
+
+    private static async Task<(int StatusCode, string Body)> CaptureAsync(Exception exception)
+    {
+        var middleware = new ErrorHandlingMiddleware(
+            _ => throw exception,
+            NullLogger<ErrorHandlingMiddleware>.Instance);
+
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
+        return (context.Response.StatusCode, body);
     }
 }

@@ -1,6 +1,5 @@
 using NSubstitute;
 using NSubstitute.ReturnsExtensions;
-using PlatDeLaSemaineBack.Exceptions;
 using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 using Xunit;
@@ -123,32 +122,33 @@ public class DishServiceTests
     }
 
     [Fact]
-    public async Task CreateDish_IdOwnedByAnotherUser_ThrowsConflictException()
+    public async Task CreateDish_ClientSuppliedId_IsScopedToCallerNamespace()
     {
         // Arrange
         var userId = "attacker";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci => ci.Arg<Dish>());
+
         var payload = new CreateDishPayload
         {
             Id = "victim-dish-id",
-            Name = "attacker overwrite",
+            Name = "attacker dish",
             Course = 1,
             Seasons = [0]
         };
-        _firestore.GetDishByIdAsync("victim-dish-id").Returns(new Dish
-        {
-            Id = "victim-dish-id",
-            UserId = "victim",
-            Name = "Victim private recipe"
-        });
 
         // Act
-        var exception = await Assert.ThrowsAsync<ConflictException>(
-            () => _service.CreateDishAsync(userId, payload));
+        var result = await _service.CreateDishAsync(userId, payload);
 
         // Assert
-        Assert.Equal("A dish with this id already exists.", exception.Message);
-        await _firestore.DidNotReceive().InsertDishAsync(Arg.Any<Dish>());
-        await _firestore.DidNotReceive().InsertBackupAsync(Arg.Any<Backup>());
+        Assert.Equal("victim-dish-id", result.Data.Id);
+        Assert.Equal(userId, result.Data.UserId);
+        await _firestore.Received(1).InsertDishAsync(
+            Arg.Is<Dish>(d => d.Id == "victim-dish-id" && d.UserId == userId));
+        // Ids are namespaced by owner, so no cross-user lookup is performed.
+        await _firestore.DidNotReceive().GetDishByIdAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public class DishServiceTests
         // Arrange
         var userId = "user1";
         var existing = new Dish { Id = "own-dish-id", UserId = userId, Name = "Old" };
-        _firestore.GetDishByIdAsync("own-dish-id").Returns(existing);
+        _firestore.GetDishByIdAsync(userId, "own-dish-id").Returns(existing);
         _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish> { existing });
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
@@ -184,7 +184,7 @@ public class DishServiceTests
     {
         // Arrange
         var userId = "user1";
-        _firestore.GetDishByIdAsync("client-id").ReturnsNull();
+        _firestore.GetDishByIdAsync(userId, "client-id").ReturnsNull();
         _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
@@ -255,7 +255,7 @@ public class DishServiceTests
             Course = 1,
             Seasons = [0]
         };
-        _firestore.GetDishByIdAsync(dishId).Returns(existing);
+        _firestore.GetDishByIdAsync(userId, dishId).Returns(existing);
         _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish> { existing });
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
@@ -278,7 +278,7 @@ public class DishServiceTests
     public async Task UpdateDish_DishNotFound_ThrowsKeyNotFoundException()
     {
         // Arrange
-        _firestore.GetDishByIdAsync("nonexistent").ReturnsNull();
+        _firestore.GetDishByIdAsync("user1", "nonexistent").ReturnsNull();
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(
@@ -286,14 +286,14 @@ public class DishServiceTests
     }
 
     [Fact]
-    public async Task UpdateDish_NotOwner_ThrowsUnauthorizedAccessException()
+    public async Task UpdateDish_NotOwner_ThrowsSameAsNotFound()
     {
-        // Arrange
-        var dish = new Dish { Id = "d1", UserId = "other-user", Name = "Dish" };
-        _firestore.GetDishByIdAsync("d1").Returns(dish);
+        // Arrange: the dish exists globally but not within the caller's namespace,
+        // so the scoped lookup returns null exactly as for a missing dish.
+        _firestore.GetDishByIdAsync("user1", "d1").ReturnsNull();
 
         // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        await Assert.ThrowsAsync<KeyNotFoundException>(
             () => _service.UpdateDishAsync("user1", "d1", new UpdateDishPayload()));
     }
 
@@ -304,7 +304,7 @@ public class DishServiceTests
         var userId = "user1";
         var dishId = "dish1";
         var dish = new Dish { Id = dishId, UserId = userId, Name = "Dish" };
-        _firestore.GetDishByIdAsync(dishId).Returns(dish);
+        _firestore.GetDishByIdAsync(userId, dishId).Returns(dish);
         _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish> { dish });
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
@@ -316,14 +316,14 @@ public class DishServiceTests
         Assert.True(dish.IsDeleted);
         Assert.NotEqual(default, dish.UpdatedAt);
         await _firestore.Received(1).UpdateDishAsync(dish);
-        await _firestore.DidNotReceive().DeleteDishAsync(Arg.Any<string>());
+        await _firestore.DidNotReceive().DeleteDishAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Fact]
     public async Task DeleteDish_DishNotFound_ThrowsKeyNotFoundException()
     {
         // Arrange
-        _firestore.GetDishByIdAsync("nonexistent").ReturnsNull();
+        _firestore.GetDishByIdAsync("user1", "nonexistent").ReturnsNull();
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(
@@ -331,14 +331,13 @@ public class DishServiceTests
     }
 
     [Fact]
-    public async Task DeleteDish_NotOwner_ThrowsUnauthorizedAccessException()
+    public async Task DeleteDish_NotOwner_ThrowsSameAsNotFound()
     {
-        // Arrange
-        var dish = new Dish { Id = "d1", UserId = "other-user", Name = "Dish" };
-        _firestore.GetDishByIdAsync("d1").Returns(dish);
+        // Arrange: the dish exists globally but not within the caller's namespace.
+        _firestore.GetDishByIdAsync("user1", "d1").ReturnsNull();
 
         // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        await Assert.ThrowsAsync<KeyNotFoundException>(
             () => _service.DeleteDishAsync("user1", "d1"));
     }
 
@@ -523,7 +522,7 @@ public class DishServiceTests
         await _service.CreateBackupAsync(userId);
 
         // Assert
-        await _firestore.Received(1).DeleteBackupAsync("b1");
+        await _firestore.Received(1).DeleteBackupAsync(userId, "b1");
         Assert.Equal(5, user.BackupIds.Count);
         Assert.Equal("b2", user.BackupIds[0]);
         Assert.Equal("b6", user.BackupIds[^1]);

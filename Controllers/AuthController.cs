@@ -87,7 +87,6 @@ public class AuthController : BaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateUsername([FromBody] UpdateUsernamePayload payload)
     {
         var userId = await GetUserIdAsync();
@@ -103,7 +102,6 @@ public class AuthController : BaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ResetPassword()
     {
         var userId = await GetUserIdAsync();
@@ -119,7 +117,6 @@ public class AuthController : BaseController
     [EndpointSummary("Delete the authenticated user's account and all associated data")]
     [ProducesResponseType(typeof(AccountDeletionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteAccount()
     {
         var userId = await GetUserIdAsync();

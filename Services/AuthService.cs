@@ -168,9 +168,9 @@ public class AuthService : IAuthService
         var backupIds = backups.Where(b => b.Id != null).Select(b => b.Id!).ToList();
 
         if (dishIds.Count > 0)
-            await _firestore.DeleteBatchAsync("Dishes", dishIds);
+            await _firestore.DeleteBatchAsync(userId, "Dishes", dishIds);
         if (backupIds.Count > 0)
-            await _firestore.DeleteBatchAsync("Backups", backupIds);
+            await _firestore.DeleteBatchAsync(userId, "Backups", backupIds);
 
         await _firestore.DeleteUserAsync(userId);
     }

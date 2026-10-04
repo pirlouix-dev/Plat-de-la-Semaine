@@ -25,24 +25,25 @@ public interface IFirestoreService
     Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since);
 
     /// <summary>
-    /// Retrieves a single dish by its ID.
+    /// Retrieves a single dish by its ID within the given user's namespace.
+    /// Returns null when the dish does not exist for that user.
     /// </summary>
-    Task<Dish?> GetDishByIdAsync(string dishId);
+    Task<Dish?> GetDishByIdAsync(string userId, string dishId);
 
     /// <summary>
-    /// Inserts a new dish into Firestore.
+    /// Inserts a new dish into Firestore, under its owner's namespace.
     /// </summary>
     Task<Dish> InsertDishAsync(Dish dish);
 
     /// <summary>
-    /// Updates an existing dish document.
+    /// Updates an existing dish document, under its owner's namespace.
     /// </summary>
     Task UpdateDishAsync(Dish dish);
 
     /// <summary>
-    /// Hard-deletes a dish document from Firestore.
+    /// Hard-deletes a dish document from the given user's namespace.
     /// </summary>
-    Task DeleteDishAsync(string dishId);
+    Task DeleteDishAsync(string userId, string dishId);
 
     // ── Users ───────────────────────────────────────────────────────
 
@@ -69,19 +70,20 @@ public interface IFirestoreService
     // ── Backups ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Retrieves a single backup by its ID.
+    /// Retrieves a single backup by its ID within the given user's namespace.
+    /// Returns null when the backup does not exist for that user.
     /// </summary>
-    Task<Backup?> GetBackupByIdAsync(string backupId);
+    Task<Backup?> GetBackupByIdAsync(string userId, string backupId);
 
     /// <summary>
-    /// Inserts a new backup document into Firestore.
+    /// Inserts a new backup document into Firestore, under its owner's namespace.
     /// </summary>
     Task<Backup> InsertBackupAsync(Backup backup);
 
     /// <summary>
-    /// Hard-deletes a backup document from Firestore.
+    /// Hard-deletes a backup document from the given user's namespace.
     /// </summary>
-    Task DeleteBackupAsync(string backupId);
+    Task DeleteBackupAsync(string userId, string backupId);
 
     /// <summary>
     /// Retrieves all backups for a given user.
@@ -89,9 +91,9 @@ public interface IFirestoreService
     Task<List<Backup>> GetBackupsByUserIdAsync(string userId);
 
     /// <summary>
-    /// Deletes multiple documents from a collection in a single batch.
+    /// Deletes multiple documents from a user's subcollection in a single batch.
     /// </summary>
-    Task DeleteBatchAsync(string collection, IEnumerable<string> ids);
+    Task DeleteBatchAsync(string userId, string collection, IEnumerable<string> ids);
 
     // ── Config ──────────────────────────────────────────────────────
 

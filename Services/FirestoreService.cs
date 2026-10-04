@@ -77,12 +77,18 @@ public class FirestoreService : IFirestoreService
 
     // ── Dishes ──────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns the Dishes subcollection for a user, keeping ownership implicit
+    /// in the document path so cross-user access is impossible by construction.
+    /// </summary>
+    private CollectionReference DishesCollection(string userId)
+        => _db!.Collection("Users").Document(userId).Collection("Dishes");
+
     /// <inheritdoc />
     public async Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since)
     {
         if (!IsConnected) return new List<Dish>();
-        var query = _db!.Collection("Dishes")
-            .WhereEqualTo("UserId", userId) as Query;
+        Query query = DishesCollection(userId);
         if (since.HasValue)
             query = query.WhereGreaterThanOrEqualTo("UpdatedAt", since.Value);
         var snapshot = await query.GetSnapshotAsync();
@@ -90,10 +96,10 @@ public class FirestoreService : IFirestoreService
     }
 
     /// <inheritdoc />
-    public async Task<Dish?> GetDishByIdAsync(string dishId)
+    public async Task<Dish?> GetDishByIdAsync(string userId, string dishId)
     {
         if (!IsConnected) return null;
-        var doc = await _db!.Collection("Dishes").Document(dishId).GetSnapshotAsync();
+        var doc = await DishesCollection(userId).Document(dishId).GetSnapshotAsync();
         return doc.Exists ? doc.ConvertTo<Dish>() : null;
     }
 
@@ -101,8 +107,9 @@ public class FirestoreService : IFirestoreService
     public async Task<Dish> InsertDishAsync(Dish dish)
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        if (string.IsNullOrEmpty(dish.UserId)) throw new ArgumentException("Dish UserId cannot be null or empty.");
 
-        var collection = _db!.Collection("Dishes");
+        var collection = DishesCollection(dish.UserId);
         var docRef = dish.Id == null
             ? collection.Document()
             : collection.Document(dish.Id);
@@ -119,15 +126,16 @@ public class FirestoreService : IFirestoreService
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
         if (dish.Id == null) throw new ArgumentException("Dish ID cannot be null.");
+        if (string.IsNullOrEmpty(dish.UserId)) throw new ArgumentException("Dish UserId cannot be null or empty.");
 
-        await _db!.Collection("Dishes").Document(dish.Id).SetAsync(dish, SetOptions.MergeAll);
+        await DishesCollection(dish.UserId).Document(dish.Id).SetAsync(dish, SetOptions.MergeAll);
     }
 
     /// <inheritdoc />
-    public async Task DeleteDishAsync(string dishId)
+    public async Task DeleteDishAsync(string userId, string dishId)
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
-        await _db!.Collection("Dishes").Document(dishId).DeleteAsync();
+        await DishesCollection(userId).Document(dishId).DeleteAsync();
     }
 
     // ── Users ───────────────────────────────────────────────────────
@@ -169,11 +177,18 @@ public class FirestoreService : IFirestoreService
 
     // ── Backups ─────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns the Backups subcollection for a user, keeping ownership implicit
+    /// in the document path so cross-user access is impossible by construction.
+    /// </summary>
+    private CollectionReference BackupsCollection(string userId)
+        => _db!.Collection("Users").Document(userId).Collection("Backups");
+
     /// <inheritdoc />
-    public async Task<Backup?> GetBackupByIdAsync(string backupId)
+    public async Task<Backup?> GetBackupByIdAsync(string userId, string backupId)
     {
         if (!IsConnected) return null;
-        var doc = await _db!.Collection("Backups").Document(backupId).GetSnapshotAsync();
+        var doc = await BackupsCollection(userId).Document(backupId).GetSnapshotAsync();
         return doc.Exists ? doc.ConvertTo<Backup>() : null;
     }
 
@@ -181,8 +196,9 @@ public class FirestoreService : IFirestoreService
     public async Task<Backup> InsertBackupAsync(Backup backup)
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        if (string.IsNullOrEmpty(backup.UserId)) throw new ArgumentException("Backup UserId cannot be null or empty.");
 
-        var collection = _db!.Collection("Backups");
+        var collection = BackupsCollection(backup.UserId);
         var docRef = backup.Id == null
             ? collection.Document()
             : collection.Document(backup.Id);
@@ -195,30 +211,29 @@ public class FirestoreService : IFirestoreService
     }
 
     /// <inheritdoc />
-    public async Task DeleteBackupAsync(string backupId)
+    public async Task DeleteBackupAsync(string userId, string backupId)
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
-        await _db!.Collection("Backups").Document(backupId).DeleteAsync();
+        await BackupsCollection(userId).Document(backupId).DeleteAsync();
     }
 
     /// <inheritdoc />
     public async Task<List<Backup>> GetBackupsByUserIdAsync(string userId)
     {
         if (!IsConnected) return new List<Backup>();
-        var snapshot = await _db!.Collection("Backups")
-            .WhereEqualTo("UserId", userId)
-            .GetSnapshotAsync();
+        var snapshot = await BackupsCollection(userId).GetSnapshotAsync();
         return snapshot.Documents.Select(doc => doc.ConvertTo<Backup>()).ToList();
     }
 
     /// <inheritdoc />
-    public async Task DeleteBatchAsync(string collection, IEnumerable<string> ids)
+    public async Task DeleteBatchAsync(string userId, string collection, IEnumerable<string> ids)
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
 
-        var batch = _db!.StartBatch();
+        var subcollection = _db!.Collection("Users").Document(userId).Collection(collection);
+        var batch = _db.StartBatch();
         foreach (var id in ids)
-            batch.Delete(_db.Collection(collection).Document(id));
+            batch.Delete(subcollection.Document(id));
         await batch.CommitAsync();
     }
 

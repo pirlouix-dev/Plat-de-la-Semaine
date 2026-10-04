@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using PlatDeLaSemaineBack.Exceptions;
 using PlatDeLaSemaineBack.Models;
 
 namespace PlatDeLaSemaineBack.Middleware;
@@ -44,7 +43,6 @@ public class ErrorHandlingMiddleware
         var (statusCode, errorCode, message) = exception switch
         {
             KeyNotFoundException => (HttpStatusCode.NotFound, "NOT_FOUND", "The requested resource was not found."),
-            ConflictException => (HttpStatusCode.Conflict, "CONFLICT", exception.Message),
             ArgumentException => (HttpStatusCode.BadRequest, "BAD_REQUEST", exception.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),
             FirebaseAdmin.Auth.FirebaseAuthException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),

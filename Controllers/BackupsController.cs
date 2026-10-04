@@ -27,7 +27,6 @@ public class BackupsController : BaseController
     [ProducesResponseType(typeof(BackupListResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAll()
     {
         var userId = await GetUserIdAsync();
@@ -43,7 +42,6 @@ public class BackupsController : BaseController
     [ProducesResponseType(typeof(BackupRestoreResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Restore(string backupId)
     {
