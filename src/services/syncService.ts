@@ -6,6 +6,7 @@ import {
   updateDish,
   deleteDish,
 } from "./dishService";
+import { regenerateDishId } from "../repositories/dishRepository";
 import type { components } from "../schema";
 import { isLoggedIn } from "./api";
 import {
@@ -102,6 +103,12 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
             serverId: String(result.data.id),
             syncStatus: "synced",
           });
+        } else if (
+          result.error.code === "CONFLICT" ||
+          result.error.code === "HTTP_409"
+        ) {
+          await regenerateDishId(db, json.id);
+          anyFailed = true;
         } else {
           anyFailed = true;
         }
@@ -118,21 +125,7 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
           result.error.code === "NOT_FOUND" ||
           result.error.code === "HTTP_404"
         ) {
-          const createResult = await createDish({
-            id: json.id,
-            name: json.name,
-            description: json.description,
-            course: json.course,
-            seasons: json.seasons,
-          });
-          if (createResult.ok) {
-            await doc.patch({
-              serverId: String(createResult.data.id),
-              syncStatus: "synced",
-            });
-          } else {
-            anyFailed = true;
-          }
+          await doc.remove();
         } else {
           anyFailed = true;
         }
