@@ -262,17 +262,6 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
             };
         };
         post?: never;
@@ -330,17 +319,6 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
             };
         };
         delete?: never;
@@ -382,17 +360,6 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -459,17 +426,6 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
             };
         };
         put?: never;
@@ -525,17 +481,6 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -616,17 +561,6 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
             };
         };
         put?: never;
@@ -670,28 +604,6 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -758,17 +670,6 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -845,17 +746,6 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
                 /** @description Not Found */
                 404: {
                     headers: {
@@ -902,17 +792,6 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -985,17 +864,6 @@ export interface paths {
                 };
                 /** @description Unauthorized */
                 401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ApiErrorDetail"];
-                        "application/json": components["schemas"]["ApiErrorDetail"];
-                        "text/json": components["schemas"]["ApiErrorDetail"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
                     headers: {
                         [name: string]: unknown;
                     };

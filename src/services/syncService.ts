@@ -6,7 +6,6 @@ import {
   updateDish,
   deleteDish,
 } from "./dishService";
-import { regenerateDishId } from "../repositories/dishRepository";
 import type { components } from "../schema";
 import { isLoggedIn } from "./api";
 import {
@@ -103,12 +102,6 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
             serverId: String(result.data.id),
             syncStatus: "synced",
           });
-        } else if (
-          result.error.code === "CONFLICT" ||
-          result.error.code === "HTTP_409"
-        ) {
-          await regenerateDishId(db, json.id);
-          anyFailed = true;
         } else {
           anyFailed = true;
         }
@@ -121,12 +114,9 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
         });
         if (result.ok) {
           await doc.patch({ syncStatus: "synced" });
-        } else if (
-          result.error.code === "NOT_FOUND" ||
-          result.error.code === "HTTP_404"
-        ) {
-          await doc.remove();
         } else {
+          // A 404 can mean the dish belongs to another account (the local DB is
+          // shared across logins), so it is transient and must not be dropped.
           anyFailed = true;
         }
       } else if (json.syncStatus === "pending_delete" && json.serverId) {
