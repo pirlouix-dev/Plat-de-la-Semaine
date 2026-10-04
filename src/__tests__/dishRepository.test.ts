@@ -16,7 +16,6 @@ import {
   upsertDish,
   softDeleteDish,
   removeDish,
-  regenerateDishId,
   getDishById,
   getAllDishes,
   getPendingDishes,
@@ -371,51 +370,3 @@ describe("insertManyDishes", () => {
   });
 });
 
-// ── regenerateDishId ────────────────────────────────────────────────────────
-
-describe("regenerateDishId", () => {
-  it("re-inserts the dish under a fresh id, preserving its fields", async () => {
-    await insertDish(
-      db,
-      makeDish({
-        id: "old-id",
-        serverId: "",
-        name: "Clashing Dish",
-        description: "desc",
-        course: 3,
-        seasons: [2, 3],
-        syncStatus: "pending_create",
-      }),
-    );
-
-    const newId = await regenerateDishId(db, "old-id", "fresh-id");
-
-    expect(newId).toBe("fresh-id");
-    expect(await db.dishes.findOne("old-id").exec()).toBeNull();
-
-    const reinserted = await db.dishes.findOne("fresh-id").exec();
-    expect(reinserted).not.toBeNull();
-    expect(reinserted!.get("name")).toBe("Clashing Dish");
-    expect(reinserted!.get("description")).toBe("desc");
-    expect(reinserted!.get("course")).toBe(3);
-    expect(reinserted!.get("seasons")).toEqual([2, 3]);
-    expect(reinserted!.get("serverId")).toBe("");
-    expect(reinserted!.get("syncStatus")).toBe("pending_create");
-  });
-
-  it("generates a new id when none is provided", async () => {
-    await insertDish(db, makeDish({ id: "auto-id" }));
-
-    const newId = await regenerateDishId(db, "auto-id");
-
-    expect(newId).not.toBe("auto-id");
-    expect(await db.dishes.findOne("auto-id").exec()).toBeNull();
-    expect(await db.dishes.findOne(newId).exec()).not.toBeNull();
-  });
-
-  it("throws when the dish does not exist", async () => {
-    await expect(regenerateDishId(db, "missing", "x")).rejects.toThrow(
-      "Dish not found: missing",
-    );
-  });
-});

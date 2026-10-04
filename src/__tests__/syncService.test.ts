@@ -187,60 +187,6 @@ describe("sync", () => {
     expect(doc!.get("serverId")).toBe("server-1");
   });
 
-  it("regenerates the local id when create conflicts with another user's dish", async () => {
-    await insertDish(
-      db,
-      makeDish({
-        id: "clash-1",
-        name: "Clashing Dish",
-        description: "desc",
-        course: 3,
-        seasons: [2, 3],
-        syncStatus: "pending_create",
-        updatedAt: "2026-02-02T00:00:00.000Z",
-      }),
-    );
-
-    mockCreateDish.mockResolvedValue({
-      ok: false,
-      error: {
-        code: "CONFLICT",
-        message: "A dish with this id already exists.",
-      },
-    });
-    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
-
-    await sync(db);
-
-    expect(mockCreateDish).toHaveBeenCalledWith({
-      id: "clash-1",
-      name: "Clashing Dish",
-      description: "desc",
-      course: 3,
-      seasons: [2, 3],
-    });
-
-    const oldDoc = await db.dishes.findOne("clash-1").exec();
-    expect(oldDoc).toBeNull();
-
-    const pending = await db.dishes
-      .find({ selector: { syncStatus: "pending_create" } })
-      .exec();
-    expect(pending).toHaveLength(1);
-    const regenerated = pending[0].toJSON() as DishDocType;
-    expect(regenerated.id).not.toBe("clash-1");
-    expect(regenerated).toMatchObject({
-      name: "Clashing Dish",
-      description: "desc",
-      course: 3,
-      seasons: [2, 3],
-      serverId: "",
-      updatedAt: "2026-02-02T00:00:00.000Z",
-      isDeleted: false,
-      syncStatus: "pending_create",
-    });
-  });
-
   it("pushes pending_update dishes to the API", async () => {
     await insertDish(
       db,
@@ -581,13 +527,13 @@ describe("sync", () => {
     expect(doc!.get("isDeleted")).toBe(false);
   });
 
-  it("push pending_update removes the local dish when the server no longer has it", async () => {
+  it("push pending_update keeps the local dish when the server returns 404", async () => {
     await insertDish(
       db,
       makeDish({
         id: "local-sd-4",
         serverId: "srv-sd-4",
-        name: "Gone Dish",
+        name: "Other Account Dish",
         syncStatus: "pending_update",
         isDeleted: false,
         description: "Updated",
@@ -606,7 +552,7 @@ describe("sync", () => {
     await sync(db);
 
     expect(mockUpdateDish).toHaveBeenCalledWith("srv-sd-4", {
-      name: "Gone Dish",
+      name: "Other Account Dish",
       description: "Updated",
       course: 2,
       seasons: [1],
@@ -614,7 +560,10 @@ describe("sync", () => {
     expect(mockCreateDish).not.toHaveBeenCalled();
 
     const doc = await db.dishes.findOne("local-sd-4").exec();
-    expect(doc).toBeNull();
+    expect(doc).not.toBeNull();
+    expect(doc!.get("syncStatus")).toBe("pending_update");
+    expect(doc!.get("name")).toBe("Other Account Dish");
+    expect(getSyncState().retryCount).toBe(1);
   });
 
   it("pull does not re-insert soft-deleted dish with no local match", async () => {
