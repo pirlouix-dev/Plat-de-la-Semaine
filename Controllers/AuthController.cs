@@ -15,7 +15,8 @@ public class AuthController : BaseController
 {
     private readonly IAuthService _authService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, ITokenVerifier tokenVerifier)
+        : base(tokenVerifier)
     {
         _authService = authService;
     }
