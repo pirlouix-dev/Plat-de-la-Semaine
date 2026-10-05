@@ -43,14 +43,14 @@ public class BackupServiceTests
             BackupIds = ["b1", "b2"]
         };
         _firestore.GetUserByIdAsync("user1").Returns(user);
-        _firestore.GetBackupByIdAsync("b1").Returns(new Backup
+        _firestore.GetBackupByIdAsync("user1", "b1").Returns(new Backup
         {
             Id = "b1",
             UserId = "user1",
             CreatedAt = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero),
             Dishes = [new Dish { Id = "d1" }]
         });
-        _firestore.GetBackupByIdAsync("b2").Returns(new Backup
+        _firestore.GetBackupByIdAsync("user1", "b2").Returns(new Backup
         {
             Id = "b2",
             UserId = "user1",
@@ -94,7 +94,7 @@ public class BackupServiceTests
 
         var user = new User { Id = userId, BackupIds = [] };
 
-        _firestore.GetBackupByIdAsync(backupId).Returns(backup);
+        _firestore.GetBackupByIdAsync(userId, backupId).Returns(backup);
         _firestore.GetDishesByUserIdAsync(userId, null).Returns(currentDishes);
         _firestore.GetUserByIdAsync(userId).Returns(user);
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
@@ -115,7 +115,7 @@ public class BackupServiceTests
         // Assert
         Assert.Equal(backupId, result.Data.BackupId);
         Assert.Equal(1, result.Data.RestoredCount);
-        await _firestore.Received(1).DeleteDishAsync("current-d1");
+        await _firestore.Received(1).DeleteDishAsync(userId, "current-d1");
         await _firestore.Received(1).InsertDishAsync(Arg.Any<Dish>());
     }
 
@@ -123,7 +123,7 @@ public class BackupServiceTests
     public async Task RestoreBackup_BackupNotFound_ThrowsKeyNotFoundException()
     {
         // Arrange
-        _firestore.GetBackupByIdAsync("nonexistent").ReturnsNull();
+        _firestore.GetBackupByIdAsync("user1", "nonexistent").ReturnsNull();
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(
@@ -131,19 +131,13 @@ public class BackupServiceTests
     }
 
     [Fact]
-    public async Task RestoreBackup_NotOwner_ThrowsUnauthorizedAccessException()
+    public async Task RestoreBackup_NotOwner_ThrowsSameAsNotFound()
     {
-        // Arrange
-        var backup = new Backup
-        {
-            Id = "b1",
-            UserId = "other-user",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        _firestore.GetBackupByIdAsync("b1").Returns(backup);
+        // Arrange: the backup exists globally but not within the caller's namespace.
+        _firestore.GetBackupByIdAsync("user1", "b1").ReturnsNull();
 
         // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        await Assert.ThrowsAsync<KeyNotFoundException>(
             () => _service.RestoreBackupAsync("user1", "b1"));
     }
 }

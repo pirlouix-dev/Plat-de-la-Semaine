@@ -31,6 +31,9 @@ public class DishService : IDishService
     /// <inheritdoc />
     public async Task<DishSingleResponse> CreateDishAsync(string userId, CreateDishPayload payload)
     {
+        // A client may supply an id (e.g. for offline sync). Ids are scoped to the
+        // owner's namespace, so the dish is created or overwritten under the caller
+        // only and can never take over a document owned by another user.
         await CreateBackupAsync(userId);
 
         var dish = new Dish
@@ -55,11 +58,8 @@ public class DishService : IDishService
     /// <inheritdoc />
     public async Task<DishSingleResponse> UpdateDishAsync(string userId, string dishId, UpdateDishPayload payload)
     {
-        var existing = await _firestore.GetDishByIdAsync(dishId)
+        var existing = await _firestore.GetDishByIdAsync(userId, dishId)
             ?? throw new KeyNotFoundException("Dish not found.");
-
-        if (existing.UserId != userId)
-            throw new UnauthorizedAccessException("You do not own this dish.");
 
         await CreateBackupAsync(userId);
 
@@ -80,11 +80,8 @@ public class DishService : IDishService
     /// <inheritdoc />
     public async Task DeleteDishAsync(string userId, string dishId)
     {
-        var existing = await _firestore.GetDishByIdAsync(dishId)
+        var existing = await _firestore.GetDishByIdAsync(userId, dishId)
             ?? throw new KeyNotFoundException("Dish not found.");
-
-        if (existing.UserId != userId)
-            throw new UnauthorizedAccessException("You do not own this dish.");
 
         await CreateBackupAsync(userId);
 
@@ -210,7 +207,7 @@ public class DishService : IDishService
         if (user.BackupIds.Count > MaxBackups)
         {
             var oldestId = user.BackupIds[0];
-            await _firestore.DeleteBackupAsync(oldestId);
+            await _firestore.DeleteBackupAsync(userId, oldestId);
             user.BackupIds.RemoveAt(0);
         }
 

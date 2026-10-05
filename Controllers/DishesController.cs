@@ -27,7 +27,6 @@ public class DishesController : BaseController
     [ProducesResponseType(typeof(DishListResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAll([FromQuery] DateTimeOffset? since)
     {
         var userId = await GetUserIdAsync();
@@ -43,7 +42,6 @@ public class DishesController : BaseController
     [ProducesResponseType(typeof(DishSingleResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Create([FromBody] CreateDishPayload payload)
     {
         var userId = await GetUserIdAsync();
@@ -59,7 +57,6 @@ public class DishesController : BaseController
     [ProducesResponseType(typeof(DishImportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Import([FromBody] List<DishImportItem> items)
     {
         var userId = await GetUserIdAsync();
@@ -75,7 +72,6 @@ public class DishesController : BaseController
     [ProducesResponseType(typeof(DishSingleResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateDishPayload payload)
     {
@@ -92,7 +88,6 @@ public class DishesController : BaseController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(string id)
     {

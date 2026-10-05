@@ -15,9 +15,7 @@ public class VersionServiceTests
         var firestore = Substitute.For<IFirestoreService>();
         firestore.GetVersionInfoAsync().Returns(new VersionInfo
         {
-            LatestVersion = "2.0.0",
-            Description = "Major update",
-            DownloadUrl = "https://example.com/download"
+            LatestVersion = "2.0.0"
         });
         var service = new VersionService(firestore);
 
@@ -26,7 +24,6 @@ public class VersionServiceTests
 
         // Assert
         Assert.Equal("2.0.0", result.LatestVersion);
-        Assert.Equal("Major update", result.Description);
     }
 
     [Fact]

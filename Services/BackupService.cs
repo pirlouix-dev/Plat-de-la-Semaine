@@ -33,7 +33,7 @@ public class BackupService : IBackupService
 
         foreach (var backupId in user.BackupIds)
         {
-            var backup = await _firestore.GetBackupByIdAsync(backupId);
+            var backup = await _firestore.GetBackupByIdAsync(userId, backupId);
             if (backup != null)
             {
                 summaries.Add(new BackupSummary
@@ -57,11 +57,8 @@ public class BackupService : IBackupService
     /// <inheritdoc />
     public async Task<BackupRestoreResponse> RestoreBackupAsync(string userId, string backupId)
     {
-        var backup = await _firestore.GetBackupByIdAsync(backupId)
+        var backup = await _firestore.GetBackupByIdAsync(userId, backupId)
             ?? throw new KeyNotFoundException("Backup not found.");
-
-        if (backup.UserId != userId)
-            throw new UnauthorizedAccessException("You do not own this backup.");
 
         await _dishService.CreateBackupAsync(userId);
         var safetyBackupCreatedAt = DateTimeOffset.UtcNow;
@@ -70,7 +67,7 @@ public class BackupService : IBackupService
         foreach (var dish in currentDishes)
         {
             if (dish.Id != null)
-                await _firestore.DeleteDishAsync(dish.Id);
+                await _firestore.DeleteDishAsync(userId, dish.Id);
         }
 
         var restoredCount = 0;
