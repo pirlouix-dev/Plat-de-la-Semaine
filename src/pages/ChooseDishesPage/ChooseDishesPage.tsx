@@ -333,8 +333,8 @@ export function ChooseDishesPage() {
                   <ExpandableDescription
                     description={currentDish.description}
                     descriptionClassName="dish-description"
-                    expanded={!!expandedDishIds[currentDish.id]}
-                    onToggle={() => toggleExpand(currentDish.id)}
+                    expanded={!!expandedDishIds[`proposed:${currentDish.id}`]}
+                    onToggle={() => toggleExpand(`proposed:${currentDish.id}`)}
                   />
 
                   <div className="card-decision-actions">
@@ -405,8 +405,10 @@ export function ChooseDishesPage() {
                       <ExpandableDescription
                         description={dish.description}
                         descriptionClassName="dish-description"
-                        expanded={!!expandedDishIds[dish.id]}
-                        onToggle={() => toggleExpand(dish.id)}
+                        expanded={!!expandedDishIds[`selected:${dish.id}:${index}`]}
+                        onToggle={() =>
+                          toggleExpand(`selected:${dish.id}:${index}`)
+                        }
                       />
                     </div>
                   ))}
@@ -479,8 +481,12 @@ export function ChooseDishesPage() {
                         <ExpandableDescription
                           description={dish.description}
                           descriptionClassName="dish-description"
-                          expanded={!!expandedDishIds[dish.id]}
-                          onToggle={() => toggleExpand(dish.id)}
+                          expanded={
+                            !!expandedDishIds[`recap:${course}:${index}`]
+                          }
+                          onToggle={() =>
+                            toggleExpand(`recap:${course}:${index}`)
+                          }
                         />
                       </div>
                     ))}

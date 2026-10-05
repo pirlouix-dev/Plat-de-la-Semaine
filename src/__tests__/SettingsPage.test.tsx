@@ -578,7 +578,7 @@ describe("SettingsPage", () => {
     it("fetches version info on mount and sync on tab switch", async () => {
       mockGetVersionInfo.mockResolvedValue({
         ok: true,
-        data: { latestVersion: "1.0.0", description: "", downloadUrl: "" },
+        data: { latestVersion: "1.0.0" },
       });
       mockMatchMedia(false);
       renderSettingsPage();
@@ -597,7 +597,7 @@ describe("SettingsPage", () => {
     it("displays version from the API", async () => {
       mockGetVersionInfo.mockResolvedValue({
         ok: true,
-        data: { latestVersion: "2.0.0", description: "New features", downloadUrl: "" },
+        data: { latestVersion: "2.0.0" },
       });
       mockMatchMedia(false);
       renderSettingsPage();

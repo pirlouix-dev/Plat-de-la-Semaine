@@ -13,8 +13,6 @@ const FAKE_BASE_URL = "http://test.local:5126";
 
 const SAMPLE_VERSION_INFO: VersionInfo = {
   latestVersion: "2.0.0",
-  description: "New features and bug fixes",
-  downloadUrl: "https://example.com/download/v2.0.0",
 };
 
 // ── Mock helpers ─────────────────────────────────────────────────────────────
@@ -83,7 +81,7 @@ describe("getVersionInfo", () => {
 
   it("handles minimal version info response", async () => {
     // Backend should always return all fields, but handle gracefully
-    const minimal = { latestVersion: "1.0.0", description: "", downloadUrl: "" };
+    const minimal = { latestVersion: "1.0.0" };
     mockFetchResponse(200, minimal);
 
     const result = await getVersionInfo();

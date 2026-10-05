@@ -369,3 +369,4 @@ describe("insertManyDishes", () => {
     expect(await getAllDishes(db)).toEqual([]);
   });
 });
+

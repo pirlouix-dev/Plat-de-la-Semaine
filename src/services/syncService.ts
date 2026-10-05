@@ -114,26 +114,9 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
         });
         if (result.ok) {
           await doc.patch({ syncStatus: "synced" });
-        } else if (
-          result.error.code === "NOT_FOUND" ||
-          result.error.code === "HTTP_404"
-        ) {
-          const createResult = await createDish({
-            id: json.id,
-            name: json.name,
-            description: json.description,
-            course: json.course,
-            seasons: json.seasons,
-          });
-          if (createResult.ok) {
-            await doc.patch({
-              serverId: String(createResult.data.id),
-              syncStatus: "synced",
-            });
-          } else {
-            anyFailed = true;
-          }
         } else {
+          // A 404 can mean the dish belongs to another account (the local DB is
+          // shared across logins), so it is transient and must not be dropped.
           anyFailed = true;
         }
       } else if (json.syncStatus === "pending_delete" && json.serverId) {

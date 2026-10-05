@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ChooseDishesPage from "../pages/ChooseDishesPage/ChooseDishesPage";
 import type { DishDocType } from "../db/schemas/dishes";
@@ -173,6 +173,27 @@ describe("ChooseDishesPage description see more", () => {
     renderLongDish();
 
     expect(screen.queryByText("Voir plus")).toBeNull();
+  });
+
+  it("toggles only the clicked card when identical accepted dishes are shown", () => {
+    setElementGeometry(60, 120);
+    renderLongDish();
+
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+
+    const selectedSection = document.querySelector(
+      ".selected-dishes-section",
+    ) as HTMLElement;
+    const seeMoreButtons = within(selectedSection).getAllByText("Voir plus");
+    expect(seeMoreButtons).toHaveLength(2);
+
+    fireEvent.click(seeMoreButtons[0]);
+
+    expect(within(selectedSection).getAllByText("Voir moins")).toHaveLength(1);
+    expect(within(selectedSection).getAllByText("Voir plus")).toHaveLength(1);
   });
 });
 

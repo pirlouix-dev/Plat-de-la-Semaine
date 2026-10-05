@@ -527,13 +527,13 @@ describe("sync", () => {
     expect(doc!.get("isDeleted")).toBe(false);
   });
 
-  it("push pending_update recreates dish when server soft-deleted it (no zombie)", async () => {
+  it("push pending_update keeps the local dish when the server returns 404", async () => {
     await insertDish(
       db,
       makeDish({
         id: "local-sd-4",
         serverId: "srv-sd-4",
-        name: "Recreated Dish",
+        name: "Other Account Dish",
         syncStatus: "pending_update",
         isDeleted: false,
         description: "Updated",
@@ -547,55 +547,23 @@ describe("sync", () => {
       ok: false,
       error: { code: "NOT_FOUND", message: "Dish not found" },
     });
-    mockCreateDish.mockResolvedValue({
-      ok: true,
-      data: {
-        id: "srv-sd-4-new",
-        userId: "u1",
-        name: "Recreated Dish",
-        description: "Updated",
-        course: 2,
-        seasons: [1],
-        updatedAt: "2026-07-26T12:00:00Z",
-        isDeleted: false,
-      },
-    });
-    mockGetDishes.mockResolvedValue({
-      ok: true,
-      data: [
-        {
-          id: "srv-sd-4-new",
-          userId: "u1",
-          name: "Recreated Dish",
-          description: "Updated",
-          course: 2,
-          seasons: [1],
-          updatedAt: "2026-07-26T12:00:00Z",
-          isDeleted: false,
-        },
-      ],
-    });
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
 
     await sync(db);
 
     expect(mockUpdateDish).toHaveBeenCalledWith("srv-sd-4", {
-      name: "Recreated Dish",
+      name: "Other Account Dish",
       description: "Updated",
       course: 2,
       seasons: [1],
     });
-    expect(mockCreateDish).toHaveBeenCalledWith({
-      id: "local-sd-4",
-      name: "Recreated Dish",
-      description: "Updated",
-      course: 2,
-      seasons: [1],
-    });
+    expect(mockCreateDish).not.toHaveBeenCalled();
 
     const doc = await db.dishes.findOne("local-sd-4").exec();
     expect(doc).not.toBeNull();
-    expect(doc!.get("serverId")).toBe("srv-sd-4-new");
-    expect(doc!.get("syncStatus")).toBe("synced");
+    expect(doc!.get("syncStatus")).toBe("pending_update");
+    expect(doc!.get("name")).toBe("Other Account Dish");
+    expect(getSyncState().retryCount).toBe(1);
   });
 
   it("pull does not re-insert soft-deleted dish with no local match", async () => {
