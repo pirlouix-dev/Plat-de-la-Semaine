@@ -1,6 +1,6 @@
-using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
 using PlatDeLaSemaineBack.Models;
+using PlatDeLaSemaineBack.Services;
 
 namespace PlatDeLaSemaineBack.Controllers;
 
@@ -10,6 +10,13 @@ namespace PlatDeLaSemaineBack.Controllers;
 [ApiController]
 public abstract class BaseController : ControllerBase
 {
+    private readonly ITokenVerifier _tokenVerifier;
+
+    protected BaseController(ITokenVerifier tokenVerifier)
+    {
+        _tokenVerifier = tokenVerifier;
+    }
+
     /// <summary>
     /// Extracts and verifies the Firebase ID token from the Authorization header.
     /// Returns the authenticated user's UID.
@@ -22,8 +29,7 @@ public abstract class BaseController : ControllerBase
             throw new UnauthorizedAccessException("Missing or invalid authorization header.");
 
         var token = authHeader["Bearer ".Length..];
-        var decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token);
 
-        return decoded.Uid;
+        return await _tokenVerifier.VerifyAsync(token);
     }
 }
