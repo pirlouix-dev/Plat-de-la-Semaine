@@ -42,6 +42,7 @@ const mockRefreshFromServer = vi.fn();
 const mockImportDishes = vi.fn();
 const mockInsertManyDishes = vi.fn();
 const mockBuildPendingDishes = vi.fn();
+const mockGetAllDishes = vi.fn();
 const mockShowToast = vi.fn();
 const mockClearAuth = vi.fn();
 const mockUpdateUsername = vi.fn();
@@ -79,6 +80,7 @@ vi.mock("../services/dishService", () => ({
 vi.mock("../repositories/dishRepository", () => ({
   insertManyDishes: (...args: unknown[]) => mockInsertManyDishes(...args),
   buildPendingDishes: (...args: unknown[]) => mockBuildPendingDishes(...args),
+  getAllDishes: (...args: unknown[]) => mockGetAllDishes(...args),
 }));
 
 vi.mock("../services/api", () => ({
@@ -155,6 +157,7 @@ describe("SettingsPage", () => {
     mockBuildPendingDishes.mockReturnValue([
       { id: "local-1", syncStatus: "pending_create" },
     ]);
+    mockGetAllDishes.mockResolvedValue([]);
     mockClearAuth.mockImplementation(() => {});
     mockUpdateUsername.mockResolvedValue({ ok: true, data: undefined });
     mockResetPassword.mockResolvedValue({ ok: true, data: undefined });
@@ -399,7 +402,7 @@ describe("SettingsPage", () => {
         const clickSpy = vi.spyOn(input, "click");
 
         fireEvent.click(
-          screen.getByRole("button", { name: /importer un fichier json/i }),
+          screen.getByRole("button", { name: /importer depuis un fichier json/i }),
         );
 
         expect(clickSpy).toHaveBeenCalled();
@@ -443,7 +446,7 @@ describe("SettingsPage", () => {
         );
 
         expect(
-          screen.getByRole("button", { name: /importer un fichier json…/i }),
+          screen.getByRole("button", { name: /importer depuis un fichier json…/i }),
         ).toBeDisabled();
 
         await act(async () => {
@@ -455,7 +458,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(
-            screen.getByRole("button", { name: /importer un fichier json$/i }),
+            screen.getByRole("button", { name: /importer depuis un fichier json$/i }),
           ).toBeEnabled();
         });
       });
@@ -529,6 +532,154 @@ describe("SettingsPage", () => {
             "Import impossible",
             "error",
           );
+        });
+      });
+    });
+
+    describe("JSON export", () => {
+      function makeDish(overrides: Record<string, unknown> = {}) {
+        return {
+          id: crypto.randomUUID(),
+          serverId: "server-1",
+          name: "Ratatouille",
+          description: "Légumes mijotés",
+          course: 1,
+          seasons: [1, 2],
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          isDeleted: false,
+          syncStatus: "synced",
+          ...overrides,
+        };
+      }
+
+      function renderDataTab() {
+        mockMatchMedia(false);
+        const rendered = renderSettingsPage();
+        fireEvent.click(
+          screen.getByRole("button", { name: /données & plats/i }),
+        );
+        return rendered;
+      }
+
+      function stubDownload() {
+        let captured: Blob | undefined;
+        const createObjectURL = vi
+          .spyOn(URL, "createObjectURL")
+          .mockImplementation((value: Blob | MediaSource) => {
+            captured = value as Blob;
+            return "blob:mock";
+          });
+        vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+        const clickSpy = vi
+          .spyOn(HTMLAnchorElement.prototype, "click")
+          .mockImplementation(() => {});
+        return {
+          getBlob: () => captured,
+          createObjectURL,
+          clickSpy,
+        };
+      }
+
+      it("downloads the dishes as JSON and reports the count", async () => {
+        mockGetAllDishes.mockResolvedValue([
+          makeDish({ name: "Ratatouille" }),
+          makeDish({
+            name: "Tarte",
+            course: 2,
+            seasons: [2],
+            description: "",
+          }),
+        ]);
+        const { getBlob, clickSpy } = stubDownload();
+        renderDataTab();
+
+        fireEvent.click(
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+        );
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "2 plat(s) exporté(s)",
+            "success",
+          );
+        });
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        const blob = getBlob();
+        expect(blob?.type).toBe("application/json");
+        const parsed = JSON.parse(await blob!.text());
+        expect(parsed).toEqual([
+          { name: "Ratatouille", description: "Légumes mijotés", course: 1, seasons: [1, 2] },
+          { name: "Tarte", description: "", course: 2, seasons: [2] },
+        ]);
+      });
+
+      it("excludes soft-deleted dishes from the download", async () => {
+        mockGetAllDishes.mockResolvedValue([
+          makeDish({ name: "Kept" }),
+          makeDish({ name: "Deleted", isDeleted: true }),
+        ]);
+        const { getBlob } = stubDownload();
+        renderDataTab();
+
+        fireEvent.click(
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+        );
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "1 plat(s) exporté(s)",
+            "success",
+          );
+        });
+        expect(JSON.parse(await getBlob()!.text())).toHaveLength(1);
+      });
+
+      it("shows an error and downloads nothing when there are no dishes", async () => {
+        mockGetAllDishes.mockResolvedValue([]);
+        const { createObjectURL, clickSpy } = stubDownload();
+        renderDataTab();
+
+        fireEvent.click(
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+        );
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Aucun plat à exporter.",
+            "error",
+          );
+        });
+        expect(createObjectURL).not.toHaveBeenCalled();
+        expect(clickSpy).not.toHaveBeenCalled();
+      });
+
+      it("disables the export button while the export is running", async () => {
+        let resolveDishes!: (value: unknown) => void;
+        mockGetAllDishes.mockReturnValue(
+          new Promise((resolve) => {
+            resolveDishes = resolve;
+          }),
+        );
+        stubDownload();
+        renderDataTab();
+
+        fireEvent.click(
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+        );
+
+        expect(
+          screen.getByRole("button", { name: /export en cours…/i }),
+        ).toBeDisabled();
+
+        await act(async () => {
+          resolveDishes([makeDish()]);
+        });
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole("button", { name: /^exporter dans un fichier json$/i }),
+          ).toBeEnabled();
         });
       });
     });

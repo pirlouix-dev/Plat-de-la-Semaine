@@ -23,8 +23,14 @@ import { getLastSyncAt, refreshFromServer } from "../../services/syncService";
 import {
   insertManyDishes,
   buildPendingDishes,
+  getAllDishes,
 } from "../../repositories/dishRepository";
 import { parseDishImportJson } from "../../utils/validateDishImport";
+import {
+  buildExportFilename,
+  downloadJsonFile,
+  serializeDishExport,
+} from "../../utils/dishExport";
 import {
   updateUsername,
   resetPassword,
@@ -142,6 +148,7 @@ export function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
 
   const handleUsernameSave = async () => {
     const trimmed = username.trim();
@@ -240,6 +247,27 @@ export function SettingsPage() {
       }
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!db) return;
+
+    setExporting(true);
+    try {
+      const dishes = await getAllDishes(db);
+      const exportable = dishes.filter((dish) => !dish.isDeleted);
+      if (exportable.length === 0) {
+        showToast("Aucun plat à exporter.", "error");
+        return;
+      }
+
+      downloadJsonFile(buildExportFilename(), serializeDishExport(dishes));
+      showToast(`${exportable.length} plat(s) exporté(s)`, "success");
+    } catch {
+      showToast("Erreur lors de l'export", "error");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -454,7 +482,7 @@ export function SettingsPage() {
                     Se déconnecter
                   </button>
                   <button
-                    className="btn btn-revert security-btn"
+                    className="btn btn-revert stacked-btn"
                     disabled={resettingPassword}
                     onClick={handleResetPassword}
                   >
@@ -525,32 +553,38 @@ export function SettingsPage() {
             (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
-                  <h2 className="section-title">Importer des plats</h2>
+                  <h2 className="section-title">Importer / Exporter des plats</h2>
                   <p className="section-description">
-                    Importez plusieurs plats d'un coup depuis un fichier JSON.
+                    Importez plusieurs plats d'un coup depuis un fichier JSON, ou
+                    exportez tous vos plats dans un fichier JSON.
                   </p>
-                  <div className="form-actions">
-                    <input
-                      ref={importInputRef}
-                      type="file"
-                      accept="application/json,.json"
-                      hidden
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        void handleImportFile(file);
-                      }}
-                    />
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => importInputRef.current?.click()}
-                      disabled={importing}
-                    >
-                      {importing
-                        ? "Importer un fichier JSON…"
-                        : "Importer un fichier JSON"}
-                    </button>
-                  </div>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      void handleImportFile(file);
+                    }}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={importing}
+                  >
+                    {importing
+                      ? "Importer depuis un fichier JSON…"
+                      : "Importer depuis un fichier JSON"}
+                  </button>
+                  <button
+                    className="btn btn-primary stacked-btn"
+                    onClick={handleExport}
+                    disabled={exporting}
+                  >
+                    {exporting ? "Export en cours…" : "Exporter dans un fichier JSON"}
+                  </button>
                 </section>
 
                 <section className="settings-section-card">
