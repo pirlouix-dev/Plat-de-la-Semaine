@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import RegisterPage from "../pages/RegisterPage/RegisterPage";
 import { MAX_USERNAME_LENGTH } from "../types";
+import { SERVER_WARMUP_MESSAGE } from "../services/api";
 
 function mockFetchSuccess(body: unknown) {
   vi.stubGlobal(
@@ -252,6 +253,33 @@ describe("RegisterPage", () => {
     fireEvent.click(screen.getByText("S'inscrire"));
 
     expect(await screen.findByText("Email already in use")).toBeTruthy();
+  });
+
+  it("shows the warm-up message instead of the raw timeout error on register", async () => {
+    mockFetchError(408, {
+      code: "TIMEOUT",
+      message: "Request timed out",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText("S'inscrire"));
+
+    expect(await screen.findByText(SERVER_WARMUP_MESSAGE)).toBeTruthy();
+    expect(screen.queryByText("Request timed out")).toBeNull();
   });
 
   it("disables submit button and shows loading text while registering", () => {

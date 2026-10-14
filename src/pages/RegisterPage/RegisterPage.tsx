@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CharacterCounter from "../../components/CharacterCounter";
-import { apiPost, notifyAuthChange } from "../../services/api";
+import { apiPost, getApiErrorMessage, notifyAuthChange } from "../../services/api";
 import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
@@ -44,7 +44,7 @@ function RegisterPage() {
     });
 
     if (!result.ok) {
-      setError(result.error.message);
+      setError(getApiErrorMessage(result.error));
       setLoading(false);
       return;
     }

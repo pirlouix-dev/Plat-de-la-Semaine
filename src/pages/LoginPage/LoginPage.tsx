@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { apiPost, notifyAuthChange } from "../../services/api";
+import {
+  apiPost,
+  getApiErrorMessage,
+  getApiErrorToastDuration,
+  notifyAuthChange,
+} from "../../services/api";
 import type { components } from "../../schema";
 import { useToast } from "../../components/toastContext";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
@@ -44,7 +49,7 @@ function LoginPage() {
       notifyAuthChange();
       navigate("/");
     } else {
-      setError(result.error.message ?? "Une erreur est survenue.");
+      setError(getApiErrorMessage(result.error));
     }
     setLoading(false);
   };
@@ -65,7 +70,11 @@ function LoginPage() {
         "warning",
       );
     } else {
-      showToast(result.error.message ?? "Une erreur est survenue.", "error");
+      showToast(
+        getApiErrorMessage(result.error),
+        "error",
+        getApiErrorToastDuration(result.error),
+      );
     }
     setForgotLoading(false);
   };

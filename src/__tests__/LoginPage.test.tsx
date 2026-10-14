@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../components/Toast";
 import LoginPage from "../pages/LoginPage/LoginPage";
+import { SERVER_WARMUP_MESSAGE } from "../services/api";
 
 beforeEach(() => {
   localStorage.clear();
@@ -139,6 +140,46 @@ describe("LoginPage", () => {
     expect(
       await screen.findByText("Email ou mot de passe incorrect"),
     ).toBeTruthy();
+  });
+
+  it("shows the warm-up message instead of the raw timeout error on login", async () => {
+    mockFetchError(408, {
+      code: "TIMEOUT",
+      message: "Request timed out",
+    });
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "pwd" },
+    });
+    fireEvent.click(screen.getByText("Se connecter"));
+
+    expect(await screen.findByText(SERVER_WARMUP_MESSAGE)).toBeTruthy();
+    expect(screen.queryByText("Request timed out")).toBeNull();
+  });
+
+  it("shows the warm-up toast when forgot-password times out", async () => {
+    mockFetchError(408, {
+      code: "TIMEOUT",
+      message: "Request timed out",
+    });
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "user@example.com" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /mot de passe oublié/i }),
+    );
+
+    const toast = await screen.findByText(SERVER_WARMUP_MESSAGE);
+    expect(toast.className).toContain("toast-error");
   });
 
   it("calls /api/auth/forgot-password with email and shows success toast", async () => {
