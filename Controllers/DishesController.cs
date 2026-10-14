@@ -14,7 +14,8 @@ public class DishesController : BaseController
 {
     private readonly IDishService _dishService;
 
-    public DishesController(IDishService dishService)
+    public DishesController(IDishService dishService, ITokenVerifier tokenVerifier)
+        : base(tokenVerifier)
     {
         _dishService = dishService;
     }

@@ -3,6 +3,7 @@ using Xunit;
 
 namespace PlatDeLaSemaineBack.Tests;
 
+[Collection(EnvironmentVariableCollection.Name)]
 public class CorsSettingsTests
 {
     [Fact]

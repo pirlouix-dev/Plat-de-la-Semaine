@@ -14,7 +14,8 @@ public class BackupsController : BaseController
 {
     private readonly IBackupService _backupService;
 
-    public BackupsController(IBackupService backupService)
+    public BackupsController(IBackupService backupService, ITokenVerifier tokenVerifier)
+        : base(tokenVerifier)
     {
         _backupService = backupService;
     }

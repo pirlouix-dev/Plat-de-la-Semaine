@@ -1,4 +1,5 @@
 using DotNetEnv;
+using Microsoft.AspNetCore.HttpOverrides;
 using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Middleware;
 using PlatDeLaSemaineBack.Services;
@@ -12,6 +13,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Configuration ─────────────────────────────────────────────────
 builder.Services.AddAppSettings();
+
+// Feeds the host filtering middleware, which reads the AllowedHosts key.
+var allowedHosts = HostSettings.ResolveAllowedHosts();
+if (allowedHosts is not null)
+{
+    builder.Configuration.AddInMemoryCollection(
+        new Dictionary<string, string?> { ["AllowedHosts"] = allowedHosts });
+}
 
 // ── Services ──────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -29,6 +38,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 }));
 
 // Register application services
+builder.Services.AddSingleton<ITokenVerifier, FirebaseTokenVerifier>();
 builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
 builder.Services.AddScoped<IDishService, DishService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
@@ -46,7 +56,44 @@ if (allowedOrigins.Length == 0)
         "Set CORS_ALLOWED_ORIGINS or Cors:AllowedOrigins.");
 }
 
+if (!app.Environment.IsDevelopment() && builder.Configuration["AllowedHosts"] == HostSettings.Wildcard)
+{
+    app.Logger.LogWarning(
+        "AllowedHosts is '*': any Host header is accepted. " +
+        "Set ALLOWED_HOSTS to the hostname(s) clients use.");
+}
+
 app.UseMiddleware<ErrorHandlingMiddleware>();
+
+// ── HTTPS enforcement ─────────────────────────────────────────────
+// Skipped in Development: the `http` launch profile binds no HTTPS port, so
+// redirection would send the developer to a port nothing is listening on.
+if (!app.Environment.IsDevelopment())
+{
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    };
+
+    // Only loopback proxies are trusted by default. The reverse proxy in front
+    // of the application is not on loopback, so X-Forwarded-Proto would be
+    // ignored and UseHttpsRedirection would redirect every request forever.
+    forwardedHeaders.KnownIPNetworks.Clear();
+    forwardedHeaders.KnownProxies.Clear();
+
+    app.UseForwardedHeaders(forwardedHeaders);
+
+    if (HttpsSettings.HstsEnabled)
+    {
+        app.UseHsts();
+    }
+
+    if (HttpsSettings.RedirectEnabled)
+    {
+        app.UseHttpsRedirection();
+    }
+}
+
 app.UseCors();
 
 app.MapControllers();
@@ -61,3 +108,8 @@ var firestoreService = app.Services.GetRequiredService<IFirestoreService>();
 await firestoreService.InitializeAsync();
 
 app.Run();
+
+/// <summary>
+/// Exposed so the integration tests can boot the real application pipeline.
+/// </summary>
+public partial class Program;

@@ -14,7 +14,8 @@ public class FeedbackController : BaseController
 {
     private readonly IFeedbackService _feedbackService;
 
-    public FeedbackController(IFeedbackService feedbackService)
+    public FeedbackController(IFeedbackService feedbackService, ITokenVerifier tokenVerifier)
+        : base(tokenVerifier)
     {
         _feedbackService = feedbackService;
     }
