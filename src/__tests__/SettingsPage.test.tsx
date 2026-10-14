@@ -402,7 +402,7 @@ describe("SettingsPage", () => {
         const clickSpy = vi.spyOn(input, "click");
 
         fireEvent.click(
-          screen.getByRole("button", { name: /importer un fichier json/i }),
+          screen.getByRole("button", { name: /importer depuis un fichier json/i }),
         );
 
         expect(clickSpy).toHaveBeenCalled();
@@ -446,7 +446,7 @@ describe("SettingsPage", () => {
         );
 
         expect(
-          screen.getByRole("button", { name: /importer un fichier json…/i }),
+          screen.getByRole("button", { name: /importer depuis un fichier json…/i }),
         ).toBeDisabled();
 
         await act(async () => {
@@ -458,7 +458,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(
-            screen.getByRole("button", { name: /importer un fichier json$/i }),
+            screen.getByRole("button", { name: /importer depuis un fichier json$/i }),
           ).toBeEnabled();
         });
       });
@@ -594,7 +594,7 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter en json/i }),
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
         );
 
         await waitFor(() => {
@@ -614,54 +614,6 @@ describe("SettingsPage", () => {
         ]);
       });
 
-      it("opens the save picker when the File System Access API is available", async () => {
-        mockGetAllDishes.mockResolvedValue([makeDish({ name: "Ratatouille" })]);
-        const write = vi.fn().mockResolvedValue(undefined);
-        const close = vi.fn().mockResolvedValue(undefined);
-        const showSaveFilePicker = vi.fn().mockResolvedValue({
-          createWritable: vi.fn().mockResolvedValue({ write, close }),
-        });
-        vi.stubGlobal("showSaveFilePicker", showSaveFilePicker);
-        renderDataTab();
-
-        fireEvent.click(
-          screen.getByRole("button", { name: /exporter en json/i }),
-        );
-
-        await waitFor(() => {
-          expect(mockShowToast).toHaveBeenCalledWith(
-            "1 plat(s) exporté(s)",
-            "success",
-          );
-        });
-        expect(showSaveFilePicker).toHaveBeenCalledWith(
-          expect.objectContaining({
-            suggestedName: expect.stringMatching(
-              /^plats-\d{2}-\d{2}-\d{4}\.json$/,
-            ),
-          }),
-        );
-        expect(write).toHaveBeenCalledTimes(1);
-      });
-
-      it("reports nothing when the user cancels the save dialog", async () => {
-        mockGetAllDishes.mockResolvedValue([makeDish()]);
-        vi.stubGlobal(
-          "showSaveFilePicker",
-          vi.fn().mockRejectedValue(new DOMException("cancelled", "AbortError")),
-        );
-        renderDataTab();
-
-        fireEvent.click(
-          screen.getByRole("button", { name: /exporter en json/i }),
-        );
-
-        await waitFor(() => {
-          expect(mockGetAllDishes).toHaveBeenCalled();
-        });
-        expect(mockShowToast).not.toHaveBeenCalled();
-      });
-
       it("excludes soft-deleted dishes from the download", async () => {
         mockGetAllDishes.mockResolvedValue([
           makeDish({ name: "Kept" }),
@@ -671,7 +623,7 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter en json/i }),
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
         );
 
         await waitFor(() => {
@@ -689,7 +641,7 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter en json/i }),
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
         );
 
         await waitFor(() => {
@@ -713,7 +665,7 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter en json/i }),
+          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
         );
 
         expect(
@@ -726,7 +678,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(
-            screen.getByRole("button", { name: /^exporter en json$/i }),
+            screen.getByRole("button", { name: /^exporter dans un fichier json$/i }),
           ).toBeEnabled();
         });
       });

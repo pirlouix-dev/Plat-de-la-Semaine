@@ -28,7 +28,7 @@ import {
 import { parseDishImportJson } from "../../utils/validateDishImport";
 import {
   buildExportFilename,
-  saveJsonFile,
+  downloadJsonFile,
   serializeDishExport,
 } from "../../utils/dishExport";
 import {
@@ -262,13 +262,8 @@ export function SettingsPage() {
         return;
       }
 
-      const result = await saveJsonFile(
-        buildExportFilename(),
-        serializeDishExport(dishes),
-      );
-      if (result === "saved") {
-        showToast(`${exportable.length} plat(s) exporté(s)`, "success");
-      }
+      downloadJsonFile(buildExportFilename(), serializeDishExport(dishes));
+      showToast(`${exportable.length} plat(s) exporté(s)`, "success");
     } catch {
       showToast("Erreur lors de l'export", "error");
     } finally {
@@ -487,7 +482,7 @@ export function SettingsPage() {
                     Se déconnecter
                   </button>
                   <button
-                    className="btn btn-revert security-btn"
+                    className="btn btn-revert stacked-btn"
                     disabled={resettingPassword}
                     onClick={handleResetPassword}
                   >
@@ -561,7 +556,7 @@ export function SettingsPage() {
                   <h2 className="section-title">Importer / Exporter des plats</h2>
                   <p className="section-description">
                     Importez plusieurs plats d'un coup depuis un fichier JSON, ou
-                    exportez tous vos plats dans un fichier réimportable tel quel.
+                    exportez tous vos plats dans un fichier JSON.
                   </p>
                   <input
                     ref={importInputRef}
@@ -580,15 +575,15 @@ export function SettingsPage() {
                     disabled={importing}
                   >
                     {importing
-                      ? "Importer un fichier JSON…"
-                      : "Importer un fichier JSON"}
+                      ? "Importer depuis un fichier JSON…"
+                      : "Importer depuis un fichier JSON"}
                   </button>
                   <button
-                    className="btn btn-revert security-btn"
+                    className="btn btn-primary stacked-btn"
                     onClick={handleExport}
                     disabled={exporting}
                   >
-                    {exporting ? "Export en cours…" : "Exporter en JSON"}
+                    {exporting ? "Export en cours…" : "Exporter dans un fichier JSON"}
                   </button>
                 </section>
 

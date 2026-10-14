@@ -3,7 +3,7 @@ import {
   buildDishExport,
   serializeDishExport,
   buildExportFilename,
-  saveJsonFile,
+  downloadJsonFile,
 } from "../utils/dishExport";
 import { parseDishImportJson } from "../utils/validateDishImport";
 import { Course, Season } from "../types/dish";
@@ -112,13 +112,12 @@ describe("buildExportFilename", () => {
   });
 });
 
-describe("saveJsonFile", () => {
+describe("downloadJsonFile", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
-  function stubDownload() {
+  it("downloads the JSON as an application/json file", () => {
     let blob: Blob | undefined;
     const createObjectURL = vi
       .spyOn(URL, "createObjectURL")
@@ -132,69 +131,12 @@ describe("saveJsonFile", () => {
     const clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => {});
-    return {
-      getBlob: () => blob,
-      createObjectURL,
-      revokeObjectURL,
-      clickSpy,
-    };
-  }
 
-  function stubPicker() {
-    const write = vi.fn().mockResolvedValue(undefined);
-    const close = vi.fn().mockResolvedValue(undefined);
-    const createWritable = vi.fn().mockResolvedValue({ write, close });
-    const showSaveFilePicker = vi
-      .fn()
-      .mockResolvedValue({ createWritable });
-    vi.stubGlobal("showSaveFilePicker", showSaveFilePicker);
-    return { showSaveFilePicker, createWritable, write, close };
-  }
+    downloadJsonFile("plats-14-10-2026.json", '[{"name":"X"}]');
 
-  it("falls back to a download when the File System Access API is unavailable", async () => {
-    const { getBlob, clickSpy, revokeObjectURL } = stubDownload();
-
-    const result = await saveJsonFile("plats-14-10-2026.json", '[{"name":"X"}]');
-
-    expect(result).toBe("saved");
-    expect(getBlob()?.type).toBe("application/json");
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(blob?.type).toBe("application/json");
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock");
-  });
-
-  it("writes through the file picker when it is available", async () => {
-    const { showSaveFilePicker, write, close } = stubPicker();
-    stubDownload();
-
-    const result = await saveJsonFile("plats-14-10-2026.json", '[{"name":"X"}]');
-
-    expect(result).toBe("saved");
-    expect(showSaveFilePicker).toHaveBeenCalledWith(
-      expect.objectContaining({ suggestedName: "plats-14-10-2026.json" }),
-    );
-    expect(write).toHaveBeenCalledTimes(1);
-    expect(write.mock.calls[0][0]).toBeInstanceOf(Blob);
-    expect(close).toHaveBeenCalledTimes(1);
-  });
-
-  it("reports cancellation without writing when the picker is dismissed", async () => {
-    const { showSaveFilePicker, write } = stubPicker();
-    showSaveFilePicker.mockRejectedValue(
-      new DOMException("cancelled", "AbortError"),
-    );
-
-    const result = await saveJsonFile("plats-14-10-2026.json", "[]");
-
-    expect(result).toBe("cancelled");
-    expect(write).not.toHaveBeenCalled();
-  });
-
-  it("rethrows non-abort picker errors", async () => {
-    const { showSaveFilePicker } = stubPicker();
-    showSaveFilePicker.mockRejectedValue(new Error("disk full"));
-
-    await expect(saveJsonFile("plats-14-10-2026.json", "[]")).rejects.toThrow(
-      "disk full",
-    );
   });
 });
