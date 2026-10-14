@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   BackArrowIcon,
   BugIcon,
+  DownloadIcon,
   InfoIcon,
   RefreshIcon,
   UserIcon,
@@ -23,8 +24,14 @@ import { getLastSyncAt, refreshFromServer } from "../../services/syncService";
 import {
   insertManyDishes,
   buildPendingDishes,
+  getAllDishes,
 } from "../../repositories/dishRepository";
 import { parseDishImportJson } from "../../utils/validateDishImport";
+import {
+  buildExportFilename,
+  downloadJsonFile,
+  serializeDishExport,
+} from "../../utils/dishExport";
 import {
   updateUsername,
   resetPassword,
@@ -142,6 +149,7 @@ export function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
 
   const handleUsernameSave = async () => {
     const trimmed = username.trim();
@@ -240,6 +248,27 @@ export function SettingsPage() {
       }
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!db) return;
+
+    setExporting(true);
+    try {
+      const dishes = await getAllDishes(db);
+      const exportable = dishes.filter((dish) => !dish.isDeleted);
+      if (exportable.length === 0) {
+        showToast("Aucun plat à exporter.", "error");
+        return;
+      }
+
+      downloadJsonFile(buildExportFilename(), serializeDishExport(dishes));
+      showToast(`${exportable.length} plat(s) exporté(s)`, "success");
+    } catch {
+      showToast("Erreur lors de l'export", "error");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -549,6 +578,24 @@ export function SettingsPage() {
                       {importing
                         ? "Importer un fichier JSON…"
                         : "Importer un fichier JSON"}
+                    </button>
+                  </div>
+                </section>
+
+                <section className="settings-section-card">
+                  <h2 className="section-title">Exporter des plats</h2>
+                  <p className="section-description">
+                    Téléchargez tous vos plats dans un fichier JSON, réimportable
+                    tel quel.
+                  </p>
+                  <div className="form-actions">
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleExport}
+                      disabled={exporting}
+                    >
+                      <DownloadIcon size={18} />
+                      {exporting ? "Export en cours…" : "Exporter en JSON"}
                     </button>
                   </div>
                 </section>
