@@ -9,6 +9,10 @@ import {
   isLoggedIn,
   clearAuth,
   AUTH_CHANGED_EVENT,
+  getApiErrorMessage,
+  getApiErrorToastDuration,
+  SERVER_WARMUP_MESSAGE,
+  SERVER_WARMUP_TOAST_DURATION_MS,
 } from "../services/api";
 import type { ApiResult } from "../services/api";
 
@@ -290,6 +294,43 @@ describe("Error handling edge cases", () => {
       ok: false,
       error: { code: "HTTP_502", message: "HTTP 502" },
     });
+  });
+});
+
+describe("getApiErrorMessage", () => {
+  it("returns the warm-up message for a TIMEOUT error", () => {
+    expect(
+      getApiErrorMessage({ code: "TIMEOUT", message: "Request timed out" })
+    ).toBe(SERVER_WARMUP_MESSAGE);
+  });
+
+  it("returns the backend message for other error codes", () => {
+    expect(
+      getApiErrorMessage({
+        code: "INVALID_CREDENTIALS",
+        message: "Email ou mot de passe incorrect",
+      })
+    ).toBe("Email ou mot de passe incorrect");
+  });
+
+  it("falls back when the message is empty", () => {
+    expect(getApiErrorMessage({ code: "UNKNOWN", message: "" })).toBe(
+      "Une erreur est survenue."
+    );
+  });
+});
+
+describe("getApiErrorToastDuration", () => {
+  it("extends the duration for a TIMEOUT error", () => {
+    expect(
+      getApiErrorToastDuration({ code: "TIMEOUT", message: "Request timed out" })
+    ).toBe(SERVER_WARMUP_TOAST_DURATION_MS);
+  });
+
+  it("uses the default duration for other error codes", () => {
+    expect(
+      getApiErrorToastDuration({ code: "INVALID_CREDENTIALS", message: "nope" })
+    ).toBeUndefined();
   });
 });
 

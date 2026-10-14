@@ -88,6 +88,31 @@ function buildNetworkError(cause: unknown): ApiErrorDetail {
   return { code: "NETWORK_ERROR", message };
 }
 
+// ── User-facing error messages ───────────────────────────────────────────────
+
+export const API_ERROR_CODES = { TIMEOUT: "TIMEOUT" } as const;
+
+export const SERVER_WARMUP_MESSAGE =
+  "Le serveur est en cours de démarrage et sera disponible dans quelques secondes. Veuillez réessayer.";
+
+export function getApiErrorMessage(
+  error: ApiErrorDetail,
+  fallback = "Une erreur est survenue.",
+): string {
+  if (error.code === API_ERROR_CODES.TIMEOUT) return SERVER_WARMUP_MESSAGE;
+  return error.message || fallback;
+}
+
+export const SERVER_WARMUP_TOAST_DURATION_MS = 6000;
+
+export function getApiErrorToastDuration(
+  error: ApiErrorDetail,
+): number | undefined {
+  return error.code === API_ERROR_CODES.TIMEOUT
+    ? SERVER_WARMUP_TOAST_DURATION_MS
+    : undefined;
+}
+
 async function parseJsonSafe(res: Response): Promise<unknown> {
   try {
     return (await res.json()) as unknown;
@@ -332,7 +357,7 @@ async function request<T>(
     if (err instanceof DOMException && err.name === "AbortError") {
       return {
         ok: false,
-        error: { code: "TIMEOUT", message: "Request timed out" },
+        error: { code: API_ERROR_CODES.TIMEOUT, message: "Request timed out" },
       };
     }
 
