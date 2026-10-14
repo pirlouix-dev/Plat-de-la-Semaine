@@ -9,7 +9,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   BackArrowIcon,
   BugIcon,
-  DownloadIcon,
   InfoIcon,
   RefreshIcon,
   UserIcon,
@@ -29,7 +28,7 @@ import {
 import { parseDishImportJson } from "../../utils/validateDishImport";
 import {
   buildExportFilename,
-  downloadJsonFile,
+  saveJsonFile,
   serializeDishExport,
 } from "../../utils/dishExport";
 import {
@@ -263,8 +262,13 @@ export function SettingsPage() {
         return;
       }
 
-      downloadJsonFile(buildExportFilename(), serializeDishExport(dishes));
-      showToast(`${exportable.length} plat(s) exporté(s)`, "success");
+      const result = await saveJsonFile(
+        buildExportFilename(),
+        serializeDishExport(dishes),
+      );
+      if (result === "saved") {
+        showToast(`${exportable.length} plat(s) exporté(s)`, "success");
+      }
     } catch {
       showToast("Erreur lors de l'export", "error");
     } finally {
@@ -554,50 +558,38 @@ export function SettingsPage() {
             (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
-                  <h2 className="section-title">Importer des plats</h2>
+                  <h2 className="section-title">Importer / Exporter des plats</h2>
                   <p className="section-description">
-                    Importez plusieurs plats d'un coup depuis un fichier JSON.
+                    Importez plusieurs plats d'un coup depuis un fichier JSON, ou
+                    exportez tous vos plats dans un fichier réimportable tel quel.
                   </p>
-                  <div className="form-actions">
-                    <input
-                      ref={importInputRef}
-                      type="file"
-                      accept="application/json,.json"
-                      hidden
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        void handleImportFile(file);
-                      }}
-                    />
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => importInputRef.current?.click()}
-                      disabled={importing}
-                    >
-                      {importing
-                        ? "Importer un fichier JSON…"
-                        : "Importer un fichier JSON"}
-                    </button>
-                  </div>
-                </section>
-
-                <section className="settings-section-card">
-                  <h2 className="section-title">Exporter des plats</h2>
-                  <p className="section-description">
-                    Téléchargez tous vos plats dans un fichier JSON, réimportable
-                    tel quel.
-                  </p>
-                  <div className="form-actions">
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleExport}
-                      disabled={exporting}
-                    >
-                      <DownloadIcon size={18} />
-                      {exporting ? "Export en cours…" : "Exporter en JSON"}
-                    </button>
-                  </div>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      void handleImportFile(file);
+                    }}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={importing}
+                  >
+                    {importing
+                      ? "Importer un fichier JSON…"
+                      : "Importer un fichier JSON"}
+                  </button>
+                  <button
+                    className="btn btn-revert security-btn"
+                    onClick={handleExport}
+                    disabled={exporting}
+                  >
+                    {exporting ? "Export en cours…" : "Exporter en JSON"}
+                  </button>
                 </section>
 
                 <section className="settings-section-card">
