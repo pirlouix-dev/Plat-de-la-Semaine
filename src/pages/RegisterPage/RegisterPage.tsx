@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import CharacterCounter from "../../components/CharacterCounter";
 import { apiPost, getApiErrorMessage, notifyAuthChange } from "../../services/api";
 import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
-import "./RegisterPage.css";
+import "../../styles/auth.css";
 
 type AuthResponse = components["schemas"]["AuthResponse"];
 
@@ -63,15 +63,15 @@ function RegisterPage() {
 
   return (
     <div className="auth-container">
-      <div className="register-logo-wrapper">
-        <img
-          src={logo_img}
-          alt="Plat de la Semaine"
-          className="register-logo"
-        />
+      <div className="auth-logo-wrapper">
+        <img src={logo_img} alt="Plat de la Semaine" className="auth-logo" />
       </div>
 
       <h1 className="auth-title">Inscription</h1>
+
+      <p className="auth-switch">
+        Vous avez déjà un compte ? <Link to="/login">Se connecter</Link>
+      </p>
 
       <form className="dish-form" onSubmit={handleRegister}>
         <div className="input-group char-counter-field">
@@ -127,9 +127,9 @@ function RegisterPage() {
           )}
         </div>
 
-        {error && <div className="register-error">{error}</div>}
+        {error && <div className="auth-error">{error}</div>}
 
-        <div className="register-actions">
+        <div className="auth-actions">
           <button
             type="submit"
             className="btn btn-primary"
@@ -139,14 +139,7 @@ function RegisterPage() {
           </button>
           <button
             type="button"
-            className="btn btn-success"
-            onClick={() => navigate("/login")}
-          >
-            Se connecter
-          </button>
-          <button
-            type="button"
-            className="register-link-btn"
+            className="auth-link-btn"
             onClick={() => navigate("/")}
           >
             Continuer sans compte
