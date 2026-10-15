@@ -73,3 +73,9 @@ GitHub Actions runs lint, type-check, build, and tests on every push to `main` a
 | Variable | Default | Description |
 |---|---|---|
 | `VITE_SERVER_URL` | `http://localhost:5126` | Backend API base URL |
+
+## Deployment
+
+The app is deployed on Vercel as static files, but routing is entirely client-side (`BrowserRouter`). `vercel.json` therefore rewrites every unmatched path to `/index.html` so the router can resolve it. Real files (`/assets/*`, icons, the web manifest) are still served directly, since Vercel applies rewrites only after the filesystem check.
+
+Do not remove that rewrite: without it, opening or refreshing any sub-route (`/login`, `/register`, `/settings`, …) returns a 404.
