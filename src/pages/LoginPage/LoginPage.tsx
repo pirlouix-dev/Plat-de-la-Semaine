@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   apiPost,
   getApiErrorMessage,
@@ -10,6 +10,7 @@ import type { components } from "../../schema";
 import { useToast } from "../../components/toastContext";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
+import "../../styles/auth.css";
 import "./LoginPage.css";
 
 type AuthResponse = components["schemas"]["AuthResponse"];
@@ -81,15 +82,15 @@ function LoginPage() {
 
   return (
     <div className="auth-container">
-      <div className="register-logo-wrapper">
-        <img
-          src={logo_img}
-          alt="Plat de la Semaine"
-          className="register-logo"
-        />
+      <div className="auth-logo-wrapper">
+        <img src={logo_img} alt="Plat de la Semaine" className="auth-logo" />
       </div>
 
       <h1 className="auth-title">Connexion</h1>
+
+      <p className="auth-switch">
+        Vous souhaitez créer un compte ? <Link to="/register">S'inscrire</Link>
+      </p>
 
       <form className="dish-form" onSubmit={handleLogin}>
         <div className="input-group">
@@ -124,22 +125,15 @@ function LoginPage() {
           </div>
         </div>
 
-        {error && <div className="register-error">{error}</div>}
+        {error && <div className="auth-error">{error}</div>}
 
-        <div className="register-actions">
+        <div className="auth-actions">
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "Connexion..." : "Se connecter"}
           </button>
           <button
             type="button"
-            className="btn btn-success"
-            onClick={() => navigate("/register")}
-          >
-            Créer un compte
-          </button>
-          <button
-            type="button"
-            className="register-link-btn"
+            className="auth-link-btn"
             onClick={() => navigate("/")}
           >
             Continuer sans compte

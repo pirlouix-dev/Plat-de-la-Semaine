@@ -305,6 +305,16 @@ describe("RegisterPage", () => {
     expect(screen.getByText("Inscription...")).toBeDisabled();
   });
 
+  it("links to the login page with a single switch affordance", () => {
+    renderPage();
+
+    const switchLink = screen.getByRole("link", { name: "Se connecter" });
+    expect(switchLink).toHaveAttribute("href", "/login");
+    expect(
+      screen.queryByRole("button", { name: /^se connecter$/i }),
+    ).toBeNull();
+  });
+
   it("pings the backend on mount to warm it up", async () => {
     renderPage();
 
