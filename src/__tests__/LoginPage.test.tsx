@@ -277,6 +277,16 @@ describe("LoginPage", () => {
     ).toBeTruthy();
   });
 
+  it("links to the register page with a single switch affordance", () => {
+    renderLogin();
+
+    const switchLink = screen.getByRole("link", { name: "S'inscrire" });
+    expect(switchLink).toHaveAttribute("href", "/register");
+    expect(
+      screen.queryByRole("button", { name: /créer un compte/i }),
+    ).toBeNull();
+  });
+
   it("pings the backend on mount to warm it up", async () => {
     renderLogin();
 
