@@ -45,6 +45,19 @@ public interface IFirestoreService
     /// </summary>
     Task DeleteDishAsync(string userId, string dishId);
 
+    // ── Menu ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Retrieves the given user's saved menu.
+    /// Returns null when the user has never saved one.
+    /// </summary>
+    Task<Menu?> GetMenuAsync(string userId);
+
+    /// <summary>
+    /// Inserts or replaces the given user's menu singleton document.
+    /// </summary>
+    Task<Menu> UpsertMenuAsync(string userId, Menu menu);
+
     // ── Users ───────────────────────────────────────────────────────
 
     /// <summary>

@@ -41,6 +41,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 builder.Services.AddSingleton<ITokenVerifier, FirebaseTokenVerifier>();
 builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
 builder.Services.AddScoped<IDishService, DishService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddHttpClient<IFeedbackService, FeedbackService>();
 builder.Services.AddHttpClient<IAuthService, AuthService>();

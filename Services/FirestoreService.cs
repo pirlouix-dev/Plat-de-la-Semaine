@@ -138,6 +138,36 @@ public class FirestoreService : IFirestoreService
         await DishesCollection(userId).Document(dishId).DeleteAsync();
     }
 
+    // ── Menu ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the user's singleton Menu document reference, keeping ownership
+    /// implicit in the document path so cross-user access is impossible by construction.
+    /// </summary>
+    private DocumentReference MenuDocument(string userId)
+        => _db!.Collection("Users").Document(userId).Collection("Menu").Document("current");
+
+    /// <inheritdoc />
+    public async Task<Menu?> GetMenuAsync(string userId)
+    {
+        // Unlike the dish readers, this throws when Firestore is unavailable: an empty
+        // menu is a meaningful value here (a reset), so silence would let a client
+        // conclude the user has no saved menu and erase the local copy.
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        var doc = await MenuDocument(userId).GetSnapshotAsync();
+        return doc.Exists ? doc.ConvertTo<Menu>() : null;
+    }
+
+    /// <inheritdoc />
+    public async Task<Menu> UpsertMenuAsync(string userId, Menu menu)
+    {
+        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        if (string.IsNullOrEmpty(userId)) throw new ArgumentException("Menu UserId cannot be null or empty.");
+
+        await MenuDocument(userId).SetAsync(menu);
+        return menu;
+    }
+
     // ── Users ───────────────────────────────────────────────────────
 
     /// <inheritdoc />

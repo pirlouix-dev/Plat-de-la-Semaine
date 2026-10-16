@@ -199,6 +199,70 @@ public class Backup
 }
 
 /// <summary>
+/// Request payload for saving the user's weekly menu.
+/// </summary>
+public class SaveMenuPayload : IValidatableObject
+{
+    /// <summary>
+    /// Cap on the number of selected dishes, to bound the document size.
+    /// </summary>
+    public const int MaxSelectedDishIds = 500;
+
+    /// <summary>
+    /// Ids of the selected dishes, in display order. May be empty to reset the menu.
+    /// Ids are not required to exist: a dish may be created or deleted offline and
+    /// synced later, so an existence check would race the client.
+    /// </summary>
+    [Required]
+    public required List<string> SelectedDishIds { get; set; } = new();
+
+    /// <summary>
+    /// Frontend view mode, either <see cref="MenuMode.Editing"/> or <see cref="MenuMode.Recap"/>.
+    /// </summary>
+    [Required]
+    public required string Mode { get; set; } = string.Empty;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (!MenuMode.All.Contains(Mode))
+        {
+            yield return new ValidationResult(
+                $"Mode must be one of: {string.Join(", ", MenuMode.All)}.",
+                [nameof(Mode)]);
+        }
+
+        if (SelectedDishIds.Count > MaxSelectedDishIds)
+        {
+            yield return new ValidationResult(
+                $"SelectedDishIds must not contain more than {MaxSelectedDishIds} ids.",
+                [nameof(SelectedDishIds)]);
+        }
+
+        if (SelectedDishIds.Any(string.IsNullOrWhiteSpace))
+        {
+            yield return new ValidationResult(
+                "SelectedDishIds must not contain empty ids.",
+                [nameof(SelectedDishIds)]);
+        }
+
+        if (SelectedDishIds.Distinct().Count() != SelectedDishIds.Count)
+        {
+            yield return new ValidationResult(
+                "SelectedDishIds must not contain duplicate ids.",
+                [nameof(SelectedDishIds)]);
+        }
+    }
+}
+
+/// <summary>
+/// Response containing the user's saved weekly menu.
+/// </summary>
+public class MenuResponse
+{
+    public required Menu Data { get; set; } = new();
+}
+
+/// <summary>
 /// Response containing a list of backups.
 /// </summary>
 public class BackupListResponse
