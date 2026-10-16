@@ -1,24 +1,36 @@
 namespace PlatDeLaSemaineBack.Models;
 
+using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
 
 /// <summary>
-/// The allowed values for <see cref="Menu.Mode"/>, mirrored from the frontend view mode.
+/// View mode of the saved menu, mirrored from the frontend.
 /// </summary>
-public static class MenuMode
+[JsonConverter(typeof(MenuModeJsonConverter))]
+public enum MenuMode
 {
     /// <summary>The user is picking dishes.</summary>
-    public const string Editing = "editing";
+    [JsonStringEnumMemberName("editing")]
+    Editing = 0,
 
-    /// <summary>The user is viewing the "Plats sauvegardés" recap.</summary>
-    public const string Recap = "recap";
-
-    /// <summary>All valid modes.</summary>
-    public static readonly string[] All = [Editing, Recap];
+    /// <summary>The user is viewing the recap of saved dishes.</summary>
+    [JsonStringEnumMemberName("recap")]
+    Recap = 1,
 }
 
 /// <summary>
-/// The user's saved weekly menu, stored as a singleton document at
+/// Serializes <see cref="MenuMode"/> as its lowercase wire value. Rejects numeric
+/// values, so <c>"1"</c> is not accepted as an alias for <see cref="MenuMode.Recap"/>.
+/// </summary>
+internal sealed class MenuModeJsonConverter : JsonStringEnumConverter<MenuMode>
+{
+    public MenuModeJsonConverter() : base(allowIntegerValues: false)
+    {
+    }
+}
+
+/// <summary>
+/// The user's saved menu, stored as a singleton document at
 /// <c>Users/{userId}/Menu/current</c>. Ownership is implicit in the path, so
 /// cross-user access is impossible by construction.
 /// </summary>
@@ -33,10 +45,11 @@ public class Menu
     public List<string> SelectedDishIds { get; set; } = new();
 
     /// <summary>
-    /// Frontend view mode, either <see cref="MenuMode.Editing"/> or <see cref="MenuMode.Recap"/>.
+    /// View mode of the menu, either <see cref="MenuMode.Editing"/> or <see cref="MenuMode.Recap"/>.
+    /// Stored as the enum name so the document stays readable in the Firestore console.
     /// </summary>
-    [FirestoreProperty]
-    public string Mode { get; set; } = MenuMode.Editing;
+    [FirestoreProperty(ConverterType = typeof(FirestoreEnumNameConverter<MenuMode>))]
+    public MenuMode Mode { get; set; } = MenuMode.Editing;
 
     /// <summary>
     /// Server-set timestamp of the last write, used by the client for last-write-wins.

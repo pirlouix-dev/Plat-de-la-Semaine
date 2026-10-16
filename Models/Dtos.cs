@@ -199,7 +199,7 @@ public class Backup
 }
 
 /// <summary>
-/// Request payload for saving the user's weekly menu.
+/// Request payload for saving the user's menu.
 /// </summary>
 public class SaveMenuPayload : IValidatableObject
 {
@@ -207,6 +207,12 @@ public class SaveMenuPayload : IValidatableObject
     /// Cap on the number of selected dishes, to bound the document size.
     /// </summary>
     public const int MaxSelectedDishIds = 500;
+
+    /// <summary>
+    /// Cap on a single dish id, to bound the document size. Well above the 36
+    /// characters of the UUIDs the client generates.
+    /// </summary>
+    public const int MaxSelectedDishIdLength = 128;
 
     /// <summary>
     /// Ids of the selected dishes, in display order. May be empty to reset the menu.
@@ -217,20 +223,13 @@ public class SaveMenuPayload : IValidatableObject
     public required List<string> SelectedDishIds { get; set; } = new();
 
     /// <summary>
-    /// Frontend view mode, either <see cref="MenuMode.Editing"/> or <see cref="MenuMode.Recap"/>.
+    /// View mode of the menu, either <see cref="MenuMode.Editing"/> or <see cref="MenuMode.Recap"/>.
+    /// Any other value, including a numeric one, fails deserialization with a 400.
     /// </summary>
-    [Required]
-    public required string Mode { get; set; } = string.Empty;
+    public required MenuMode Mode { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (!MenuMode.All.Contains(Mode))
-        {
-            yield return new ValidationResult(
-                $"Mode must be one of: {string.Join(", ", MenuMode.All)}.",
-                [nameof(Mode)]);
-        }
-
         if (SelectedDishIds.Count > MaxSelectedDishIds)
         {
             yield return new ValidationResult(
@@ -245,6 +244,13 @@ public class SaveMenuPayload : IValidatableObject
                 [nameof(SelectedDishIds)]);
         }
 
+        if (SelectedDishIds.Any(id => id.Length > MaxSelectedDishIdLength))
+        {
+            yield return new ValidationResult(
+                $"SelectedDishIds must not contain ids longer than {MaxSelectedDishIdLength} characters.",
+                [nameof(SelectedDishIds)]);
+        }
+
         if (SelectedDishIds.Distinct().Count() != SelectedDishIds.Count)
         {
             yield return new ValidationResult(
@@ -255,7 +261,7 @@ public class SaveMenuPayload : IValidatableObject
 }
 
 /// <summary>
-/// Response containing the user's saved weekly menu.
+/// Response containing the user's saved menu.
 /// </summary>
 public class MenuResponse
 {

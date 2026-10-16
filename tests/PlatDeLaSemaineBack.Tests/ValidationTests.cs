@@ -401,28 +401,6 @@ public class ValidationTests
         Assert.Empty(results);
     }
 
-    [Theory]
-    [InlineData("Recap")]
-    [InlineData("EDITING")]
-    [InlineData("review")]
-    [InlineData("")]
-    public void SaveMenuPayload_ModeNotExactLowercase_IsInvalid(string mode)
-    {
-        var payload = new SaveMenuPayload { SelectedDishIds = [], Mode = mode };
-        var results = Validate(payload);
-        Assert.Contains(results, r => r.ErrorMessage!.Contains("Mode"));
-    }
-
-    [Theory]
-    [InlineData("editing")]
-    [InlineData("recap")]
-    public void SaveMenuPayload_ValidMode_NoModeError(string mode)
-    {
-        var payload = new SaveMenuPayload { SelectedDishIds = [], Mode = mode };
-        var results = Validate(payload);
-        Assert.DoesNotContain(results, r => r.ErrorMessage!.Contains("Mode"));
-    }
-
     [Fact]
     public void SaveMenuPayload_SelectedDishIdsAtMaxLength_IsValid()
     {
@@ -453,6 +431,30 @@ public class ValidationTests
         var payload = new SaveMenuPayload { SelectedDishIds = ["42", blank], Mode = MenuMode.Editing };
         var results = Validate(payload);
         Assert.Contains(results, r => r.ErrorMessage!.Contains("empty ids"));
+    }
+
+    [Fact]
+    public void SaveMenuPayload_DishIdAtMaxLength_IsValid()
+    {
+        var payload = new SaveMenuPayload
+        {
+            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength)],
+            Mode = MenuMode.Editing
+        };
+        var results = Validate(payload);
+        Assert.DoesNotContain(results, r => r.ErrorMessage!.Contains("longer than"));
+    }
+
+    [Fact]
+    public void SaveMenuPayload_DishIdOverMaxLength_IsInvalid()
+    {
+        var payload = new SaveMenuPayload
+        {
+            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength + 1)],
+            Mode = MenuMode.Editing
+        };
+        var results = Validate(payload);
+        Assert.Contains(results, r => r.ErrorMessage!.Contains($"{SaveMenuPayload.MaxSelectedDishIdLength} characters"));
     }
 
     [Fact]

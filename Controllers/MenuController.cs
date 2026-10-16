@@ -5,7 +5,7 @@ using PlatDeLaSemaineBack.Services;
 namespace PlatDeLaSemaineBack.Controllers;
 
 /// <summary>
-/// Saved weekly menu endpoints.
+/// Saved menu endpoints.
 /// </summary>
 [ApiController]
 [Route("api/menu")]

@@ -3,7 +3,7 @@ using PlatDeLaSemaineBack.Models;
 namespace PlatDeLaSemaineBack.Services;
 
 /// <summary>
-/// Service handling the user's saved weekly menu.
+/// Service handling the user's saved menu.
 /// </summary>
 public interface IMenuService
 {
@@ -13,8 +13,9 @@ public interface IMenuService
     Task<MenuResponse> GetMenuAsync(string userId);
 
     /// <summary>
-    /// Upserts the user's saved menu, stamping a fresh server-side UpdatedAt.
-    /// An empty selection is still persisted so that a reset propagates to other devices.
+    /// Upserts the user's saved menu and returns the stored menu, including the
+    /// server-set UpdatedAt. An empty selection is still persisted so that a reset
+    /// propagates to other devices.
     /// </summary>
     Task<MenuResponse> SaveMenuAsync(string userId, SaveMenuPayload payload);
 }

@@ -38,7 +38,6 @@ public class MenuServiceTests
         Assert.Equal(MenuMode.Recap, result.Data.Mode);
         Assert.Equal(updatedAt, result.Data.UpdatedAt);
     }
-
     [Fact]
     public async Task GetMenu_WhenNoneSaved_ReturnsEmptyMenuWithNullUpdatedAt()
     {

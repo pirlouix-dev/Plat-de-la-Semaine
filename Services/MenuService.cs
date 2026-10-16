@@ -3,7 +3,7 @@ using PlatDeLaSemaineBack.Models;
 namespace PlatDeLaSemaineBack.Services;
 
 /// <summary>
-/// Service handling the user's saved weekly menu.
+/// Service handling the user's saved menu.
 /// </summary>
 public class MenuService : IMenuService
 {
