@@ -216,8 +216,9 @@ public class SaveMenuPayload : IValidatableObject
 
     /// <summary>
     /// Ids of the selected dishes, in display order. May be empty to reset the menu.
-    /// Ids are not required to exist: a dish may be created or deleted offline and
-    /// synced later, so an existence check would race the client.
+    /// The same id may appear more than once: the user can pick a dish several times
+    /// in the same menu. Ids are not required to exist: a dish may be created or
+    /// deleted offline and synced later, so an existence check would race the client.
     /// </summary>
     [Required]
     public required List<string> SelectedDishIds { get; set; } = new();
@@ -248,13 +249,6 @@ public class SaveMenuPayload : IValidatableObject
         {
             yield return new ValidationResult(
                 $"SelectedDishIds must not contain ids longer than {MaxSelectedDishIdLength} characters.",
-                [nameof(SelectedDishIds)]);
-        }
-
-        if (SelectedDishIds.Distinct().Count() != SelectedDishIds.Count)
-        {
-            yield return new ValidationResult(
-                "SelectedDishIds must not contain duplicate ids.",
                 [nameof(SelectedDishIds)]);
         }
     }

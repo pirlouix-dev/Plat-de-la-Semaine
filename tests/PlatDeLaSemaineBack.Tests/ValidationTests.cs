@@ -458,10 +458,11 @@ public class ValidationTests
     }
 
     [Fact]
-    public void SaveMenuPayload_DuplicateDishIds_IsInvalid()
+    public void SaveMenuPayload_DuplicateDishIds_IsValid()
     {
+        // The same dish can be picked more than once in a menu.
         var payload = new SaveMenuPayload { SelectedDishIds = ["42", "42"], Mode = MenuMode.Editing };
         var results = Validate(payload);
-        Assert.Contains(results, r => r.ErrorMessage!.Contains("duplicate"));
+        Assert.Empty(results);
     }
 }
