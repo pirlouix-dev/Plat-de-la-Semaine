@@ -33,13 +33,16 @@ npm ci
 npm run dev
 ```
 
-The dev server starts at `http://localhost:5173` by default. Set `VITE_SERVER_URL` in `.env` to point the API client at your backend (default: `http://localhost:5126`).
+The dev server starts at `http://localhost:5173` by default. In development, `/api` requests are proxied to the backend at `http://localhost:5126` (see `vite.config.ts`), so the app uses relative API URLs. Leave `VITE_SERVER_URL` empty in `.env` to use the proxy.
+
+To open the app from another device on the same network (e.g. a phone), run `npm run dev:host` and browse to `http://<your-computer-ip>:5173`. The proxy forwards API calls server-side, so no CORS setup or backend rebinding is needed.
 
 ## Available Scripts
 
 | Script | Description |
 |---|---|
 | `npm run dev` | Start dev server |
+| `npm run dev:host` | Start dev server, reachable from other devices on the LAN |
 | `npm run build` | Type-check + production build |
 | `npm test` | Run tests (Vitest) |
 | `npm run lint` | Lint all source files |
@@ -72,7 +75,7 @@ GitHub Actions runs lint, type-check, build, and tests on every push to `main` a
 
 | Variable | Default | Description |
 |---|---|---|
-| `VITE_SERVER_URL` | `http://localhost:5126` | Backend API base URL |
+| `VITE_SERVER_URL` | `http://localhost:5126` | Backend API base URL. Empty in dev to use the Vite `/api` proxy. |
 
 ## Deployment
 

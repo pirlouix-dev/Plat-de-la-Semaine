@@ -17,6 +17,7 @@ import type { DatabaseCollections } from "../db/collections";
 import type { AppDatabase } from "../db/DatabaseContext";
 import { hashFunction } from "../db/hashFunction";
 import { insertDish } from "../repositories/dishRepository";
+import { loadStoredMenu, storeMenu } from "../services/menuStorage";
 
 addRxPlugin(RxDBDevModePlugin);
 
@@ -29,12 +30,18 @@ vi.mock("../services/dishService", () => ({
   deleteDish: vi.fn(),
 }));
 
+vi.mock("../services/menuService", () => ({
+  getMenu: vi.fn(),
+  saveMenu: vi.fn(),
+}));
+
 import {
   getDishes,
   createDish,
   updateDish,
   deleteDish,
 } from "../services/dishService";
+import { getMenu, saveMenu } from "../services/menuService";
 import {
   sync,
   startAutoSync,
@@ -47,6 +54,8 @@ const mockGetDishes = vi.mocked(getDishes);
 const mockCreateDish = vi.mocked(createDish);
 const mockUpdateDish = vi.mocked(updateDish);
 const mockDeleteDish = vi.mocked(deleteDish);
+const mockGetMenu = vi.mocked(getMenu);
+const mockSaveMenu = vi.mocked(saveMenu);
 
 // ── Test database ───────────────────────────────────────────────────────────
 
@@ -95,8 +104,13 @@ beforeEach(async () => {
   }
   vi.resetAllMocks();
   _resetSyncState();
+  localStorage.clear();
   localStorage.setItem("user_id", "test-user");
   mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+  mockGetMenu.mockResolvedValue({
+    ok: true,
+    data: { selectedDishIds: [], mode: "editing", updatedAt: null },
+  });
   vi.stubGlobal("navigator", { onLine: true });
 });
 
@@ -732,6 +746,107 @@ describe("sync", () => {
 
     const doc = await db.dishes.findOne("orphan-local").exec();
     expect(doc).toBeNull();
+  });
+});
+
+// ── menu sync ───────────────────────────────────────────────────────────────
+
+describe("menu sync", () => {
+  it("pushes the menu when it has pending changes", async () => {
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["dish-a", "dish-b"],
+      history: [],
+      mode: "recap",
+    });
+
+    mockSaveMenu.mockResolvedValue({
+      ok: true,
+      data: {
+        selectedDishIds: ["dish-a", "dish-b"],
+        mode: "recap",
+        updatedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+
+    await sync(db);
+
+    expect(mockSaveMenu).toHaveBeenCalledWith({
+      selectedDishIds: ["dish-a", "dish-b"],
+      mode: "recap",
+    });
+    const stored = loadStoredMenu("test-user");
+    expect(stored?.syncStatus).toBe("synced");
+    expect(stored?.updatedAt).toBe("2026-08-01T00:00:00Z");
+  });
+
+  it("does not push the menu when it is already synced", async () => {
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: [],
+      history: [],
+      mode: "editing",
+    });
+
+    await sync(db);
+
+    expect(mockSaveMenu).not.toHaveBeenCalled();
+  });
+
+  it("adopts the remote menu when local is clean and the server is newer", async () => {
+    mockGetMenu.mockResolvedValue({
+      ok: true,
+      data: {
+        selectedDishIds: ["remote-dish"],
+        mode: "recap",
+        updatedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+
+    await sync(db);
+
+    const stored = loadStoredMenu("test-user");
+    expect(stored?.selectedIds).toEqual(["remote-dish"]);
+    expect(stored?.mode).toBe("recap");
+    expect(stored?.syncStatus).toBe("synced");
+  });
+
+  it("keeps local pending changes over the remote menu", async () => {
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["local-dish"],
+      history: [],
+      mode: "editing",
+    });
+    mockSaveMenu.mockResolvedValue({
+      ok: false,
+      error: { code: "HTTP_500", message: "fail" },
+    });
+    mockGetMenu.mockResolvedValue({
+      ok: true,
+      data: {
+        selectedDishIds: ["remote-dish"],
+        mode: "recap",
+        updatedAt: "2030-01-01T00:00:00Z",
+      },
+    });
+
+    await sync(db);
+
+    const stored = loadStoredMenu("test-user");
+    expect(stored?.selectedIds).toEqual(["local-dish"]);
+    expect(stored?.syncStatus).toBe("pending_update");
+  });
+
+  it("reports failure when the menu pull fails", async () => {
+    mockGetMenu.mockResolvedValue({
+      ok: false,
+      error: { code: "NETWORK_ERROR", message: "Network request failed" },
+    });
+
+    await sync(db);
+
+    expect(getSyncState().lastErrorAt).not.toBeNull();
   });
 });
 

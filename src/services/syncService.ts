@@ -6,8 +6,14 @@ import {
   updateDish,
   deleteDish,
 } from "./dishService";
+import { getMenu, saveMenu } from "./menuService";
+import {
+  loadStoredMenu,
+  markMenuSynced,
+  applyRemoteMenu,
+} from "./menuStorage";
 import type { components } from "../schema";
-import { isLoggedIn } from "./api";
+import { isLoggedIn, getCurrentUserId } from "./api";
 import {
   markSyncStarted,
   markSyncSuccess,
@@ -246,6 +252,46 @@ export async function refreshFromServer(db: AppDatabase): Promise<boolean> {
   return result !== null;
 }
 
+/**
+ * Push the local menu when it has unsynced changes.
+ * Returns `true` when the push failed (the change stays pending for a retry).
+ */
+async function pushMenu(): Promise<boolean> {
+  const userId = getCurrentUserId();
+  if (!userId) return false;
+
+  const menu = loadStoredMenu(userId);
+  if (!menu || menu.syncStatus === "synced") return false;
+
+  const result = await saveMenu({
+    selectedDishIds: menu.selectedIds,
+    mode: menu.mode,
+  });
+  if (!result.ok) return true;
+
+  markMenuSynced(userId, result.data.updatedAt ?? null);
+  return false;
+}
+
+/**
+ * Pull the server menu and merge it locally (last write wins, local pending
+ * changes take precedence). Returns `false` when the request failed.
+ */
+async function pullMenu(): Promise<boolean> {
+  const userId = getCurrentUserId();
+  if (!userId) return true;
+
+  const result = await getMenu();
+  if (!result.ok) return false;
+
+  applyRemoteMenu(userId, {
+    selectedDishIds: (result.data.selectedDishIds ?? []).map(String),
+    mode: result.data.mode === "recap" ? "recap" : "editing",
+    updatedAt: result.data.updatedAt ?? null,
+  });
+  return true;
+}
+
 export async function sync(db: AppDatabase): Promise<void> {
   if (syncRunning) return;
   if (!isOnline()) return;
@@ -256,9 +302,16 @@ export async function sync(db: AppDatabase): Promise<void> {
   markSyncStarted();
   try {
     const hadFailures = await pushPendingChanges(db);
+    const menuPushFailed = await pushMenu();
     const pulledSyncAt = await pullAndMerge(db);
+    const menuPulled = await pullMenu();
 
-    if (hadFailures || pulledSyncAt === null) {
+    if (
+      hadFailures ||
+      menuPushFailed ||
+      pulledSyncAt === null ||
+      !menuPulled
+    ) {
       retryCount += 1;
       const delay =
         BACKOFF_DELAYS_MS[
