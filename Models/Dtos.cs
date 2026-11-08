@@ -199,7 +199,8 @@ public class Backup
 }
 
 /// <summary>
-/// Request payload for saving the user's menu.
+/// Request payload for saving the user's menu. Only the selection is sent: a
+/// persisted menu is always the recap, so there is no view mode to submit.
 /// </summary>
 public class SaveMenuPayload : IValidatableObject
 {
@@ -222,12 +223,6 @@ public class SaveMenuPayload : IValidatableObject
     /// </summary>
     [Required]
     public required List<string> SelectedDishIds { get; set; } = new();
-
-    /// <summary>
-    /// View mode of the menu, either <see cref="MenuMode.Editing"/> or <see cref="MenuMode.Recap"/>.
-    /// Any other value, including a numeric one, fails deserialization with a 400.
-    /// </summary>
-    public required MenuMode Mode { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

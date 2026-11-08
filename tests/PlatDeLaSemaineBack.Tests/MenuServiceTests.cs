@@ -26,7 +26,6 @@ public class MenuServiceTests
         _firestore.GetMenuAsync(userId).Returns(new Menu
         {
             SelectedDishIds = ["42", "57"],
-            Mode = MenuMode.Recap,
             UpdatedAt = updatedAt
         });
 
@@ -35,7 +34,6 @@ public class MenuServiceTests
 
         // Assert
         Assert.Equal(new[] { "42", "57" }, result.Data.SelectedDishIds);
-        Assert.Equal(MenuMode.Recap, result.Data.Mode);
         Assert.Equal(updatedAt, result.Data.UpdatedAt);
     }
     [Fact]
@@ -49,7 +47,6 @@ public class MenuServiceTests
 
         // Assert
         Assert.Empty(result.Data.SelectedDishIds);
-        Assert.Equal(MenuMode.Editing, result.Data.Mode);
         Assert.Null(result.Data.UpdatedAt);
     }
 
@@ -77,19 +74,17 @@ public class MenuServiceTests
         // Act
         var result = await _service.SaveMenuAsync(userId, new SaveMenuPayload
         {
-            SelectedDishIds = ["42", "57"],
-            Mode = MenuMode.Recap
+            SelectedDishIds = ["42", "57"]
         });
 
         // Assert
         Assert.Equal(new[] { "42", "57" }, result.Data.SelectedDishIds);
-        Assert.Equal(MenuMode.Recap, result.Data.Mode);
         Assert.NotNull(result.Data.UpdatedAt);
         Assert.True(result.Data.UpdatedAt >= before);
 
         await _firestore.Received(1).UpsertMenuAsync(
             userId,
-            Arg.Is<Menu>(menu => menu.SelectedDishIds.Count == 2 && menu.Mode == MenuMode.Recap));
+            Arg.Is<Menu>(menu => menu.SelectedDishIds.Count == 2 && menu.UpdatedAt != null));
     }
 
     [Fact]
@@ -102,8 +97,7 @@ public class MenuServiceTests
         // Act
         var result = await _service.SaveMenuAsync(userId, new SaveMenuPayload
         {
-            SelectedDishIds = [],
-            Mode = MenuMode.Editing
+            SelectedDishIds = []
         });
 
         // Assert
@@ -126,8 +120,7 @@ public class MenuServiceTests
         // Act
         await _service.SaveMenuAsync("owner", new SaveMenuPayload
         {
-            SelectedDishIds = ["1"],
-            Mode = MenuMode.Editing
+            SelectedDishIds = ["1"]
         });
 
         // Assert

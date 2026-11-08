@@ -384,7 +384,7 @@ public class ValidationTests
     [Fact]
     public void SaveMenuPayload_EmptySelection_IsValid()
     {
-        var payload = new SaveMenuPayload { SelectedDishIds = [], Mode = MenuMode.Editing };
+        var payload = new SaveMenuPayload { SelectedDishIds = [] };
         var results = Validate(payload);
         Assert.Empty(results);
     }
@@ -394,8 +394,7 @@ public class ValidationTests
     {
         var payload = new SaveMenuPayload
         {
-            SelectedDishIds = ["42", "57"],
-            Mode = MenuMode.Recap
+            SelectedDishIds = ["42", "57"]
         };
         var results = Validate(payload);
         Assert.Empty(results);
@@ -407,7 +406,7 @@ public class ValidationTests
         var ids = Enumerable.Range(0, SaveMenuPayload.MaxSelectedDishIds)
             .Select(i => i.ToString())
             .ToList();
-        var payload = new SaveMenuPayload { SelectedDishIds = ids, Mode = MenuMode.Editing };
+        var payload = new SaveMenuPayload { SelectedDishIds = ids };
         var results = Validate(payload);
         Assert.DoesNotContain(results, r => r.ErrorMessage!.Contains("SelectedDishIds"));
     }
@@ -418,7 +417,7 @@ public class ValidationTests
         var ids = Enumerable.Range(0, SaveMenuPayload.MaxSelectedDishIds + 1)
             .Select(i => i.ToString())
             .ToList();
-        var payload = new SaveMenuPayload { SelectedDishIds = ids, Mode = MenuMode.Editing };
+        var payload = new SaveMenuPayload { SelectedDishIds = ids };
         var results = Validate(payload);
         Assert.Contains(results, r => r.ErrorMessage!.Contains($"{SaveMenuPayload.MaxSelectedDishIds}"));
     }
@@ -428,7 +427,7 @@ public class ValidationTests
     [InlineData("   ")]
     public void SaveMenuPayload_BlankDishId_IsInvalid(string blank)
     {
-        var payload = new SaveMenuPayload { SelectedDishIds = ["42", blank], Mode = MenuMode.Editing };
+        var payload = new SaveMenuPayload { SelectedDishIds = ["42", blank] };
         var results = Validate(payload);
         Assert.Contains(results, r => r.ErrorMessage!.Contains("empty ids"));
     }
@@ -438,8 +437,7 @@ public class ValidationTests
     {
         var payload = new SaveMenuPayload
         {
-            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength)],
-            Mode = MenuMode.Editing
+            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength)]
         };
         var results = Validate(payload);
         Assert.DoesNotContain(results, r => r.ErrorMessage!.Contains("longer than"));
@@ -450,8 +448,7 @@ public class ValidationTests
     {
         var payload = new SaveMenuPayload
         {
-            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength + 1)],
-            Mode = MenuMode.Editing
+            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength + 1)]
         };
         var results = Validate(payload);
         Assert.Contains(results, r => r.ErrorMessage!.Contains($"{SaveMenuPayload.MaxSelectedDishIdLength} characters"));
@@ -461,7 +458,7 @@ public class ValidationTests
     public void SaveMenuPayload_DuplicateDishIds_IsValid()
     {
         // The same dish can be picked more than once in a menu.
-        var payload = new SaveMenuPayload { SelectedDishIds = ["42", "42"], Mode = MenuMode.Editing };
+        var payload = new SaveMenuPayload { SelectedDishIds = ["42", "42"] };
         var results = Validate(payload);
         Assert.Empty(results);
     }

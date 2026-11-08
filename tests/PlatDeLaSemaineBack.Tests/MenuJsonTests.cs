@@ -13,7 +13,7 @@ public class MenuJsonTests
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
     [Fact]
-    public void MenuResponse_SerializesModeAsLowercaseString()
+    public void MenuResponse_SerializesSelectionAndUpdatedAt()
     {
         // Arrange
         var response = new MenuResponse
@@ -21,7 +21,6 @@ public class MenuJsonTests
             Data = new Menu
             {
                 SelectedDishIds = ["42", "57"],
-                Mode = MenuMode.Recap,
                 UpdatedAt = new DateTimeOffset(2026, 10, 16, 12, 0, 0, TimeSpan.Zero)
             }
         };
@@ -30,8 +29,8 @@ public class MenuJsonTests
         var json = JsonSerializer.Serialize(response, Options);
 
         // Assert
-        Assert.Contains("\"mode\":\"recap\"", json);
         Assert.Contains("\"selectedDishIds\":[\"42\",\"57\"]", json);
+        Assert.DoesNotContain("\"mode\"", json);
     }
 
     [Fact]
@@ -45,49 +44,18 @@ public class MenuJsonTests
 
         // Assert
         Assert.Contains("\"selectedDishIds\":[]", json);
-        Assert.Contains("\"mode\":\"editing\"", json);
         Assert.Contains("\"updatedAt\":null", json);
+        Assert.DoesNotContain("\"mode\"", json);
     }
 
-    [Theory]
-    [InlineData("editing", MenuMode.Editing)]
-    [InlineData("recap", MenuMode.Recap)]
-    public void SaveMenuPayload_AcceptsLowercaseMode(string json, MenuMode expected)
+    [Fact]
+    public void SaveMenuPayload_DeserializesSelectionOnly()
     {
         // Act
         var payload = JsonSerializer.Deserialize<SaveMenuPayload>(
-            $$"""{"selectedDishIds":[],"mode":"{{json}}"}""", Options);
+            """{"selectedDishIds":["42","57"]}""", Options);
 
         // Assert
-        Assert.Equal(expected, payload!.Mode);
-    }
-
-    [Theory]
-    [InlineData("Recap")]
-    [InlineData("RECAP")]
-    [InlineData("review")]
-    [InlineData("1")]
-    [InlineData("")]
-    public void SaveMenuPayload_RejectsAnyOtherMode(string mode)
-    {
-        // Act & Assert
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<SaveMenuPayload>(
-            $$"""{"selectedDishIds":[],"mode":"{{mode}}"}""", Options));
-    }
-
-    [Fact]
-    public void SaveMenuPayload_MissingMode_IsRejected()
-    {
-        // Act & Assert
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<SaveMenuPayload>(
-            """{"selectedDishIds":[]}""", Options));
-    }
-
-    [Fact]
-    public void SaveMenuPayload_NullMode_IsRejected()
-    {
-        // Act & Assert
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<SaveMenuPayload>(
-            """{"selectedDishIds":[],"mode":null}""", Options));
+        Assert.Equal(new[] { "42", "57" }, payload!.SelectedDishIds);
     }
 }

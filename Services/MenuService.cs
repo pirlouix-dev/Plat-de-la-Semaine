@@ -35,7 +35,6 @@ public class MenuService : IMenuService
         var menu = new Menu
         {
             SelectedDishIds = payload.SelectedDishIds,
-            Mode = payload.Mode,
             UpdatedAt = DateTimeOffset.UtcNow
         };
 
