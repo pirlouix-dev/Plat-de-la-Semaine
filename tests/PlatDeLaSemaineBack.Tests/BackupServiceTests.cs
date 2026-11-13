@@ -48,14 +48,14 @@ public class BackupServiceTests
             Id = "b1",
             UserId = "user1",
             CreatedAt = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero),
-            Dishes = [new Dish { Id = "d1" }]
+            Dishes = [new BackupDish { Id = "d1" }]
         });
         _firestore.GetBackupByIdAsync("user1", "b2").Returns(new Backup
         {
             Id = "b2",
             UserId = "user1",
             CreatedAt = new DateTimeOffset(2025, 6, 1, 0, 0, 0, TimeSpan.Zero),
-            Dishes = [new Dish { Id = "d2" }, new Dish { Id = "d3" }]
+            Dishes = [new BackupDish { Id = "d2" }, new BackupDish { Id = "d3" }]
         });
 
         // Act
@@ -70,7 +70,7 @@ public class BackupServiceTests
     }
 
     [Fact]
-    public async Task RestoreBackup_CreatesSafetySnapshotAndRestoresDishes()
+    public async Task RestoreBackup_ReusesExistingDocumentId_AndCreatesSafetySnapshot()
     {
         // Arrange
         var userId = "user1";
@@ -81,15 +81,15 @@ public class BackupServiceTests
             Id = backupId,
             UserId = userId,
             CreatedAt = DateTimeOffset.UtcNow,
-            Dishes = new List<Dish>
+            Dishes = new List<BackupDish>
             {
-                new() { Id = "old-d1", UserId = "other", Name = "Restored Dish" }
+                new() { Id = "d1", Name = "Restored Dish", Course = 1, Seasons = [0] }
             }
         };
 
         var currentDishes = new List<Dish>
         {
-            new() { Id = "current-d1", UserId = userId, Name = "Current Dish" }
+            new() { Id = "d1", UserId = userId, Name = "Current Dish", Course = 2, Seasons = [1] }
         };
 
         var user = new User { Id = userId, BackupIds = [] };
@@ -98,12 +98,6 @@ public class BackupServiceTests
         _firestore.GetDishesByUserIdAsync(userId, null).Returns(currentDishes);
         _firestore.GetUserByIdAsync(userId).Returns(user);
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
-        _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci =>
-        {
-            var d = ci.Arg<Dish>();
-            d.Id = "new-id";
-            return d;
-        });
 
         // We need to cast to DishService for the safety backup
         var dishService = new DishService(_firestore);
@@ -115,8 +109,95 @@ public class BackupServiceTests
         // Assert
         Assert.Equal(backupId, result.Data.BackupId);
         Assert.Equal(1, result.Data.RestoredCount);
-        await _firestore.Received(1).DeleteDishAsync(userId, "current-d1");
-        await _firestore.Received(1).InsertDishAsync(Arg.Any<Dish>());
+        await _firestore.Received(1).InsertBackupAsync(Arg.Any<Backup>());
+        await _firestore.Received(1).UpdateDishAsync(Arg.Is<Dish>(dish =>
+            dish.Id == "d1"
+            && dish.UserId == userId
+            && dish.Name == "Restored Dish"
+            && !dish.IsDeleted));
+        await _firestore.DidNotReceive().InsertDishAsync(Arg.Any<Dish>());
+        await _firestore.DidNotReceive().DeleteDishAsync(Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task RestoreBackup_InsertsMissingDishWithPersistedId()
+    {
+        // Arrange
+        var userId = "user1";
+        var backupId = "backup1";
+
+        var backup = new Backup
+        {
+            Id = backupId,
+            UserId = userId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            Dishes = new List<BackupDish>
+            {
+                new() { Id = "deleted-d1", Name = "Restored Dish", Course = 1, Seasons = [0] }
+            }
+        };
+
+        _firestore.GetBackupByIdAsync(userId, backupId).Returns(backup);
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+
+        var service = new BackupService(_firestore, new DishService(_firestore));
+
+        // Act
+        var result = await service.RestoreBackupAsync(userId, backupId);
+
+        // Assert
+        Assert.Equal(1, result.Data.RestoredCount);
+        await _firestore.Received(1).InsertDishAsync(Arg.Is<Dish>(dish =>
+            dish.Id == "deleted-d1"
+            && dish.UserId == userId
+            && !dish.IsDeleted));
+        await _firestore.DidNotReceive().UpdateDishAsync(Arg.Any<Dish>());
+    }
+
+    [Fact]
+    public async Task RestoreBackup_SoftDeletesLiveDishesMissingFromBackup()
+    {
+        // Arrange
+        var userId = "user1";
+        var backupId = "backup1";
+
+        var backup = new Backup
+        {
+            Id = backupId,
+            UserId = userId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            Dishes = new List<BackupDish>()
+        };
+
+        var removed = new Dish
+        {
+            Id = "removed-d1",
+            UserId = userId,
+            Name = "Removed Dish",
+            IsDeleted = false,
+            UpdatedAt = DateTimeOffset.UtcNow.AddDays(-1)
+        };
+
+        _firestore.GetBackupByIdAsync(userId, backupId).Returns(backup);
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish> { removed });
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+
+        var service = new BackupService(_firestore, new DishService(_firestore));
+        var before = DateTimeOffset.UtcNow;
+
+        // Act
+        var result = await service.RestoreBackupAsync(userId, backupId);
+
+        // Assert
+        Assert.Equal(0, result.Data.RestoredCount);
+        await _firestore.Received(1).UpdateDishAsync(Arg.Is<Dish>(dish =>
+            dish.Id == "removed-d1"
+            && dish.IsDeleted
+            && dish.UpdatedAt >= before));
+        await _firestore.DidNotReceive().DeleteDishAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Fact]
