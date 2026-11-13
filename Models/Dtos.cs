@@ -180,6 +180,56 @@ public class BackupSummary
 }
 
 /// <summary>
+/// A dish as stored inside a backup. Unlike <see cref="Dish"/>, the document id
+/// is an ordinary property: <c>[FirestoreDocumentId]</c> is only honoured for
+/// top-level documents and is not serialized when the dish is nested in the
+/// backup map. Persisting it lets a restore write back to the same document.
+/// </summary>
+[FirestoreData]
+public class BackupDish
+{
+    /// <summary>
+    /// Id of the dish document at snapshot time. Null for backups written
+    /// before ids were persisted.
+    /// </summary>
+    [FirestoreProperty]
+    public string? Id { get; set; }
+
+    [FirestoreProperty]
+    public string Name { get; set; } = string.Empty;
+
+    [FirestoreProperty]
+    public string Description { get; set; } = string.Empty;
+
+    [FirestoreProperty]
+    public int Course { get; set; }
+
+    [FirestoreProperty]
+    public int[] Seasons { get; set; } = Array.Empty<int>();
+
+    public static BackupDish FromDish(Dish dish) => new()
+    {
+        Id = dish.Id,
+        Name = dish.Name,
+        Description = dish.Description,
+        Course = dish.Course,
+        Seasons = dish.Seasons
+    };
+
+    public Dish ToDish(string userId, DateTimeOffset updatedAt) => new()
+    {
+        Id = Id,
+        UserId = userId,
+        Name = Name,
+        Description = Description,
+        Course = Course,
+        Seasons = Seasons,
+        UpdatedAt = updatedAt,
+        IsDeleted = false
+    };
+}
+
+/// <summary>
 /// Full backup stored in Firestore.
 /// </summary>
 [FirestoreData]
@@ -195,7 +245,7 @@ public class Backup
     public DateTimeOffset CreatedAt { get; set; }
 
     [FirestoreProperty]
-    public List<Dish> Dishes { get; set; } = new();
+    public List<BackupDish> Dishes { get; set; } = new();
 }
 
 /// <summary>

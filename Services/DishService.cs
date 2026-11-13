@@ -190,11 +190,17 @@ public class DishService : IDishService
     {
         var currentDishes = await _firestore.GetDishesByUserIdAsync(userId, null);
 
+        // A backup is the active dish list that can be reverted to. Tombstones
+        // are not part of that state, and restoring them would resurrect dishes
+        // the user deleted.
         var backup = new Backup
         {
             UserId = userId,
             CreatedAt = DateTimeOffset.UtcNow,
             Dishes = currentDishes
+                .Where(dish => !dish.IsDeleted)
+                .Select(BackupDish.FromDish)
+                .ToList()
         };
 
         var createdBackup = await _firestore.InsertBackupAsync(backup);
