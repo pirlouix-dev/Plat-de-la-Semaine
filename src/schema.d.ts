@@ -892,6 +892,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fetch the current user's saved menu */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["MenuResponse"];
+                        "application/json": components["schemas"]["MenuResponse"];
+                        "text/json": components["schemas"]["MenuResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        /** Save the current user's menu */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveMenuPayload"];
+                    "text/json": components["schemas"]["SaveMenuPayload"];
+                    "application/*+json": components["schemas"]["SaveMenuPayload"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["MenuResponse"];
+                        "application/json": components["schemas"]["MenuResponse"];
+                        "text/json": components["schemas"]["MenuResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ping": {
         parameters: {
             query?: never;
@@ -1073,6 +1194,14 @@ export interface components {
             email: string;
             password: string;
         };
+        Menu: {
+            selectedDishIds?: string[];
+            /** Format: date-time */
+            updatedAt?: null | string;
+        };
+        MenuResponse: {
+            data: components["schemas"]["Menu"];
+        };
         RefreshPayload: {
             refreshToken: string;
         };
@@ -1092,6 +1221,11 @@ export interface components {
             restoredCount: number | string;
             /** Format: date-time */
             safetyBackupCreatedAt: string;
+        };
+        SaveMenuPayload: {
+            selectedDishIds: string[];
+            /** Format: date-time */
+            expectedUpdatedAt: null | string;
         };
         UpdateDishPayload: {
             name?: null | string;

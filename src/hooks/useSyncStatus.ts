@@ -81,3 +81,8 @@ export function useSyncStatus(): SyncDisplay {
 
   return deriveSyncDisplay(state, tick * 1000);
 }
+
+/** Reactive raw sync state, for callers that need more than the display text. */
+export function useSyncState(): SyncState {
+  return useSyncExternalStore(subscribeSyncState, getSyncState);
+}
