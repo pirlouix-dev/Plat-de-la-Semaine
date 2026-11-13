@@ -22,6 +22,8 @@ import type { ApiErrorDetail, ApiFieldError } from "../types";
  * Base URL for the backend API.
  * Defaults to `import.meta.env.VITE_SERVER_URL` at module load time,
  * but can be overridden via `setBaseUrl()` for testing.
+ * An empty string means same-origin: in dev the Vite proxy forwards `/api`
+ * to the backend, so requests work from any device on the LAN.
  */
 let baseUrl: string | undefined = import.meta.env.VITE_SERVER_URL as
   | string
@@ -168,6 +170,16 @@ export function isLoggedIn(): boolean {
   }
 }
 
+/** The current user's id, or null when not logged in. */
+export function getCurrentUserId(): string | null {
+  try {
+    return localStorage.getItem("user_id");
+  } catch {
+    // localStorage unavailable (e.g. in tests or SSR)
+    return null;
+  }
+}
+
 /** Notify subscribers (e.g. hooks) that the login state may have changed. */
 export function notifyAuthChange(): void {
   window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
@@ -199,7 +211,7 @@ async function doRefresh(): Promise<boolean> {
     // localStorage unavailable
     return false;
   }
-  if (!refreshToken || !baseUrl) return false;
+  if (!refreshToken || baseUrl === undefined) return false;
 
   const baseUrlClean = baseUrl.replace(/\/+$/, "");
 
@@ -271,14 +283,15 @@ async function request<T>(
   body?: unknown,
   options?: { signal?: AbortSignal; params?: Record<string, string> },
 ): Promise<ApiResult<T>> {
-  if (!baseUrl) {
+  if (baseUrl === undefined) {
     return {
       ok: false,
       error: {
         code: "MISSING_CONFIG",
         message:
           "VITE_SERVER_URL is not set. " +
-          "Create a .env file with VITE_SERVER_URL=http://localhost:5126",
+          "Create a .env file with VITE_SERVER_URL=http://localhost:5126, " +
+          "or leave it empty to use the dev proxy.",
       },
     };
   }

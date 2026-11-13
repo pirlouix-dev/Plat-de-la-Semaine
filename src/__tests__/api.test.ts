@@ -226,6 +226,50 @@ describe("URL construction", () => {
   });
 });
 
+describe("relative base URL", () => {
+  it("uses a same-origin path when the base URL is empty", async () => {
+    setBaseUrl("");
+    mockFetch(200, {});
+
+    await apiGet("/api/test");
+    const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(url).toBe("/api/test");
+  });
+
+  it("refreshes via a relative URL when the base URL is empty", async () => {
+    setBaseUrl("");
+    localStorage.setItem("token_expiry", "0");
+    localStorage.setItem("auth_token", "old-token");
+    localStorage.setItem("refresh_token", "refresh-abc");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: vi.fn().mockResolvedValue({
+            idToken: "new-token",
+            refreshToken: "new-refresh",
+            expiresIn: "3600",
+          }),
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: vi.fn().mockResolvedValue({ ok: true }),
+        } as unknown as Response),
+    );
+
+    const result = await apiGet("/api/test");
+
+    expect(result).toEqual({ ok: true, data: { ok: true } });
+    const refreshUrl = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    expect(refreshUrl).toBe("/api/auth/refresh");
+    expect(localStorage.getItem("auth_token")).toBe("new-token");
+  });
+});
+
 describe("Error handling edge cases", () => {
   it("returns MISSING_CONFIG when no base URL is set", async () => {
     setBaseUrl(undefined);

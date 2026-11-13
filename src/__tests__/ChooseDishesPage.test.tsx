@@ -4,6 +4,10 @@ import { MemoryRouter } from "react-router-dom";
 import ChooseDishesPage from "../pages/ChooseDishesPage/ChooseDishesPage";
 import type { DishDocType } from "../db/schemas/dishes";
 import {
+  _resetMenuStorageState,
+  setPendingRemoteMenu,
+} from "../services/menuStorage";
+import {
   installElementGeometryMock,
   setElementGeometry,
 } from "./elementGeometry";
@@ -90,6 +94,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date("2026-08-21T12:00:00"));
   vi.spyOn(Math, "random").mockReturnValue(0);
   localStorage.clear();
+  _resetMenuStorageState();
   mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH];
 });
 
@@ -132,6 +137,24 @@ describe("ChooseDishesPage queue construction", () => {
 
     expect(screen.getByText("Aucun plat disponible.")).toBeDefined();
     expect(screen.getByText("Ajouter un plat")).toBeDefined();
+  });
+});
+
+describe("ChooseDishesPage sync resilience", () => {
+  it("fills the queue when dishes sync in after an empty load", () => {
+    mockDishes = [];
+    const view = renderPage();
+    expect(screen.getByText("Aucun plat disponible.")).toBeDefined();
+
+    mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH];
+    view.rerender(
+      <MemoryRouter>
+        <ChooseDishesPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText("Aucun plat disponible.")).toBeNull();
+    expect(getCurrentDishName()).not.toBe("");
   });
 });
 
@@ -216,6 +239,70 @@ describe("ChooseDishesPage persistence", () => {
     expect(saved.history).toEqual([
       { action: "accept", dishId: "all-seasons" },
     ]);
+    // Accepting is a working change, not a save.
+    expect(saved.pendingSave).toBe(false);
+    expect(saved.localRevision).not.toBe(saved.reconciledRevision);
+  });
+
+  it("snapshots and marks a pending save when validating", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+    fireEvent.click(screen.getByText(/Valider/));
+
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(saved.mode).toBe("recap");
+    expect(saved.savedIds).toEqual(["all-seasons"]);
+    expect(saved.pendingSave).toBe(true);
+
+    // The local save succeeded synchronously only if a server were available;
+    // in this guest test it stays pending for the next sync.
+    expect(saved.saveRevision).toBe(1);
+  });
+
+  it("marks a pending empty save when clearing", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+    fireEvent.click(screen.getByLabelText("Réinitialiser les plats"));
+    fireEvent.click(screen.getByText("Oui, réinitialiser"));
+
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(saved.selectedIds).toEqual([]);
+    expect(saved.savedIds).toEqual([]);
+    expect(saved.pendingSave).toBe(true);
+  });
+
+  it("shows a conflict banner and applies the remote menu on demand", () => {
+    localStorage.setItem("user_id", "u1");
+    renderPage();
+
+    fireEvent.click(screen.getByText("✕ Refuser"));
+    advance(220);
+
+    act(() => {
+      setPendingRemoteMenu("u1", {
+        selectedDishIds: ["summer-a"],
+        updatedAt: "2026-08-21T13:00:00Z",
+      });
+    });
+
+    expect(
+      screen.getByText("Un menu a été enregistré sur un autre appareil."),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        /La version distante du .*2026.*\d{2}:\d{2}.*contient 1 plat\./,
+      ),
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByText("Charger le menu distant"));
+
+    expect(screen.getByText("Plats sauvegardés")).toBeDefined();
+    expect(screen.getByText("Salade tomates & mozzarella")).toBeDefined();
+    expect(screen.queryByText(/Un menu a été enregistré/)).toBeNull();
   });
 
   it("restores a session from saved ids", () => {
@@ -253,7 +340,7 @@ describe("ChooseDishesPage persistence", () => {
     expect(saved.history).toEqual([]);
   });
 
-  it("drops ids of dishes deleted since the saved session", () => {
+  it("keeps ids whose dish is not available yet without rendering them", () => {
     seedStorage({
       queueIds: ["deleted-dish", "summer-a"],
       selectedIds: ["deleted-dish"],
@@ -265,12 +352,48 @@ describe("ChooseDishesPage persistence", () => {
     expect(getCurrentDishName()).toBe("Salade tomates & mozzarella");
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
-    expect(saved.queueIds).toEqual(["summer-a"]);
-    expect(saved.selectedIds).toEqual([]);
+    expect(saved.queueIds).toEqual(["deleted-dish", "summer-a"]);
+    expect(saved.selectedIds).toEqual(["deleted-dish"]);
 
     expect(saved.history).toEqual([
       { action: "reject", dishId: "deleted-dish" },
     ]);
+  });
+
+  it("restores a selection synced from another device without a review session", () => {
+    seedStorage({
+      queueIds: [],
+      selectedIds: ["summer-a"],
+      history: [],
+      mode: "editing",
+    });
+    renderPage();
+
+    expect(screen.getByText("Plats sélectionnés (1)")).toBeDefined();
+    expect(getCurrentDishName()).not.toBe("");
+  });
+
+  it("keeps the proposed dish stable when the synced dish list changes mid-session", () => {
+    mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH];
+    const view = renderPage();
+    const firstProposed = getCurrentDishName();
+
+    mockDishes = [
+      ...mockDishes,
+      makeDish({
+        id: "newly-synced",
+        name: "Plat fraîchement synchronisé",
+        course: 1,
+        seasons: [0, 1, 2, 3],
+      }),
+    ];
+    view.rerender(
+      <MemoryRouter>
+        <ChooseDishesPage />
+      </MemoryRouter>,
+    );
+
+    expect(getCurrentDishName()).toBe(firstProposed);
   });
 
   it("rebuilds the queue from the database on reset", () => {
