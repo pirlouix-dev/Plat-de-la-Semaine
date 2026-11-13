@@ -159,13 +159,56 @@ public class FirestoreService : IFirestoreService
     }
 
     /// <inheritdoc />
-    public async Task<Menu> UpsertMenuAsync(string userId, Menu menu)
+    public async Task<Menu?> TrySaveMenuAsync(
+        string userId,
+        IReadOnlyList<string> selectedDishIds,
+        DateTimeOffset? expectedUpdatedAt)
     {
         if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
         if (string.IsNullOrEmpty(userId)) throw new ArgumentException("Menu UserId cannot be null or empty.");
 
-        await MenuDocument(userId).SetAsync(menu);
-        return menu;
+        var document = MenuDocument(userId);
+
+        // The read and the write run in one Firestore transaction. Concurrent
+        // writers can both read the same version, but only the first commit is
+        // accepted; the loser is retried by the SDK and then sees the new
+        // version, so its comparison fails and it writes nothing. This is the
+        // compare-and-swap that replaces an unconditional overwrite.
+        return await _db!.RunTransactionAsync(async transaction =>
+        {
+            var snapshot = await transaction.GetSnapshotAsync(document);
+            var current = snapshot.Exists ? snapshot.ConvertTo<Menu>() : null;
+
+            if (!VersionMatches(current, expectedUpdatedAt))
+            {
+                return null;
+            }
+
+            var menu = new Menu
+            {
+                SelectedDishIds = selectedDishIds.ToList(),
+                UpdatedAt = MenuVersion.Next(DateTimeOffset.UtcNow, current?.UpdatedAt)
+            };
+
+            transaction.Set(document, menu);
+            return menu;
+        });
+    }
+
+    /// <summary>
+    /// A menu exists only when a record is present. Its UpdatedAt is the version
+    /// compared against the client's expectation; an absent record only matches
+    /// a null expectation.
+    /// </summary>
+    private static bool VersionMatches(Menu? current, DateTimeOffset? expectedUpdatedAt)
+    {
+        if (expectedUpdatedAt is null)
+        {
+            return current is null;
+        }
+
+        return current?.UpdatedAt is { } currentUpdatedAt
+            && currentUpdatedAt.ToUniversalTime() == expectedUpdatedAt.Value.ToUniversalTime();
     }
 
     // ── Users ───────────────────────────────────────────────────────

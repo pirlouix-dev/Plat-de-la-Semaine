@@ -30,16 +30,21 @@ public class MenuService : IMenuService
     /// <inheritdoc />
     public async Task<MenuResponse> SaveMenuAsync(string userId, SaveMenuPayload payload)
     {
-        // The document is always written, even for an empty selection: the fresh
-        // UpdatedAt is what tells other devices the menu was reset.
-        var menu = new Menu
+        // The write is conditional on the version the client last saw. The store
+        // performs the compare-and-swap atomically and stamps the new version
+        // itself: a client timestamp is never used as the new version.
+        var saved = await _firestore.TrySaveMenuAsync(
+            userId,
+            payload.SelectedDishIds,
+            payload.ExpectedUpdatedAt);
+
+        if (saved is null)
         {
-            SelectedDishIds = payload.SelectedDishIds,
-            UpdatedAt = DateTimeOffset.UtcNow
-        };
+            throw new MenuVersionConflictException();
+        }
 
-        var saved = await _firestore.UpsertMenuAsync(userId, menu);
-
+        // An empty selection is still written: the fresh UpdatedAt is what tells
+        // other devices the menu was cleared.
         return new MenuResponse
         {
             Data = saved

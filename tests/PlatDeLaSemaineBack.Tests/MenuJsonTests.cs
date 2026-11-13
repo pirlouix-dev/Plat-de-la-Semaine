@@ -49,13 +49,35 @@ public class MenuJsonTests
     }
 
     [Fact]
-    public void SaveMenuPayload_DeserializesSelectionOnly()
+    public void SaveMenuPayload_DeserializesSelectionAndNullVersion()
     {
         // Act
         var payload = JsonSerializer.Deserialize<SaveMenuPayload>(
-            """{"selectedDishIds":["42","57"]}""", Options);
+            """{"selectedDishIds":["42","57"],"expectedUpdatedAt":null}""", Options);
 
         // Assert
         Assert.Equal(new[] { "42", "57" }, payload!.SelectedDishIds);
+        Assert.Null(payload.ExpectedUpdatedAt);
+    }
+
+    [Fact]
+    public void SaveMenuPayload_DeserializesVersion()
+    {
+        // Act
+        var payload = JsonSerializer.Deserialize<SaveMenuPayload>(
+            """{"selectedDishIds":[],"expectedUpdatedAt":"2026-11-11T20:00:00Z"}""", Options);
+
+        // Assert
+        Assert.Equal(
+            new DateTimeOffset(2026, 11, 11, 20, 0, 0, TimeSpan.Zero),
+            payload!.ExpectedUpdatedAt);
+    }
+
+    [Fact]
+    public void SaveMenuPayload_WithoutExpectedVersion_IsRejected()
+    {
+        // A missing version must not be treated as an unconditional write.
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<SaveMenuPayload>(
+            """{"selectedDishIds":["42"]}""", Options));
     }
 }

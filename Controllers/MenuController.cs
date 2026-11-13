@@ -36,17 +36,31 @@ public class MenuController : BaseController
     }
 
     /// <summary>
-    /// Save the current user's menu (upsert), including an empty selection to reset it.
+    /// Save the current user's menu, including an empty selection to clear it.
+    /// The write succeeds only when <c>expectedUpdatedAt</c> matches the stored version.
     /// </summary>
     [HttpPut]
     [EndpointSummary("Save the current user's menu")]
     [ProducesResponseType(typeof(MenuResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Save([FromBody] SaveMenuPayload payload)
     {
         var userId = await GetUserIdAsync();
-        var response = await _menuService.SaveMenuAsync(userId, payload);
-        return Ok(response);
+
+        try
+        {
+            var response = await _menuService.SaveMenuAsync(userId, payload);
+            return Ok(response);
+        }
+        catch (MenuVersionConflictException exception)
+        {
+            return Conflict(new ApiErrorDetail
+            {
+                Code = MenuVersionConflictException.ErrorCode,
+                Message = exception.Message
+            });
+        }
     }
 }

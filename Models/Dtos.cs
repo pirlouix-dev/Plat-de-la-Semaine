@@ -199,8 +199,9 @@ public class Backup
 }
 
 /// <summary>
-/// Request payload for saving the user's menu. Only the selection is sent: a
-/// persisted menu is always the recap, so there is no view mode to submit.
+/// Request payload for saving the user's menu. The selection is sent together
+/// with the version the client last saw: a persisted menu is always the recap,
+/// so there is no view mode to submit.
 /// </summary>
 public class SaveMenuPayload : IValidatableObject
 {
@@ -223,6 +224,15 @@ public class SaveMenuPayload : IValidatableObject
     /// </summary>
     [Required]
     public required List<string> SelectedDishIds { get; set; } = new();
+
+    /// <summary>
+    /// Version the client last saw. Null means the client expects no saved menu
+    /// yet. The property must be present in the request, but may be null; a
+    /// missing property is rejected as a validation error rather than treated as
+    /// an unconditional write.
+    /// </summary>
+    [JsonRequired]
+    public DateTimeOffset? ExpectedUpdatedAt { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

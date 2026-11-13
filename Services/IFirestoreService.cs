@@ -54,9 +54,16 @@ public interface IFirestoreService
     Task<Menu?> GetMenuAsync(string userId);
 
     /// <summary>
-    /// Inserts or replaces the given user's menu singleton document.
+    /// Atomically saves the given user's menu only when its current version
+    /// matches <paramref name="expectedUpdatedAt"/>.
+    /// A null expectation means no menu record may exist yet.
+    /// Returns the stored menu on success, or null when the version did not
+    /// match and nothing was written.
     /// </summary>
-    Task<Menu> UpsertMenuAsync(string userId, Menu menu);
+    Task<Menu?> TrySaveMenuAsync(
+        string userId,
+        IReadOnlyList<string> selectedDishIds,
+        DateTimeOffset? expectedUpdatedAt);
 
     // ── Users ───────────────────────────────────────────────────────
 

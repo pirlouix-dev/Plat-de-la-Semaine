@@ -13,9 +13,11 @@ public interface IMenuService
     Task<MenuResponse> GetMenuAsync(string userId);
 
     /// <summary>
-    /// Upserts the user's saved menu and returns the stored menu, including the
-    /// server-set UpdatedAt. An empty selection is still persisted so that a reset
-    /// propagates to other devices.
+    /// Conditionally saves the user's menu and returns the stored menu, including
+    /// the server-set UpdatedAt. A mismatch with the client's expected version
+    /// raises <see cref="MenuVersionConflictException"/> instead of writing. An
+    /// empty selection is still persisted so that a reset propagates to other
+    /// devices.
     /// </summary>
     Task<MenuResponse> SaveMenuAsync(string userId, SaveMenuPayload payload);
 }

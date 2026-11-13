@@ -22,7 +22,8 @@ public class Menu
     public List<string> SelectedDishIds { get; set; } = new();
 
     /// <summary>
-    /// Server-set timestamp of the last write, used by the client for last-write-wins.
+    /// Server-set version of the last write. Clients send the version they last
+    /// saw with the next write, so a stale copy cannot overwrite a newer menu.
     /// Null when the user has never saved a menu.
     /// </summary>
     [FirestoreProperty]
