@@ -43,6 +43,7 @@ public class ErrorHandlingMiddleware
         var (statusCode, errorCode, message) = exception switch
         {
             KeyNotFoundException => (HttpStatusCode.NotFound, "NOT_FOUND", "The requested resource was not found."),
+            MenuVersionConflictException => (HttpStatusCode.Conflict, MenuVersionConflictException.ErrorCode, exception.Message),
             ArgumentException => (HttpStatusCode.BadRequest, "BAD_REQUEST", exception.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),
             FirebaseAdmin.Auth.FirebaseAuthException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),

@@ -199,6 +199,75 @@ public class Backup
 }
 
 /// <summary>
+/// Request payload for saving the user's menu. The selection is sent together
+/// with the version the client last saw: a persisted menu is always the recap,
+/// so there is no view mode to submit.
+/// </summary>
+public class SaveMenuPayload : IValidatableObject
+{
+    /// <summary>
+    /// Cap on the number of selected dishes, to bound the document size.
+    /// </summary>
+    public const int MaxSelectedDishIds = 500;
+
+    /// <summary>
+    /// Cap on a single dish id, to bound the document size. Well above the 36
+    /// characters of the UUIDs the client generates.
+    /// </summary>
+    public const int MaxSelectedDishIdLength = 128;
+
+    /// <summary>
+    /// Ids of the selected dishes, in display order. May be empty to reset the menu.
+    /// The same id may appear more than once: the user can pick a dish several times
+    /// in the same menu. Ids are not required to exist: a dish may be created or
+    /// deleted offline and synced later, so an existence check would race the client.
+    /// </summary>
+    [Required]
+    public required List<string> SelectedDishIds { get; set; } = new();
+
+    /// <summary>
+    /// Version the client last saw. Null means the client expects no saved menu
+    /// yet. The property must be present in the request, but may be null; a
+    /// missing property is rejected as a validation error rather than treated as
+    /// an unconditional write.
+    /// </summary>
+    [JsonRequired]
+    public DateTimeOffset? ExpectedUpdatedAt { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (SelectedDishIds.Count > MaxSelectedDishIds)
+        {
+            yield return new ValidationResult(
+                $"SelectedDishIds must not contain more than {MaxSelectedDishIds} ids.",
+                [nameof(SelectedDishIds)]);
+        }
+
+        if (SelectedDishIds.Any(string.IsNullOrWhiteSpace))
+        {
+            yield return new ValidationResult(
+                "SelectedDishIds must not contain empty ids.",
+                [nameof(SelectedDishIds)]);
+        }
+
+        if (SelectedDishIds.Any(id => id.Length > MaxSelectedDishIdLength))
+        {
+            yield return new ValidationResult(
+                $"SelectedDishIds must not contain ids longer than {MaxSelectedDishIdLength} characters.",
+                [nameof(SelectedDishIds)]);
+        }
+    }
+}
+
+/// <summary>
+/// Response containing the user's saved menu.
+/// </summary>
+public class MenuResponse
+{
+    public required Menu Data { get; set; } = new();
+}
+
+/// <summary>
 /// Response containing a list of backups.
 /// </summary>
 public class BackupListResponse

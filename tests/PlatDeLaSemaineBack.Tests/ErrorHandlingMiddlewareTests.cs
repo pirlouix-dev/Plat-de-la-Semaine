@@ -92,6 +92,23 @@ public class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_MenuVersionConflict_Returns409()
+    {
+        // Arrange & Act
+        var (statusCode, body) = await CaptureAsync(new MenuVersionConflictException());
+
+        // Assert
+        Assert.Equal(StatusCodes.Status409Conflict, statusCode);
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        Assert.NotNull(response);
+        Assert.Equal("MENU_VERSION_CONFLICT", response!.Code);
+        Assert.Equal("The menu was modified by another request.", response.Message);
+    }
+
+    [Fact]
     public async Task InvokeAsync_GenericException_Returns500()
     {
         // Arrange
