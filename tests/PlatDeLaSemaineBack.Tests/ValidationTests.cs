@@ -378,4 +378,88 @@ public class ValidationTests
         var results = Validate(payload);
         Assert.DoesNotContain(results, r => r.ErrorMessage!.Contains("Message"));
     }
+
+    // ── SaveMenuPayload ─────────────────────────────────────────────
+
+    [Fact]
+    public void SaveMenuPayload_EmptySelection_IsValid()
+    {
+        var payload = new SaveMenuPayload { SelectedDishIds = [] };
+        var results = Validate(payload);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void SaveMenuPayload_ValidSelection_NoErrors()
+    {
+        var payload = new SaveMenuPayload
+        {
+            SelectedDishIds = ["42", "57"]
+        };
+        var results = Validate(payload);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void SaveMenuPayload_SelectedDishIdsAtMaxLength_IsValid()
+    {
+        var ids = Enumerable.Range(0, SaveMenuPayload.MaxSelectedDishIds)
+            .Select(i => i.ToString())
+            .ToList();
+        var payload = new SaveMenuPayload { SelectedDishIds = ids };
+        var results = Validate(payload);
+        Assert.DoesNotContain(results, r => r.ErrorMessage!.Contains("SelectedDishIds"));
+    }
+
+    [Fact]
+    public void SaveMenuPayload_SelectedDishIdsOverMaxLength_IsInvalid()
+    {
+        var ids = Enumerable.Range(0, SaveMenuPayload.MaxSelectedDishIds + 1)
+            .Select(i => i.ToString())
+            .ToList();
+        var payload = new SaveMenuPayload { SelectedDishIds = ids };
+        var results = Validate(payload);
+        Assert.Contains(results, r => r.ErrorMessage!.Contains($"{SaveMenuPayload.MaxSelectedDishIds}"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void SaveMenuPayload_BlankDishId_IsInvalid(string blank)
+    {
+        var payload = new SaveMenuPayload { SelectedDishIds = ["42", blank] };
+        var results = Validate(payload);
+        Assert.Contains(results, r => r.ErrorMessage!.Contains("empty ids"));
+    }
+
+    [Fact]
+    public void SaveMenuPayload_DishIdAtMaxLength_IsValid()
+    {
+        var payload = new SaveMenuPayload
+        {
+            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength)]
+        };
+        var results = Validate(payload);
+        Assert.DoesNotContain(results, r => r.ErrorMessage!.Contains("longer than"));
+    }
+
+    [Fact]
+    public void SaveMenuPayload_DishIdOverMaxLength_IsInvalid()
+    {
+        var payload = new SaveMenuPayload
+        {
+            SelectedDishIds = [new string('a', SaveMenuPayload.MaxSelectedDishIdLength + 1)]
+        };
+        var results = Validate(payload);
+        Assert.Contains(results, r => r.ErrorMessage!.Contains($"{SaveMenuPayload.MaxSelectedDishIdLength} characters"));
+    }
+
+    [Fact]
+    public void SaveMenuPayload_DuplicateDishIds_IsValid()
+    {
+        // The same dish can be picked more than once in a menu.
+        var payload = new SaveMenuPayload { SelectedDishIds = ["42", "42"] };
+        var results = Validate(payload);
+        Assert.Empty(results);
+    }
 }

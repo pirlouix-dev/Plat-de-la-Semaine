@@ -64,20 +64,45 @@ public class BackupService : IBackupService
         var safetyBackupCreatedAt = DateTimeOffset.UtcNow;
 
         var currentDishes = await _firestore.GetDishesByUserIdAsync(userId, null);
-        foreach (var dish in currentDishes)
+        var currentById = currentDishes
+            .Where(dish => dish.Id != null)
+            .ToDictionary(dish => dish.Id!, StringComparer.Ordinal);
+
+        // Every dish touched by the restore gets a fresh timestamp so an
+        // incremental ?since= pull observes both the updates and the deletions.
+        var restoredAt = DateTimeOffset.UtcNow;
+        var restoredCount = 0;
+
+        foreach (var backupDish in backup.Dishes)
         {
-            if (dish.Id != null)
-                await _firestore.DeleteDishAsync(userId, dish.Id);
+            var dish = backupDish.ToDish(userId, restoredAt);
+
+            if (dish.Id != null && currentById.Remove(dish.Id))
+            {
+                // The document still exists: overwrite it in place so its id,
+                // and therefore any client copy, stays valid.
+                await _firestore.UpdateDishAsync(dish);
+            }
+            else
+            {
+                // Either a new dish or one whose id no longer exists. Reusing the
+                // persisted id (when there is one) keeps client references stable.
+                await _firestore.InsertDishAsync(dish);
+            }
+
+            restoredCount++;
         }
 
-        var restoredCount = 0;
-        foreach (var dish in backup.Dishes)
+        // Anything live that is absent from the backup must disappear, but a
+        // hard delete leaves no trace for incremental sync. Tombstone it instead.
+        foreach (var dish in currentById.Values)
         {
-            dish.Id = null;
-            dish.UserId = userId;
-            dish.UpdatedAt = DateTimeOffset.UtcNow;
-            await _firestore.InsertDishAsync(dish);
-            restoredCount++;
+            if (dish.IsDeleted)
+                continue;
+
+            dish.IsDeleted = true;
+            dish.UpdatedAt = restoredAt;
+            await _firestore.UpdateDishAsync(dish);
         }
 
         return new BackupRestoreResponse

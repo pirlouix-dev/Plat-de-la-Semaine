@@ -503,6 +503,53 @@ public class DishServiceTests
     }
 
     [Fact]
+    public async Task CreateBackup_ExcludesDeletedDishesAndPersistsIds()
+    {
+        // Arrange
+        var userId = "user1";
+        var live = new Dish
+        {
+            Id = "live-d1",
+            UserId = userId,
+            Name = "Live Dish",
+            Course = 1,
+            Seasons = [0]
+        };
+        var deleted = new Dish
+        {
+            Id = "deleted-d1",
+            UserId = userId,
+            Name = "Deleted Dish",
+            Course = 2,
+            Seasons = [1],
+            IsDeleted = true
+        };
+
+        _firestore.GetDishesByUserIdAsync(userId, null)
+            .Returns(new List<Dish> { live, deleted });
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+
+        Backup? captured = null;
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci =>
+        {
+            captured = ci.Arg<Backup>();
+            captured.Id = "backup1";
+            return captured;
+        });
+
+        // Act
+        await _service.CreateBackupAsync(userId);
+
+        // Assert
+        Assert.NotNull(captured);
+        var snapshot = Assert.Single(captured!.Dishes);
+        Assert.Equal("live-d1", snapshot.Id);
+        Assert.Equal("Live Dish", snapshot.Name);
+        Assert.Equal(1, snapshot.Course);
+        Assert.DoesNotContain(captured.Dishes, dish => dish.Id == "deleted-d1");
+    }
+
+    [Fact]
     public async Task CreateBackup_EvictsOldestWhenOverMax()
     {
         // Arrange

@@ -1,7 +1,9 @@
 using DotNetEnv;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using PlatDeLaSemaineBack.Configuration;
 using PlatDeLaSemaineBack.Middleware;
+using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 
 // ── Environment ───────────────────────────────────────────────────
@@ -23,7 +25,31 @@ if (allowedHosts is not null)
 }
 
 // ── Services ──────────────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
+{
+    // Model-binding failures (including a missing required expectedUpdatedAt)
+    // use the same structured error shape as the rest of the API.
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var details = context.ModelState
+            .Where(entry => entry.Value?.Errors.Count > 0)
+            .SelectMany(entry => entry.Value!.Errors.Select(error => new ApiFieldError
+            {
+                Field = entry.Key,
+                Message = string.IsNullOrWhiteSpace(error.ErrorMessage)
+                    ? "Invalid value."
+                    : error.ErrorMessage
+            }))
+            .ToList();
+
+        return new BadRequestObjectResult(new ApiErrorDetail
+        {
+            Code = "VALIDATION_ERROR",
+            Message = "The request is invalid.",
+            Details = details
+        });
+    };
+});
 builder.Services.AddOpenApi();
 
 var allowedOrigins = CorsSettings.ResolveAllowedOrigins();
@@ -41,6 +67,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 builder.Services.AddSingleton<ITokenVerifier, FirebaseTokenVerifier>();
 builder.Services.AddSingleton<IFirestoreService, FirestoreService>();
 builder.Services.AddScoped<IDishService, DishService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddHttpClient<IFeedbackService, FeedbackService>();
 builder.Services.AddHttpClient<IAuthService, AuthService>();

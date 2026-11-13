@@ -180,6 +180,56 @@ public class BackupSummary
 }
 
 /// <summary>
+/// A dish as stored inside a backup. Unlike <see cref="Dish"/>, the document id
+/// is an ordinary property: <c>[FirestoreDocumentId]</c> is only honoured for
+/// top-level documents and is not serialized when the dish is nested in the
+/// backup map. Persisting it lets a restore write back to the same document.
+/// </summary>
+[FirestoreData]
+public class BackupDish
+{
+    /// <summary>
+    /// Id of the dish document at snapshot time. Null for backups written
+    /// before ids were persisted.
+    /// </summary>
+    [FirestoreProperty]
+    public string? Id { get; set; }
+
+    [FirestoreProperty]
+    public string Name { get; set; } = string.Empty;
+
+    [FirestoreProperty]
+    public string Description { get; set; } = string.Empty;
+
+    [FirestoreProperty]
+    public int Course { get; set; }
+
+    [FirestoreProperty]
+    public int[] Seasons { get; set; } = Array.Empty<int>();
+
+    public static BackupDish FromDish(Dish dish) => new()
+    {
+        Id = dish.Id,
+        Name = dish.Name,
+        Description = dish.Description,
+        Course = dish.Course,
+        Seasons = dish.Seasons
+    };
+
+    public Dish ToDish(string userId, DateTimeOffset updatedAt) => new()
+    {
+        Id = Id,
+        UserId = userId,
+        Name = Name,
+        Description = Description,
+        Course = Course,
+        Seasons = Seasons,
+        UpdatedAt = updatedAt,
+        IsDeleted = false
+    };
+}
+
+/// <summary>
 /// Full backup stored in Firestore.
 /// </summary>
 [FirestoreData]
@@ -195,7 +245,76 @@ public class Backup
     public DateTimeOffset CreatedAt { get; set; }
 
     [FirestoreProperty]
-    public List<Dish> Dishes { get; set; } = new();
+    public List<BackupDish> Dishes { get; set; } = new();
+}
+
+/// <summary>
+/// Request payload for saving the user's menu. The selection is sent together
+/// with the version the client last saw: a persisted menu is always the recap,
+/// so there is no view mode to submit.
+/// </summary>
+public class SaveMenuPayload : IValidatableObject
+{
+    /// <summary>
+    /// Cap on the number of selected dishes, to bound the document size.
+    /// </summary>
+    public const int MaxSelectedDishIds = 500;
+
+    /// <summary>
+    /// Cap on a single dish id, to bound the document size. Well above the 36
+    /// characters of the UUIDs the client generates.
+    /// </summary>
+    public const int MaxSelectedDishIdLength = 128;
+
+    /// <summary>
+    /// Ids of the selected dishes, in display order. May be empty to reset the menu.
+    /// The same id may appear more than once: the user can pick a dish several times
+    /// in the same menu. Ids are not required to exist: a dish may be created or
+    /// deleted offline and synced later, so an existence check would race the client.
+    /// </summary>
+    [Required]
+    public required List<string> SelectedDishIds { get; set; } = new();
+
+    /// <summary>
+    /// Version the client last saw. Null means the client expects no saved menu
+    /// yet. The property must be present in the request, but may be null; a
+    /// missing property is rejected as a validation error rather than treated as
+    /// an unconditional write.
+    /// </summary>
+    [JsonRequired]
+    public DateTimeOffset? ExpectedUpdatedAt { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (SelectedDishIds.Count > MaxSelectedDishIds)
+        {
+            yield return new ValidationResult(
+                $"SelectedDishIds must not contain more than {MaxSelectedDishIds} ids.",
+                [nameof(SelectedDishIds)]);
+        }
+
+        if (SelectedDishIds.Any(string.IsNullOrWhiteSpace))
+        {
+            yield return new ValidationResult(
+                "SelectedDishIds must not contain empty ids.",
+                [nameof(SelectedDishIds)]);
+        }
+
+        if (SelectedDishIds.Any(id => id.Length > MaxSelectedDishIdLength))
+        {
+            yield return new ValidationResult(
+                $"SelectedDishIds must not contain ids longer than {MaxSelectedDishIdLength} characters.",
+                [nameof(SelectedDishIds)]);
+        }
+    }
+}
+
+/// <summary>
+/// Response containing the user's saved menu.
+/// </summary>
+public class MenuResponse
+{
+    public required Menu Data { get; set; } = new();
 }
 
 /// <summary>

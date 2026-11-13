@@ -45,6 +45,26 @@ public interface IFirestoreService
     /// </summary>
     Task DeleteDishAsync(string userId, string dishId);
 
+    // ── Menu ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Retrieves the given user's saved menu.
+    /// Returns null when the user has never saved one.
+    /// </summary>
+    Task<Menu?> GetMenuAsync(string userId);
+
+    /// <summary>
+    /// Atomically saves the given user's menu only when its current version
+    /// matches <paramref name="expectedUpdatedAt"/>.
+    /// A null expectation means no menu record may exist yet.
+    /// Returns the stored menu on success, or null when the version did not
+    /// match and nothing was written.
+    /// </summary>
+    Task<Menu?> TrySaveMenuAsync(
+        string userId,
+        IReadOnlyList<string> selectedDishIds,
+        DateTimeOffset? expectedUpdatedAt);
+
     // ── Users ───────────────────────────────────────────────────────
 
     /// <summary>
