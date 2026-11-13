@@ -4,6 +4,10 @@ import { MemoryRouter } from "react-router-dom";
 import ChooseDishesPage from "../pages/ChooseDishesPage/ChooseDishesPage";
 import type { DishDocType } from "../db/schemas/dishes";
 import {
+  _resetMenuStorageState,
+  setPendingRemoteMenu,
+} from "../services/menuStorage";
+import {
   installElementGeometryMock,
   setElementGeometry,
 } from "./elementGeometry";
@@ -90,6 +94,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date("2026-08-21T12:00:00"));
   vi.spyOn(Math, "random").mockReturnValue(0);
   localStorage.clear();
+  _resetMenuStorageState();
   mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH];
 });
 
@@ -234,6 +239,70 @@ describe("ChooseDishesPage persistence", () => {
     expect(saved.history).toEqual([
       { action: "accept", dishId: "all-seasons" },
     ]);
+    // Accepting is a working change, not a save.
+    expect(saved.pendingSave).toBe(false);
+    expect(saved.localRevision).not.toBe(saved.reconciledRevision);
+  });
+
+  it("snapshots and marks a pending save when validating", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+    fireEvent.click(screen.getByText(/Valider/));
+
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(saved.mode).toBe("recap");
+    expect(saved.savedIds).toEqual(["all-seasons"]);
+    expect(saved.pendingSave).toBe(true);
+
+    // The local save succeeded synchronously only if a server were available;
+    // in this guest test it stays pending for the next sync.
+    expect(saved.saveRevision).toBe(1);
+  });
+
+  it("marks a pending empty save when clearing", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByText("✓ Accepter"));
+    advance(220);
+    fireEvent.click(screen.getByLabelText("Réinitialiser les plats"));
+    fireEvent.click(screen.getByText("Oui, réinitialiser"));
+
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    expect(saved.selectedIds).toEqual([]);
+    expect(saved.savedIds).toEqual([]);
+    expect(saved.pendingSave).toBe(true);
+  });
+
+  it("shows a conflict banner and applies the remote menu on demand", () => {
+    localStorage.setItem("user_id", "u1");
+    renderPage();
+
+    fireEvent.click(screen.getByText("✕ Refuser"));
+    advance(220);
+
+    act(() => {
+      setPendingRemoteMenu("u1", {
+        selectedDishIds: ["summer-a"],
+        updatedAt: "2026-08-21T13:00:00Z",
+      });
+    });
+
+    expect(
+      screen.getByText("Un menu a été enregistré sur un autre appareil."),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        /La version distante du .*2026.*\d{2}:\d{2}.*contient 1 plat\./,
+      ),
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByText("Charger le menu distant"));
+
+    expect(screen.getByText("Plats sauvegardés")).toBeDefined();
+    expect(screen.getByText("Salade tomates & mozzarella")).toBeDefined();
+    expect(screen.queryByText(/Un menu a été enregistré/)).toBeNull();
   });
 
   it("restores a session from saved ids", () => {

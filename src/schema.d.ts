@@ -993,6 +993,17 @@ export interface paths {
                         "text/json": components["schemas"]["ApiErrorDetail"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiErrorDetail"];
+                        "application/json": components["schemas"]["ApiErrorDetail"];
+                        "text/json": components["schemas"]["ApiErrorDetail"];
+                    };
+                };
             };
         };
         post?: never;
@@ -1185,12 +1196,9 @@ export interface components {
         };
         Menu: {
             selectedDishIds?: string[];
-            mode?: components["schemas"]["MenuMode"];
             /** Format: date-time */
             updatedAt?: null | string;
         };
-        /** @enum {unknown} */
-        MenuMode: "editing" | "recap";
         MenuResponse: {
             data: components["schemas"]["Menu"];
         };
@@ -1216,7 +1224,8 @@ export interface components {
         };
         SaveMenuPayload: {
             selectedDishIds: string[];
-            mode: components["schemas"]["MenuMode"];
+            /** Format: date-time */
+            expectedUpdatedAt: null | string;
         };
         UpdateDishPayload: {
             name?: null | string;

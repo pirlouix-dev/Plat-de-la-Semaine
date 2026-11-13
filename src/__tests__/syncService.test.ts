@@ -17,7 +17,16 @@ import type { DatabaseCollections } from "../db/collections";
 import type { AppDatabase } from "../db/DatabaseContext";
 import { hashFunction } from "../db/hashFunction";
 import { insertDish } from "../repositories/dishRepository";
-import { loadStoredMenu, storeMenu } from "../services/menuStorage";
+import {
+  _resetMenuStorageState,
+  beginMenuSave,
+  getPendingRemoteMenu,
+  isMenuDirty,
+  loadStoredMenu,
+  markMenuModified,
+  setPendingRemoteMenu,
+  storeMenu,
+} from "../services/menuStorage";
 
 addRxPlugin(RxDBDevModePlugin);
 
@@ -46,6 +55,8 @@ import {
   sync,
   startAutoSync,
   refreshFromServer,
+  resolveMenuConflict,
+  saveMenuNow,
   _resetSyncState,
 } from "../services/syncService";
 import { getSyncState } from "../services/syncStatusStore";
@@ -104,12 +115,13 @@ beforeEach(async () => {
   }
   vi.resetAllMocks();
   _resetSyncState();
+  _resetMenuStorageState();
   localStorage.clear();
   localStorage.setItem("user_id", "test-user");
   mockGetDishes.mockResolvedValue({ ok: true, data: [] });
   mockGetMenu.mockResolvedValue({
     ok: true,
-    data: { selectedDishIds: [], mode: "editing", updatedAt: null },
+    data: { selectedDishIds: [], updatedAt: null },
   });
   vi.stubGlobal("navigator", { onLine: true });
 });
@@ -752,19 +764,36 @@ describe("sync", () => {
 // ── menu sync ───────────────────────────────────────────────────────────────
 
 describe("menu sync", () => {
-  it("pushes the menu when it has pending changes", async () => {
+  it("pushes the saved snapshot, not the working draft", async () => {
     storeMenu("test-user", {
       queueIds: [],
-      selectedIds: ["dish-a", "dish-b"],
+      selectedIds: ["draft-dish"],
       history: [],
-      mode: "recap",
+      mode: "editing",
+    });
+    beginMenuSave(
+      "test-user",
+      {
+        queueIds: [],
+        selectedIds: ["saved-dish"],
+        history: [],
+        mode: "recap",
+      },
+      ["saved-dish"],
+    );
+    // The user keeps reviewing after validating.
+    markMenuModified("test-user");
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["saved-dish", "draft-dish"],
+      history: [],
+      mode: "editing",
     });
 
     mockSaveMenu.mockResolvedValue({
       ok: true,
       data: {
-        selectedDishIds: ["dish-a", "dish-b"],
-        mode: "recap",
+        selectedDishIds: ["saved-dish"],
         updatedAt: "2026-08-01T00:00:00Z",
       },
     });
@@ -772,18 +801,19 @@ describe("menu sync", () => {
     await sync(db);
 
     expect(mockSaveMenu).toHaveBeenCalledWith({
-      selectedDishIds: ["dish-a", "dish-b"],
-      mode: "recap",
+      selectedDishIds: ["saved-dish"],
+      expectedUpdatedAt: null,
     });
     const stored = loadStoredMenu("test-user");
-    expect(stored?.syncStatus).toBe("synced");
-    expect(stored?.updatedAt).toBe("2026-08-01T00:00:00Z");
+    expect(stored?.pendingSave).toBe(false);
+    expect(stored?.serverUpdatedAt).toBe("2026-08-01T00:00:00Z");
+    expect(isMenuDirty(stored!)).toBe(true);
   });
 
-  it("does not push the menu when it is already synced", async () => {
+  it("does not push the menu when it has no pending save", async () => {
     storeMenu("test-user", {
       queueIds: [],
-      selectedIds: [],
+      selectedIds: ["draft-dish"],
       history: [],
       mode: "editing",
     });
@@ -793,12 +823,51 @@ describe("menu sync", () => {
     expect(mockSaveMenu).not.toHaveBeenCalled();
   });
 
-  it("adopts the remote menu when local is clean and the server is newer", async () => {
+  it("immediately pushes a save after validate/clear", async () => {
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["saved-dish"],
+      history: [],
+      mode: "editing",
+    });
+    beginMenuSave(
+      "test-user",
+      {
+        queueIds: [],
+        selectedIds: ["saved-dish"],
+        history: [],
+        mode: "recap",
+      },
+      ["saved-dish"],
+    );
+    mockSaveMenu.mockResolvedValue({
+      ok: true,
+      data: {
+        selectedDishIds: ["saved-dish"],
+        updatedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+
+    await saveMenuNow();
+
+    expect(mockSaveMenu).toHaveBeenCalledWith({
+      selectedDishIds: ["saved-dish"],
+      expectedUpdatedAt: null,
+    });
+    expect(loadStoredMenu("test-user")?.pendingSave).toBe(false);
+  });
+
+  it("adopts the remote menu when local has no unreconciled changes", async () => {
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["old-dish"],
+      history: [],
+      mode: "recap",
+    });
     mockGetMenu.mockResolvedValue({
       ok: true,
       data: {
         selectedDishIds: ["remote-dish"],
-        mode: "recap",
         updatedAt: "2026-08-01T00:00:00Z",
       },
     });
@@ -808,26 +877,22 @@ describe("menu sync", () => {
     const stored = loadStoredMenu("test-user");
     expect(stored?.selectedIds).toEqual(["remote-dish"]);
     expect(stored?.mode).toBe("recap");
-    expect(stored?.syncStatus).toBe("synced");
+    expect(isMenuDirty(stored!)).toBe(false);
   });
 
-  it("keeps local pending changes over the remote menu", async () => {
+  it("shows a conflict even when the remote menu is older than the local edit", async () => {
     storeMenu("test-user", {
       queueIds: [],
       selectedIds: ["local-dish"],
       history: [],
       mode: "editing",
     });
-    mockSaveMenu.mockResolvedValue({
-      ok: false,
-      error: { code: "HTTP_500", message: "fail" },
-    });
+    markMenuModified("test-user");
     mockGetMenu.mockResolvedValue({
       ok: true,
       data: {
         selectedDishIds: ["remote-dish"],
-        mode: "recap",
-        updatedAt: "2030-01-01T00:00:00Z",
+        updatedAt: "2020-01-01T00:00:00Z",
       },
     });
 
@@ -835,7 +900,187 @@ describe("menu sync", () => {
 
     const stored = loadStoredMenu("test-user");
     expect(stored?.selectedIds).toEqual(["local-dish"]);
-    expect(stored?.syncStatus).toBe("pending_update");
+    expect(isMenuDirty(stored!)).toBe(true);
+    expect(getPendingRemoteMenu("test-user")?.selectedDishIds).toEqual([
+      "remote-dish",
+    ]);
+    expect(mockSaveMenu).not.toHaveBeenCalled();
+  });
+
+  it("does not show a conflict when the remote menu matches the saved snapshot", async () => {
+    beginMenuSave(
+      "test-user",
+      {
+        queueIds: [],
+        selectedIds: ["saved-dish"],
+        history: [],
+        mode: "recap",
+      },
+      ["saved-dish"],
+    );
+    mockGetMenu.mockResolvedValue({
+      ok: true,
+      data: {
+        selectedDishIds: ["saved-dish"],
+        updatedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+
+    await sync(db);
+
+    expect(mockSaveMenu).not.toHaveBeenCalled();
+    const stored = loadStoredMenu("test-user");
+    expect(stored?.pendingSave).toBe(false);
+    expect(stored?.serverUpdatedAt).toBe("2026-08-01T00:00:00Z");
+  });
+
+  it("resolves a 409 by showing the newer remote menu", async () => {
+    beginMenuSave(
+      "test-user",
+      {
+        queueIds: [],
+        selectedIds: ["local-dish"],
+        history: [],
+        mode: "recap",
+      },
+      ["local-dish"],
+    );
+    mockGetMenu.mockResolvedValueOnce({
+      ok: true,
+      data: { selectedDishIds: [], updatedAt: null },
+    });
+    mockSaveMenu.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "MENU_VERSION_CONFLICT",
+        message: "The menu was modified.",
+      },
+    });
+    mockGetMenu.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        selectedDishIds: ["remote-dish"],
+        updatedAt: "2026-09-01T00:00:00Z",
+      },
+    });
+
+    await sync(db);
+
+    expect(mockSaveMenu).toHaveBeenCalledWith({
+      selectedDishIds: ["local-dish"],
+      expectedUpdatedAt: null,
+    });
+    const stored = loadStoredMenu("test-user");
+    expect(stored?.selectedIds).toEqual(["local-dish"]);
+    expect(getPendingRemoteMenu("test-user")?.selectedDishIds).toEqual([
+      "remote-dish",
+    ]);
+  });
+
+  it("does not treat sub-millisecond version differences as the same version", async () => {
+    // Firestore persists microseconds while .NET produces 100 ns ticks, so a
+    // version returned by a PUT can be truncated on read. Comparing only the
+    // millisecond used to make the client re-push the stale version forever.
+    // The server must return the stored precision; the client must not mask a
+    // mismatch by treating two distinct versions as equal.
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["first-dish"],
+      history: [],
+      mode: "editing",
+    });
+    beginMenuSave(
+      "test-user",
+      {
+        queueIds: [],
+        selectedIds: ["first-dish"],
+        history: [],
+        mode: "recap",
+      },
+      ["first-dish"],
+    );
+    mockSaveMenu.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        selectedDishIds: ["first-dish"],
+        updatedAt: "2026-11-13T17:54:23.8732944+00:00",
+      },
+    });
+    await saveMenuNow();
+
+    beginMenuSave(
+      "test-user",
+      {
+        queueIds: [],
+        selectedIds: ["second-dish"],
+        history: [],
+        mode: "recap",
+      },
+      ["second-dish"],
+    );
+    mockSaveMenu.mockResolvedValue({
+      ok: false,
+      error: {
+        code: "MENU_VERSION_CONFLICT",
+        message: "The menu was modified.",
+      },
+    });
+    mockGetMenu.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        selectedDishIds: ["first-dish"],
+        updatedAt: "2026-11-13T17:54:23.8732940+00:00",
+      },
+    });
+
+    await saveMenuNow();
+
+    // One successful PUT, one rejected PUT. The older-looking GET is left for
+    // the retry path (and the backend precision fix); it must not trigger a
+    // third PUT with the same stale expectedUpdatedAt.
+    expect(mockSaveMenu).toHaveBeenCalledTimes(2);
+    expect(loadStoredMenu("test-user")?.pendingSave).toBe(true);
+  });
+
+  it("loads the remote menu when the user chooses it", async () => {
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["local-dish"],
+      history: [],
+      mode: "editing",
+    });
+    markMenuModified("test-user");
+    setPendingRemoteMenu("test-user", {
+      selectedDishIds: ["remote-dish"],
+      updatedAt: "2026-09-01T00:00:00Z",
+    });
+
+    await resolveMenuConflict("load");
+
+    const stored = loadStoredMenu("test-user");
+    expect(stored?.selectedIds).toEqual(["remote-dish"]);
+    expect(getPendingRemoteMenu("test-user")).toBeNull();
+  });
+
+  it("keeps the local menu and acknowledges the remote version", async () => {
+    storeMenu("test-user", {
+      queueIds: [],
+      selectedIds: ["local-dish"],
+      history: [],
+      mode: "editing",
+    });
+    markMenuModified("test-user");
+    setPendingRemoteMenu("test-user", {
+      selectedDishIds: ["remote-dish"],
+      updatedAt: "2026-09-01T00:00:00Z",
+    });
+
+    await resolveMenuConflict("keep");
+
+    const stored = loadStoredMenu("test-user");
+    expect(stored?.selectedIds).toEqual(["local-dish"]);
+    expect(stored?.serverUpdatedAt).toBe("2026-09-01T00:00:00Z");
+    expect(getPendingRemoteMenu("test-user")).toBeNull();
   });
 
   it("reports failure when the menu pull fails", async () => {

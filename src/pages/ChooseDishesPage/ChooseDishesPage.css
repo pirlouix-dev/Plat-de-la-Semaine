@@ -14,6 +14,42 @@
   margin-bottom: 12px;
 }
 
+.menu-sync-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  border-radius: 14px;
+  background: rgba(255, 193, 7, 0.12);
+  color: #ffffff;
+}
+
+.menu-sync-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.menu-sync-banner-text span {
+  color: #d9dde5;
+  font-size: 13px;
+}
+
+.menu-sync-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.menu-sync-banner-actions .btn {
+  flex: initial;
+}
+
 .counter-chip {
   flex: 1;
   background: rgba(255, 255, 255, 0.1);

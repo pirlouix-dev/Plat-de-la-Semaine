@@ -29,7 +29,6 @@ describe("getMenu", () => {
   it("returns the saved menu", async () => {
     const saved = {
       selectedDishIds: ["d1", "d2"],
-      mode: "recap",
       updatedAt: "2026-08-01T00:00:00Z",
     };
     mockFetchResponse(200, { data: saved });
@@ -42,7 +41,7 @@ describe("getMenu", () => {
   });
 
   it("returns an empty menu when none was saved", async () => {
-    const saved = { selectedDishIds: [], mode: "editing", updatedAt: null };
+    const saved = { selectedDishIds: [], updatedAt: null };
     mockFetchResponse(200, { data: saved });
 
     const result = await getMenu();
@@ -66,11 +65,13 @@ describe("getMenu", () => {
 });
 
 describe("saveMenu", () => {
-  it("PUTs the selection and returns the stored menu", async () => {
-    const payload = { selectedDishIds: ["d1"], mode: "editing" as const };
+  it("PUTs the selection and the expected version", async () => {
+    const payload = {
+      selectedDishIds: ["d1"],
+      expectedUpdatedAt: "2026-07-01T00:00:00Z",
+    };
     const stored = {
       selectedDishIds: ["d1"],
-      mode: "editing",
       updatedAt: "2026-08-01T00:00:00Z",
     };
     mockFetchResponse(200, { data: stored });
@@ -90,7 +91,10 @@ describe("saveMenu", () => {
       message: "Invalid payload",
     });
 
-    const result = await saveMenu({ selectedDishIds: [], mode: "editing" });
+    const result = await saveMenu({
+      selectedDishIds: [],
+      expectedUpdatedAt: null,
+    });
 
     expect(result).toEqual({
       ok: false,

@@ -16,11 +16,18 @@ import { useSyncState } from "../../hooks/useSyncStatus";
 import { getCurrentUserId } from "../../services/api";
 import {
   type HistoryAction,
+  type RemoteMenu,
   type SavedMenuState,
+  type StoredMenu,
   type ViewMode,
+  beginMenuSave,
+  getPendingRemoteMenu,
   loadStoredMenu,
+  markMenuModified,
   storeMenu,
+  subscribeMenuEvents,
 } from "../../services/menuStorage";
+import { resolveMenuConflict, saveMenuNow } from "../../services/syncService";
 import { shuffle } from "../../utils/shuffle";
 import { areDishesReady } from "../../utils/dishesReady";
 import "./ChooseDishesPage.css";
@@ -68,6 +75,32 @@ function buildFreshQueue(dishes: DishDocType[]): string[] {
   return Array.from({ length: PASSES_PER_DISH }, () => ids).flat();
 }
 
+function formatRemoteMenuTimestamp(updatedAt: string | null): string | null {
+  if (!updatedAt) return null;
+  const date = new Date(updatedAt);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
+}
+
+function describeRemoteMenu(remote: RemoteMenu): string {
+  const count = remote.selectedDishIds.length;
+  const content =
+    count === 0
+      ? "est vide"
+      : `contient ${count} plat${count > 1 ? "s" : ""}`;
+  const date = formatRemoteMenuTimestamp(remote.updatedAt);
+  return date
+    ? `La version distante du ${date} ${content}.`
+    : `La version distante ${content}.`;
+}
+
 export function ChooseDishesPage() {
   const navigate = useNavigate();
   const { dishes, isLoaded } = useDishes();
@@ -92,6 +125,11 @@ export function ChooseDishesPage() {
       : null;
   });
   const [mode, setMode] = useState<ViewMode>(initialSaved?.mode ?? "editing");
+  const [conflict, setConflict] = useState<RemoteMenu | null>(() =>
+    getPendingRemoteMenu(userId),
+  );
+  const [pendingRemoteApply, setPendingRemoteApply] =
+    useState<StoredMenu | null>(null);
 
   const [cardAnimation, setCardAnimation] = useState<
     "accept" | "reject" | "accept-undo" | "reject-undo" | null
@@ -111,6 +149,40 @@ export function ChooseDishesPage() {
 
   const [session, setSession] = useState<SessionState | null>(null);
   const initializedRef = useRef(false);
+
+  // Keep the banner and the live session in sync with menu sync events.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read the conflict that may have started before mount
+    setConflict(getPendingRemoteMenu(userId));
+    return subscribeMenuEvents((event) => {
+      if (event.userId !== userId) return;
+      if (event.type === "conflict") {
+        setConflict(event.remote);
+      } else if (event.type === "conflict-cleared") {
+        setConflict(null);
+      } else {
+        setPendingRemoteApply(event.menu);
+      }
+    });
+  }, [userId]);
+
+  // A remote menu was adopted while this page was open. Rebuild the review
+  // session from it once the dish set is available.
+  useEffect(() => {
+    if (!pendingRemoteApply || !dishesReady) return;
+    // Prevent the one-time local session builder from overwriting this menu.
+    initializedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the remote menu arrives through the sync engine
+    setSession({
+      queueIds: buildFreshQueue(dishes),
+      selectedIds: pendingRemoteApply.selectedIds,
+      history: [],
+    });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the remote menu arrives through the sync engine
+    setMode(pendingRemoteApply.mode);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consume the applied remote menu once
+    setPendingRemoteApply(null);
+  }, [pendingRemoteApply, dishesReady, dishes]);
 
   // Build the review session exactly once, when the dish set is ready, then keep
   // it frozen. The dish collection keeps changing while the sync engine runs, so
@@ -209,6 +281,7 @@ export function ChooseDishesPage() {
     if (!currentDish || cardAnimation || !session) return;
     setCardAnimation("accept");
     setTimeout(() => {
+      markMenuModified(userId);
       setSession({
         queueIds: session.queueIds.slice(1),
         selectedIds: [currentDish.id, ...session.selectedIds],
@@ -225,6 +298,7 @@ export function ChooseDishesPage() {
     if (!currentDish || cardAnimation || !session) return;
     setCardAnimation("reject");
     setTimeout(() => {
+      markMenuModified(userId);
       setSession({
         queueIds: session.queueIds.slice(1),
         selectedIds: session.selectedIds,
@@ -254,25 +328,57 @@ export function ChooseDishesPage() {
         }
       }
       next.queueIds = [lastItem.dishId, ...next.queueIds];
+      markMenuModified(userId);
       setSession(next);
       setCardAnimation(
         lastItem.action === "accept" ? "accept-undo" : "reject-undo",
       );
       setTimeout(() => setCardAnimation(null), 220);
     } else {
+      markMenuModified(userId);
       setSession(next);
     }
   };
 
+  const handleValidate = () => {
+    if (!session) return;
+    beginMenuSave(
+      userId,
+      {
+        queueIds: session.queueIds,
+        selectedIds: session.selectedIds,
+        history: session.history,
+        mode: "recap",
+      },
+      session.selectedIds,
+    );
+    setMode("recap");
+    void saveMenuNow();
+  };
+
   const handleResetConfirm = () => {
+    const freshQueue = buildFreshQueue(dishes);
     setSession({
-      queueIds: buildFreshQueue(dishes),
+      queueIds: freshQueue,
       selectedIds: [],
       history: [],
     });
     setMode("editing");
     setShowResetModal(false);
     setExpandedDishIds({});
+
+    // Clearing is an explicit save of the empty menu.
+    beginMenuSave(
+      userId,
+      {
+        queueIds: freshQueue,
+        selectedIds: [],
+        history: [],
+        mode: "editing",
+      },
+      [],
+    );
+    void saveMenuNow();
   };
 
   return (
@@ -301,6 +407,29 @@ export function ChooseDishesPage() {
           <div className="header-spacer" />
         )}
       </header>
+
+      {conflict && (
+        <div className="menu-sync-banner" role="status">
+          <div className="menu-sync-banner-text">
+            <strong>Un menu a été enregistré sur un autre appareil.</strong>
+            <span>{describeRemoteMenu(conflict)}</span>
+          </div>
+          <div className="menu-sync-banner-actions">
+            <button
+              className="btn btn-revert"
+              onClick={() => void resolveMenuConflict("keep")}
+            >
+              Garder mon menu
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => void resolveMenuConflict("load")}
+            >
+              Charger le menu distant
+            </button>
+          </div>
+        </div>
+      )}
 
       {mode === "editing" && (
         <div className="choose-menu-layout">
@@ -442,7 +571,7 @@ export function ChooseDishesPage() {
               </button>
               <button
                 className="btn btn-primary"
-                onClick={() => setMode("recap")}
+                onClick={handleValidate}
                 disabled={selectedDishes.length === 0}
               >
                 Valider ({counts.total})

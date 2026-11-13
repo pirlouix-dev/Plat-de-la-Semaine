@@ -1,9 +1,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  loadStoredMenu,
-  storeMenu,
-  markMenuSynced,
+  _resetMenuStorageState,
   applyRemoteMenu,
+  beginMenuSave,
+  getPendingRemoteMenu,
+  isMenuDirty,
+  keepLocalMenu,
+  loadStoredMenu,
+  markMenuMatchesRemote,
+  markMenuModified,
+  markMenuPushSucceeded,
+  setPendingRemoteMenu,
+  storeMenu,
+  subscribeMenuEvents,
   type SavedMenuState,
 } from "../services/menuStorage";
 
@@ -22,6 +31,7 @@ function menu(overrides: Partial<SavedMenuState> = {}): SavedMenuState {
 
 beforeEach(() => {
   localStorage.clear();
+  _resetMenuStorageState();
 });
 
 describe("loadStoredMenu", () => {
@@ -33,7 +43,12 @@ describe("loadStoredMenu", () => {
   it("adopts a guest selection for a logged-in user", () => {
     localStorage.setItem(
       GUEST_KEY,
-      JSON.stringify(menu({ selectedIds: ["g"], mode: "recap" })),
+      JSON.stringify({
+        ...menu({ selectedIds: ["g"], mode: "recap" }),
+        serverUpdatedAt: null,
+        localRevision: 1,
+        reconciledRevision: 1,
+      }),
     );
 
     const stored = loadStoredMenu("u1");
@@ -45,117 +60,227 @@ describe("loadStoredMenu", () => {
   it("reads the per-user slot for a logged-in user", () => {
     localStorage.setItem(
       USER_KEY,
-      JSON.stringify(menu({ selectedIds: ["u"] })),
+      JSON.stringify({
+        ...menu({ selectedIds: ["u"] }),
+        serverUpdatedAt: null,
+        localRevision: 0,
+        reconciledRevision: 0,
+      }),
     );
 
     expect(loadStoredMenu("u1")?.selectedIds).toEqual(["u"]);
   });
+
+  it("migrates a legacy recap menu as a pending save", () => {
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify({
+        ...menu({ selectedIds: ["a"], mode: "recap" }),
+        updatedAt: "2026-01-01T00:00:00Z",
+        syncStatus: "synced",
+      }),
+    );
+
+    const stored = loadStoredMenu("u1");
+    expect(stored?.savedIds).toEqual(["a"]);
+    expect(stored?.pendingSave).toBe(false);
+    expect(stored?.serverUpdatedAt).toBe("2026-01-01T00:00:00Z");
+  });
+
+  it("does not migrate a legacy editing draft into a pending save", () => {
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify({
+        ...menu({ selectedIds: ["a"], mode: "editing" }),
+        syncStatus: "pending_update",
+      }),
+    );
+
+    const stored = loadStoredMenu("u1");
+    expect(stored?.savedIds).toEqual([]);
+    expect(stored?.pendingSave).toBe(false);
+  });
 });
 
-describe("storeMenu", () => {
-  it("does not mark the menu dirty for review-only changes", () => {
-    storeMenu("u1", menu({ queueIds: ["a", "b"] }));
+describe("local modifications", () => {
+  it("does not mark a freshly stored menu dirty", () => {
+    storeMenu("u1", menu());
 
-    expect(loadStoredMenu("u1")?.syncStatus).toBe("synced");
+    const stored = loadStoredMenu("u1");
+    expect(stored?.pendingSave).toBe(false);
+    expect(isMenuDirty(stored!)).toBe(false);
   });
 
-  it("marks the menu dirty when the selection changes", () => {
-    storeMenu("u1", menu({ selectedIds: ["a"] }));
+  it("marks any working modification dirty without pending a save", () => {
+    storeMenu("u1", menu());
+    markMenuModified("u1");
 
-    expect(loadStoredMenu("u1")?.syncStatus).toBe("pending_update");
+    const stored = loadStoredMenu("u1");
+    expect(isMenuDirty(stored!)).toBe(true);
+    expect(stored?.pendingSave).toBe(false);
   });
 
-  it("keeps a pending menu dirty after subsequent review changes", () => {
+  it("keeps the menu dirty after a review-only change", () => {
     storeMenu("u1", menu({ selectedIds: ["a"] }));
+    markMenuModified("u1");
     storeMenu("u1", menu({ selectedIds: ["a"], queueIds: ["b"] }));
 
-    expect(loadStoredMenu("u1")?.syncStatus).toBe("pending_update");
+    const stored = loadStoredMenu("u1");
+    expect(isMenuDirty(stored!)).toBe(true);
+    expect(stored?.pendingSave).toBe(false);
   });
 
-  it("marks the menu dirty when only the mode changes", () => {
-    storeMenu("u1", menu({ selectedIds: ["a"] }));
-    markMenuSynced("u1", "2026-01-01T00:00:00Z");
+  it("snapshots the saved ids only on an explicit save", () => {
+    storeMenu("u1", menu({ selectedIds: ["a", "b"] }));
+    const saved = beginMenuSave(
+      "u1",
+      menu({ selectedIds: ["a", "b"], mode: "recap" }),
+      ["a", "b"],
+    );
 
-    storeMenu("u1", menu({ selectedIds: ["a"], mode: "recap" }));
-
-    expect(loadStoredMenu("u1")?.syncStatus).toBe("pending_update");
+    expect(saved.pendingSave).toBe(true);
+    expect(saved.savedIds).toEqual(["a", "b"]);
+    expect(saved.saveRevision).toBe(1);
   });
 });
 
-describe("markMenuSynced", () => {
-  it("records the server timestamp and clears the pending state", () => {
+describe("markMenuPushSucceeded", () => {
+  it("clears the pending save and records the server version", () => {
     storeMenu("u1", menu({ selectedIds: ["a"] }));
+    const saved = beginMenuSave(
+      "u1",
+      menu({ selectedIds: ["a"], mode: "recap" }),
+      ["a"],
+    );
 
-    markMenuSynced("u1", "2026-05-01T00:00:00Z");
+    markMenuPushSucceeded(
+      "u1",
+      {
+        saveRevision: saved.saveRevision,
+        localRevision: saved.pendingLocalRevision!,
+      },
+      { selectedDishIds: ["a"], updatedAt: "2026-05-01T00:00:00Z" },
+    );
 
     const stored = loadStoredMenu("u1");
-    expect(stored?.syncStatus).toBe("synced");
-    expect(stored?.updatedAt).toBe("2026-05-01T00:00:00Z");
+    expect(stored?.pendingSave).toBe(false);
+    expect(stored?.serverUpdatedAt).toBe("2026-05-01T00:00:00Z");
+    expect(isMenuDirty(stored!)).toBe(false);
+  });
+
+  it("does not clear a newer pending save when an older response arrives", () => {
+    storeMenu("u1", menu({ selectedIds: ["a"] }));
+    const first = beginMenuSave(
+      "u1",
+      menu({ selectedIds: ["a"], mode: "recap" }),
+      ["a"],
+    );
+    const second = beginMenuSave(
+      "u1",
+      menu({ selectedIds: ["a", "b"], mode: "recap" }),
+      ["a", "b"],
+    );
+
+    markMenuPushSucceeded(
+      "u1",
+      {
+        saveRevision: first.saveRevision,
+        localRevision: first.pendingLocalRevision!,
+      },
+      { selectedDishIds: ["a"], updatedAt: "2026-05-01T00:00:00Z" },
+    );
+
+    const stored = loadStoredMenu("u1");
+    expect(stored?.saveRevision).toBe(second.saveRevision);
+    expect(stored?.pendingSave).toBe(true);
+    expect(stored?.savedIds).toEqual(["a", "b"]);
   });
 });
 
-describe("applyRemoteMenu", () => {
-  it("adopts a newer remote menu when the local copy is clean", () => {
-    storeMenu("u1", menu());
-    markMenuSynced("u1", "2026-01-01T00:00:00Z");
+describe("remote resolution", () => {
+  it("adopts a remote menu and resets the review session", () => {
+    storeMenu(
+      "u1",
+      menu({
+        selectedIds: ["old"],
+        queueIds: ["old"],
+        history: [{ action: "accept", dishId: "old" }],
+      }),
+    );
 
-    applyRemoteMenu("u1", {
+    const applied = applyRemoteMenu("u1", {
       selectedDishIds: ["remote"],
-      mode: "recap",
       updatedAt: "2026-02-01T00:00:00Z",
+    });
+
+    expect(applied?.selectedIds).toEqual(["remote"]);
+    expect(applied?.savedIds).toEqual(["remote"]);
+    expect(applied?.queueIds).toEqual([]);
+    expect(applied?.history).toEqual([]);
+    expect(applied?.mode).toBe("recap");
+    expect(applied?.serverUpdatedAt).toBe("2026-02-01T00:00:00Z");
+    expect(isMenuDirty(applied!)).toBe(false);
+  });
+
+  it("uses editing mode when the remote menu is empty", () => {
+    storeMenu("u1", menu({ selectedIds: ["old"], mode: "recap" }));
+
+    const applied = applyRemoteMenu("u1", {
+      selectedDishIds: [],
+      updatedAt: "2026-02-01T00:00:00Z",
+    });
+
+    expect(applied?.mode).toBe("editing");
+  });
+
+  it("acknowledges a matching remote snapshot", () => {
+    storeMenu("u1", menu({ selectedIds: ["a"] }));
+    beginMenuSave("u1", menu({ selectedIds: ["a"], mode: "recap" }), ["a"]);
+
+    markMenuMatchesRemote("u1", {
+      selectedDishIds: ["a"],
+      updatedAt: "2026-03-01T00:00:00Z",
     });
 
     const stored = loadStoredMenu("u1");
-    expect(stored?.selectedIds).toEqual(["remote"]);
-    expect(stored?.mode).toBe("recap");
-    expect(stored?.syncStatus).toBe("synced");
-    expect(stored?.updatedAt).toBe("2026-02-01T00:00:00Z");
+    expect(stored?.pendingSave).toBe(false);
+    expect(stored?.serverUpdatedAt).toBe("2026-03-01T00:00:00Z");
   });
 
-  it("ignores a remote menu older than the local copy", () => {
-    storeMenu("u1", menu({ selectedIds: ["local"] }));
-    markMenuSynced("u1", "2026-03-01T00:00:00Z");
+  it("keeps the local menu while acknowledging the remote version", () => {
+    storeMenu("u1", menu({ selectedIds: ["local"], mode: "recap" }));
 
-    applyRemoteMenu("u1", {
+    keepLocalMenu("u1", {
       selectedDishIds: ["remote"],
-      mode: "recap",
-      updatedAt: "2026-02-01T00:00:00Z",
-    });
-
-    expect(loadStoredMenu("u1")?.selectedIds).toEqual(["local"]);
-  });
-
-  it("keeps local pending changes over a newer remote menu", () => {
-    storeMenu("u1", menu({ selectedIds: ["local"] }));
-
-    applyRemoteMenu("u1", {
-      selectedDishIds: ["remote"],
-      mode: "recap",
-      updatedAt: "2030-01-01T00:00:00Z",
+      updatedAt: "2026-04-01T00:00:00Z",
     });
 
     const stored = loadStoredMenu("u1");
     expect(stored?.selectedIds).toEqual(["local"]);
-    expect(stored?.syncStatus).toBe("pending_update");
+    expect(stored?.serverUpdatedAt).toBe("2026-04-01T00:00:00Z");
   });
+});
 
-  it("ignores a remote menu with no timestamp", () => {
-    applyRemoteMenu("u1", {
-      selectedDishIds: [],
-      mode: "editing",
-      updatedAt: null,
-    });
+describe("conflict store", () => {
+  it("stores and clears the pending remote menu", () => {
+    const events: string[] = [];
+    const unsubscribe = subscribeMenuEvents((event) => events.push(event.type));
 
-    expect(loadStoredMenu("u1")).toBeNull();
-  });
-
-  it("does nothing for guests", () => {
-    applyRemoteMenu(null, {
+    setPendingRemoteMenu("u1", {
       selectedDishIds: ["remote"],
-      mode: "recap",
-      updatedAt: "2030-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
     });
 
-    expect(loadStoredMenu(null)).toBeNull();
+    expect(getPendingRemoteMenu("u1")?.selectedDishIds).toEqual(["remote"]);
+    expect(getPendingRemoteMenu("u2")).toBeNull();
+
+    keepLocalMenu("u1", {
+      selectedDishIds: ["remote"],
+      updatedAt: "2026-01-01T00:00:00Z",
+    });
+
+    expect(getPendingRemoteMenu("u1")).toBeNull();
+    expect(events).toEqual(["conflict", "conflict-cleared"]);
+    unsubscribe();
   });
 });

@@ -8,10 +8,17 @@ import {
 } from "./dishService";
 import { getMenu, saveMenu } from "./menuService";
 import {
-  loadStoredMenu,
-  markMenuSynced,
   applyRemoteMenu,
+  getPendingRemoteMenu,
+  isMenuDirty,
+  keepLocalMenu,
+  loadStoredMenu,
+  markMenuMatchesRemote,
+  markMenuPushSucceeded,
+  sameStringArray,
+  setPendingRemoteMenu,
 } from "./menuStorage";
+import type { RemoteMenu, StoredMenu } from "./menuStorage";
 import type { components } from "../schema";
 import { isLoggedIn, getCurrentUserId } from "./api";
 import {
@@ -252,44 +259,244 @@ export async function refreshFromServer(db: AppDatabase): Promise<boolean> {
   return result !== null;
 }
 
-/**
- * Push the local menu when it has unsynced changes.
- * Returns `true` when the push failed (the change stays pending for a retry).
- */
-async function pushMenu(): Promise<boolean> {
-  const userId = getCurrentUserId();
-  if (!userId) return false;
+const MENU_CONFLICT_CODE = "MENU_VERSION_CONFLICT";
 
-  const menu = loadStoredMenu(userId);
-  if (!menu || menu.syncStatus === "synced") return false;
+let menuWriteInFlight = false;
 
-  const result = await saveMenu({
-    selectedDishIds: menu.selectedIds,
-    mode: menu.mode,
-  });
-  if (!result.ok) return true;
-
-  markMenuSynced(userId, result.data.updatedAt ?? null);
-  return false;
+function remoteFromApiMenu(menu: components["schemas"]["Menu"]): RemoteMenu {
+  return {
+    selectedDishIds: (menu.selectedDishIds ?? []).map(String),
+    updatedAt: menu.updatedAt ?? null,
+  };
 }
 
 /**
- * Pull the server menu and merge it locally (last write wins, local pending
- * changes take precedence). Returns `false` when the request failed.
+ * Fractional-second digits of an ISO 8601 timestamp, padded to nanoseconds.
+ * `Date.parse` only keeps milliseconds, but server versions are microseconds
+ * apart, so comparing it alone can merge two distinct versions.
  */
-async function pullMenu(): Promise<boolean> {
+function fractionalNanoseconds(value: string): string {
+  const match = /\.(\d+)/.exec(value);
+  return (match?.[1] ?? "").padEnd(9, "0").slice(0, 9);
+}
+
+/** Compares two server timestamps at full sub-millisecond precision. */
+function compareRemoteVersions(a: string, b: string): number {
+  const aMs = Date.parse(a);
+  const bMs = Date.parse(b);
+  if (aMs !== bMs) return aMs < bMs ? -1 : 1;
+
+  const aFraction = fractionalNanoseconds(a);
+  const bFraction = fractionalNanoseconds(b);
+  if (aFraction === bFraction) return 0;
+  return aFraction < bFraction ? -1 : 1;
+}
+
+function sameRemoteVersion(
+  a: string | null,
+  b: string | null,
+): boolean {
+  if (a === null || b === null) return a === b;
+  return compareRemoteVersions(a, b) === 0;
+}
+
+function isRemoteOlder(
+  remoteUpdatedAt: string | null,
+  knownUpdatedAt: string | null,
+): boolean {
+  if (!remoteUpdatedAt || !knownUpdatedAt) return false;
+  return compareRemoteVersions(remoteUpdatedAt, knownUpdatedAt) < 0;
+}
+
+/**
+ * Resolve a remote menu against the local document.
+ *
+ * The banner is intentionally driven by "new remote version + dirty local
+ * state", not by comparing the remote timestamp with the last local edit. A
+ * remote menu can be older than the latest edit but still be a version this
+ * device has never seen, and the user may prefer it.
+ */
+async function handleRemoteMenu(
+  userId: string,
+  remote: RemoteMenu,
+): Promise<boolean> {
+  const stored = loadStoredMenu(userId);
+
+  if (!stored) {
+    if (remote.updatedAt) {
+      applyRemoteMenu(userId, remote);
+    }
+    return true;
+  }
+
+  if (remote.updatedAt === null) {
+    // The server has no menu. Push a pending save/clear; otherwise keep the
+    // local draft (it may never have been validated).
+    if (stored.pendingSave) return pushPendingMenu();
+    return true;
+  }
+
+  if (
+    stored.serverUpdatedAt &&
+    sameRemoteVersion(remote.updatedAt, stored.serverUpdatedAt)
+  ) {
+    // Same version we already know about: only a pending save needs attention.
+    if (stored.pendingSave) {
+      if (sameStringArray(remote.selectedDishIds, stored.savedIds)) {
+        markMenuMatchesRemote(userId, remote);
+        return true;
+      }
+      return pushPendingMenu();
+    }
+    return true;
+  }
+
+  if (isRemoteOlder(remote.updatedAt, stored.serverUpdatedAt)) {
+    // A stale GET response (e.g. it returned after our own successful PUT).
+    return true;
+  }
+
+  if (
+    sameStringArray(remote.selectedDishIds, stored.savedIds) ||
+    sameStringArray(remote.selectedDishIds, stored.selectedIds)
+  ) {
+    markMenuMatchesRemote(userId, remote);
+    return true;
+  }
+
+  if (!isMenuDirty(stored)) {
+    applyRemoteMenu(userId, remote);
+    return true;
+  }
+
+  // The local menu was modified and the server has a version we have not seen.
+  // Ask the user instead of silently replacing either side.
+  setPendingRemoteMenu(userId, remote);
+  return true;
+}
+
+/**
+ * Push the saved snapshot when it is still pending. Returns `true` when there is
+ * nothing left to retry, `false` on a transient failure.
+ */
+async function pushPendingMenu(): Promise<boolean> {
+  if (menuWriteInFlight) return true;
+
   const userId = getCurrentUserId();
   if (!userId) return true;
+
+  if (getPendingRemoteMenu(userId)) return true;
+
+  const stored = loadStoredMenu(userId);
+  if (!stored?.pendingSave) return true;
+  if (!isOnline()) return false;
+
+  menuWriteInFlight = true;
+  try {
+    for (;;) {
+      const current = loadStoredMenu(userId);
+      if (!current?.pendingSave) return true;
+      if (getPendingRemoteMenu(userId)) return true;
+
+      const snapshot = {
+        saveRevision: current.saveRevision,
+        localRevision:
+          current.pendingLocalRevision ?? current.localRevision,
+      };
+
+      const result = await saveMenu({
+        selectedDishIds: current.savedIds,
+        expectedUpdatedAt: current.serverUpdatedAt,
+      });
+
+      if (result.ok) {
+        const remote = remoteFromApiMenu(result.data);
+        markMenuPushSucceeded(userId, snapshot, remote);
+
+        const after = loadStoredMenu(userId);
+        if (after?.pendingSave && after.saveRevision !== snapshot.saveRevision) {
+          // A newer explicit save/clear happened while this request was in
+          // flight. Push that snapshot against the version we just received.
+          continue;
+        }
+        return true;
+      }
+
+      if (result.error.code === MENU_CONFLICT_CODE) {
+        // The server changed under us. Pull the current version and let the
+        // shared resolver decide whether to adopt, push, or ask the user.
+        menuWriteInFlight = false;
+        return pullAndResolveMenu(userId);
+      }
+
+      return false;
+    }
+  } finally {
+    menuWriteInFlight = false;
+  }
+}
+
+/**
+ * Pull the server menu and resolve it against local state.
+ * Returns `false` only when the request failed and should be retried.
+ */
+async function pullAndResolveMenu(userId?: string): Promise<boolean> {
+  const currentUserId = userId ?? getCurrentUserId();
+  if (!currentUserId) return true;
+
+  const pending = loadStoredMenu(currentUserId)?.pendingSave ?? false;
+  if (!isOnline()) return !pending;
+  if (menuWriteInFlight) {
+    // A save is already resolving the menu; its response (or 409 follow-up)
+    // will decide the outcome.
+    return true;
+  }
 
   const result = await getMenu();
   if (!result.ok) return false;
 
-  applyRemoteMenu(userId, {
-    selectedDishIds: (result.data.selectedDishIds ?? []).map(String),
-    mode: result.data.mode === "recap" ? "recap" : "editing",
-    updatedAt: result.data.updatedAt ?? null,
-  });
-  return true;
+  if (menuWriteInFlight) {
+    // A save started while the GET was in flight. Its response is authoritative.
+    return true;
+  }
+
+  return handleRemoteMenu(currentUserId, remoteFromApiMenu(result.data));
+}
+
+/** Push the pending saved menu immediately after a validate/clear action. */
+export async function saveMenuNow(): Promise<void> {
+  if (!isLoggedIn() || !isOnline()) return;
+  await pushPendingMenu();
+}
+
+/**
+ * Resolve the banner choice.
+ * - "load": adopt the remote menu and discard the local working state.
+ * - "keep": acknowledge the remote version and push the local saved snapshot.
+ */
+export async function resolveMenuConflict(
+  choice: "load" | "keep",
+): Promise<void> {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  const remote = getPendingRemoteMenu(userId);
+  if (!remote) return;
+
+  if (choice === "load") {
+    applyRemoteMenu(userId, remote);
+    return;
+  }
+
+  const stored = keepLocalMenu(userId, remote);
+  if (stored?.pendingSave) {
+    await pushPendingMenu();
+  }
+}
+
+/** @internal Current local menu document, for UI/tests. */
+export function getLocalMenu(userId: string | null): StoredMenu | null {
+  return loadStoredMenu(userId);
 }
 
 export async function sync(db: AppDatabase): Promise<void> {
@@ -301,17 +508,13 @@ export async function sync(db: AppDatabase): Promise<void> {
   syncRunning = true;
   markSyncStarted();
   try {
+    // Start the menu pull immediately; it must not wait behind dish operations.
+    const menuResolved = pullAndResolveMenu();
     const hadFailures = await pushPendingChanges(db);
-    const menuPushFailed = await pushMenu();
     const pulledSyncAt = await pullAndMerge(db);
-    const menuPulled = await pullMenu();
+    const menuSucceeded = await menuResolved;
 
-    if (
-      hadFailures ||
-      menuPushFailed ||
-      pulledSyncAt === null ||
-      !menuPulled
-    ) {
+    if (hadFailures || pulledSyncAt === null || !menuSucceeded) {
       retryCount += 1;
       const delay =
         BACKOFF_DELAYS_MS[
