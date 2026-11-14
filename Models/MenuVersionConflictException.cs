@@ -7,7 +7,7 @@ namespace PlatDeLaSemaineBack.Models;
 /// </summary>
 public class MenuVersionConflictException : Exception
 {
-    public const string ErrorCode = "MENU_VERSION_CONFLICT";
+    public const string ErrorCode = ApiErrorCodes.MenuVersionConflict;
 
     public MenuVersionConflictException()
         : base("The menu was modified by another request.")

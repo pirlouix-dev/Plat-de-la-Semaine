@@ -109,6 +109,26 @@ public class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_ApiException_UsesItsStatusAndCode()
+    {
+        // Arrange & Act
+        var (statusCode, body) = await CaptureAsync(new ApiException(
+            HttpStatusCode.BadRequest,
+            ApiErrorCodes.EmailExists,
+            "An account already exists for this email address."));
+
+        // Assert
+        Assert.Equal(StatusCodes.Status400BadRequest, statusCode);
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        Assert.NotNull(response);
+        Assert.Equal("EMAIL_EXISTS", response!.Code);
+        Assert.Equal("An account already exists for this email address.", response.Message);
+    }
+
+    [Fact]
     public async Task InvokeAsync_GenericException_Returns500()
     {
         // Arrange

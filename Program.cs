@@ -44,7 +44,7 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
 
         return new BadRequestObjectResult(new ApiErrorDetail
         {
-            Code = "VALIDATION_ERROR",
+            Code = ApiErrorCodes.ValidationError,
             Message = "The request is invalid.",
             Details = details
         });
