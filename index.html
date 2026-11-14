@@ -2,6 +2,18 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Critical inline paint: the app background lives in src/index.css, which is
+      bundled with the JS. Painting it here avoids a white flash on first load
+      (notably Firefox). Keep the colour in sync with --bg-dark in index.css.
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background-color: #2c2c2c;
+      }
+    </style>
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
