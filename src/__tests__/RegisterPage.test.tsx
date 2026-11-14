@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { ToastProvider } from "../components/Toast";
 import RegisterPage from "../pages/RegisterPage/RegisterPage";
 import { MAX_USERNAME_LENGTH } from "../types";
 import { SERVER_WARMUP_MESSAGE } from "../services/api";
@@ -30,7 +31,9 @@ function mockFetchError(status: number, body: { code: string; message: string })
 function renderPage() {
   return render(
     <MemoryRouter>
-      <RegisterPage />
+      <ToastProvider>
+        <RegisterPage />
+      </ToastProvider>
     </MemoryRouter>,
   );
 }
@@ -229,7 +232,7 @@ describe("RegisterPage", () => {
     });
   });
 
-  it("shows error message when registration fails", async () => {
+  it("shows an error toast when registration fails", async () => {
     mockFetchError(400, {
       code: "VALIDATION_ERROR",
       message: "Email already in use",
@@ -252,7 +255,9 @@ describe("RegisterPage", () => {
 
     fireEvent.click(screen.getByText("S'inscrire"));
 
-    expect(await screen.findByText("Email already in use")).toBeTruthy();
+    const toast = await screen.findByText("Email already in use");
+    expect(toast.className).toContain("toast-error");
+    expect(document.querySelector(".auth-error")).toBeNull();
   });
 
   it("shows the warm-up message instead of the raw timeout error on register", async () => {
@@ -278,7 +283,8 @@ describe("RegisterPage", () => {
 
     fireEvent.click(screen.getByText("S'inscrire"));
 
-    expect(await screen.findByText(SERVER_WARMUP_MESSAGE)).toBeTruthy();
+    const toast = await screen.findByText(SERVER_WARMUP_MESSAGE);
+    expect(toast.className).toContain("toast-error");
     expect(screen.queryByText("Request timed out")).toBeNull();
   });
 
