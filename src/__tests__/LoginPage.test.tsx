@@ -123,8 +123,8 @@ describe("LoginPage", () => {
 
   it("shows a friendly toast and clears the password when credentials are rejected", async () => {
     mockFetchError(401, {
-      code: "UNAUTHORIZED",
-      message: "INVALID_LOGIN_CREDENTIALS",
+      code: "INVALID_CREDENTIALS",
+      message: "Email or password is incorrect.",
     });
 
     renderLogin();
@@ -139,11 +139,34 @@ describe("LoginPage", () => {
 
     const toast = await screen.findByText("Email ou mot de passe incorrect.");
     expect(toast.className).toContain("toast-error");
-    expect(screen.queryByText("INVALID_LOGIN_CREDENTIALS")).toBeNull();
+    expect(screen.queryByText("INVALID_CREDENTIALS")).toBeNull();
+    expect(screen.queryByText("Email or password is incorrect.")).toBeNull();
     expect(document.querySelector(".auth-error")).toBeNull();
 
     expect(screen.getByPlaceholderText("Mot de passe")).toHaveValue("");
     expect(screen.getByPlaceholderText("Email")).toHaveValue("bad@example.com");
+  });
+
+  it("shows a generic French message for an unknown auth code", async () => {
+    mockFetchError(401, {
+      code: "SOMETHING_NEW",
+      message: "SOMETHING_NEW",
+    });
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "pwd" },
+    });
+    fireEvent.click(screen.getByText("Se connecter"));
+
+    const toast = await screen.findByText("Une erreur est survenue.");
+    expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("SOMETHING_NEW")).toBeNull();
+    expect(screen.getByPlaceholderText("Mot de passe")).toHaveValue("pwd");
   });
 
   it("shows the warm-up message instead of the raw timeout error on login", async () => {

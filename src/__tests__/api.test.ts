@@ -348,19 +348,50 @@ describe("getApiErrorMessage", () => {
     ).toBe(SERVER_WARMUP_MESSAGE);
   });
 
-  it("returns the backend message for other error codes", () => {
-    expect(
-      getApiErrorMessage({
-        code: "INVALID_CREDENTIALS",
-        message: "Email ou mot de passe incorrect",
-      })
-    ).toBe("Email ou mot de passe incorrect");
+  it.each([
+    ["EMAIL_EXISTS", "Un compte existe déjà avec cette adresse email."],
+    ["INVALID_CREDENTIALS", "Email ou mot de passe incorrect."],
+    ["USER_DISABLED", "Ce compte est désactivé."],
+    ["TOO_MANY_ATTEMPTS", "Trop de tentatives. Veuillez réessayer plus tard."],
+    [
+      "VALIDATION_ERROR",
+      "Certaines informations sont invalides. Vérifiez votre saisie.",
+    ],
+    ["NOT_FOUND", "L'élément demandé est introuvable."],
+    [
+      "RATE_LIMITED",
+      "Trop de signalements envoyés. Veuillez réessayer plus tard.",
+    ],
+    [
+      "NETWORK_ERROR",
+      "Impossible de contacter le serveur. Vérifiez votre connexion Internet.",
+    ],
+  ])("maps %s to French copy", (code, expected) => {
+    expect(getApiErrorMessage({ code, message: "diagnostic" })).toBe(expected);
   });
 
-  it("falls back when the message is empty", () => {
-    expect(getApiErrorMessage({ code: "UNKNOWN", message: "" })).toBe(
-      "Une erreur est survenue."
+  it("ignores the backend diagnostic message", () => {
+    expect(
+      getApiErrorMessage({
+        code: "VALIDATION_ERROR",
+        message: "Name must not exceed 200 characters.",
+      })
+    ).toBe("Certaines informations sont invalides. Vérifiez votre saisie.");
+  });
+
+  it("maps HTTP status codes to French copy", () => {
+    expect(getApiErrorMessage({ code: "HTTP_500", message: "HTTP 500" })).toBe(
+      "Le serveur a rencontré une erreur. Veuillez réessayer plus tard."
     );
+    expect(getApiErrorMessage({ code: "HTTP_404", message: "HTTP 404" })).toBe(
+      "L'élément demandé est introuvable."
+    );
+  });
+
+  it("falls back to a generic French message for unknown codes", () => {
+    expect(
+      getApiErrorMessage({ code: "SOMETHING_NEW", message: "SOMETHING_NEW" })
+    ).toBe("Une erreur est survenue.");
   });
 });
 

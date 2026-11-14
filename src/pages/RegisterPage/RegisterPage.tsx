@@ -1,15 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import CharacterCounter from "../../components/CharacterCounter";
-import { useToast } from "../../components/toastContext";
-import {
-  apiPost,
-  getApiErrorMessage,
-  getApiErrorToastDuration,
-  notifyAuthChange,
-} from "../../services/api";
+import { apiPost, notifyAuthChange } from "../../services/api";
 import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
+import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
 import "../../styles/auth.css";
@@ -25,7 +20,7 @@ function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { showToast } = useToast();
+  const showApiErrorToast = useApiErrorToast();
 
   const passwordsMatch = password === confirmPassword;
   const showMismatch = confirmPassword.length > 0 && !passwordsMatch;
@@ -49,11 +44,7 @@ function RegisterPage() {
     });
 
     if (!result.ok) {
-      showToast(
-        getApiErrorMessage(result.error),
-        "error",
-        getApiErrorToastDuration(result.error),
-      );
+      showApiErrorToast(result.error);
       setLoading(false);
       return;
     }

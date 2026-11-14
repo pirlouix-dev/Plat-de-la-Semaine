@@ -36,7 +36,8 @@ import {
   resetPassword,
   deleteAccount,
 } from "../../services/authService";
-import { clearAuth } from "../../services/api";
+import { clearAuth, getApiErrorMessage } from "../../services/api";
+import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
 import { MAX_FEEDBACK_LENGTH, MAX_USERNAME_LENGTH } from "../../types/dish";
 import type { BackupSummary } from "../../types";
@@ -133,6 +134,7 @@ export function SettingsPage() {
   const location = useLocation();
   const { db } = useDatabase();
   const { showToast } = useToast();
+  const showApiErrorToast = useApiErrorToast();
   const isLoggedIn = useIsLoggedIn();
 
   const isMobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
@@ -159,7 +161,7 @@ export function SettingsPage() {
       localStorage.setItem("user_username", trimmed);
       showToast("Nom d'utilisateur mis à jour", "success");
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setUsernameSaving(false);
   };
@@ -173,7 +175,7 @@ export function SettingsPage() {
         "warning",
       );
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setResettingPassword(false);
   };
@@ -185,7 +187,7 @@ export function SettingsPage() {
       clearAuth();
       navigate("/", { replace: true });
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
       setDeleting(false);
       setShowDeleteModal(false);
     }
@@ -226,7 +228,7 @@ export function SettingsPage() {
         } else {
           const result = await importDishes(parsed.items);
           if (!result.ok) {
-            showToast(result.error.message, "error");
+            showApiErrorToast(result.error);
             return;
           }
           if (db) {
@@ -285,7 +287,7 @@ export function SettingsPage() {
     if (result.ok) {
       setBackups(result.data);
     } else {
-      setBackupsError(result.error.message);
+      setBackupsError(getApiErrorMessage(result.error));
     }
     setBackupsLoading(false);
   }, []);
@@ -297,7 +299,7 @@ export function SettingsPage() {
       showToast("Sauvegarde restaurée avec succès", "success");
       await fetchBackups();
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setRestoringId(null);
   };
@@ -316,7 +318,7 @@ export function SettingsPage() {
       showToast("Rapport envoyé, merci !", "success");
       setBugDescription("");
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setBugSubmitting(false);
   };
@@ -347,7 +349,7 @@ export function SettingsPage() {
       if (result.ok) {
         setBackups(result.data);
       } else {
-        setBackupsError(result.error.message);
+        setBackupsError(getApiErrorMessage(result.error));
       }
       setBackupsLoading(false);
     };

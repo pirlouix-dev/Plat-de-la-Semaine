@@ -232,10 +232,10 @@ describe("RegisterPage", () => {
     });
   });
 
-  it("shows an error toast when registration fails", async () => {
+  it("shows a French error toast when the email is already used", async () => {
     mockFetchError(400, {
-      code: "VALIDATION_ERROR",
-      message: "Email already in use",
+      code: "EMAIL_EXISTS",
+      message: "An account already exists for this email address.",
     });
 
     renderPage();
@@ -255,9 +255,43 @@ describe("RegisterPage", () => {
 
     fireEvent.click(screen.getByText("S'inscrire"));
 
-    const toast = await screen.findByText("Email already in use");
+    const toast = await screen.findByText(
+      "Un compte existe déjà avec cette adresse email.",
+    );
     expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("EMAIL_EXISTS")).toBeNull();
+    expect(
+      screen.queryByText("An account already exists for this email address."),
+    ).toBeNull();
     expect(document.querySelector(".auth-error")).toBeNull();
+  });
+
+  it("shows a generic French message for an unknown registration code", async () => {
+    mockFetchError(400, {
+      code: "SOMETHING_NEW",
+      message: "SOMETHING_NEW",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
+      target: { value: "existinguser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "taken@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText("S'inscrire"));
+
+    const toast = await screen.findByText("Une erreur est survenue.");
+    expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("SOMETHING_NEW")).toBeNull();
   });
 
   it("shows the warm-up message instead of the raw timeout error on register", async () => {

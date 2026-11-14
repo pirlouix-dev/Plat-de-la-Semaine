@@ -83,9 +83,13 @@ vi.mock("../repositories/dishRepository", () => ({
   getAllDishes: (...args: unknown[]) => mockGetAllDishes(...args),
 }));
 
-vi.mock("../services/api", () => ({
-  clearAuth: (...args: unknown[]) => mockClearAuth(...args),
-}));
+vi.mock("../services/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/api")>();
+  return {
+    ...actual,
+    clearAuth: (...args: unknown[]) => mockClearAuth(...args),
+  };
+});
 
 vi.mock("../services/authService", () => ({
   updateUsername: (...args: unknown[]) => mockUpdateUsername(...args),
@@ -344,7 +348,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByText("Restaurer"));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Backup not found", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "L'élément demandé est introuvable.",
+          "error",
+        );
       });
     });
 
@@ -358,7 +365,8 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("Internal server error")).toBeTruthy();
+        expect(screen.getByText("Une erreur est survenue.")).toBeTruthy();
+        expect(screen.queryByText("Internal server error")).toBeNull();
       });
     });
 
@@ -529,7 +537,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Import impossible",
+            "Une erreur est survenue.",
             "error",
           );
         });
@@ -720,7 +728,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /envoyer le rapport/i }));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Too many requests", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Trop de signalements envoyés. Veuillez réessayer plus tard.",
+          "error",
+        );
       });
     });
   });
@@ -792,7 +803,10 @@ describe("SettingsPage", () => {
     it("shows error toast when username update fails", async () => {
       mockUpdateUsername.mockResolvedValue({
         ok: false,
-        error: { code: "CONFLICT", message: "Nom déjà pris" },
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "The username is invalid.",
+        },
       });
       localStorage.setItem("auth_token", "test-token");
       mockMatchMedia(false);
@@ -803,7 +817,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /enregistrer/i }));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Nom déjà pris", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Certaines informations sont invalides. Vérifiez votre saisie.",
+          "error",
+        );
       });
     });
 
@@ -835,7 +852,10 @@ describe("SettingsPage", () => {
     it("shows error toast when password reset fails", async () => {
       mockResetPassword.mockResolvedValue({
         ok: false,
-        error: { code: "SERVER_ERROR", message: "Erreur serveur" },
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "An unexpected error occurred.",
+        },
       });
       mockMatchMedia(false);
       renderSettingsPage();
@@ -845,7 +865,10 @@ describe("SettingsPage", () => {
       );
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Erreur serveur", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Le serveur a rencontré une erreur. Veuillez réessayer plus tard.",
+          "error",
+        );
       });
     });
 
@@ -888,7 +911,10 @@ describe("SettingsPage", () => {
     it("shows error toast when account deletion fails", async () => {
       mockDeleteAccount.mockResolvedValue({
         ok: false,
-        error: { code: "FORBIDDEN", message: "Action non autorisée" },
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Missing or invalid authorization header.",
+        },
       });
       mockMatchMedia(false);
       renderSettingsPage();
@@ -900,7 +926,7 @@ describe("SettingsPage", () => {
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Action non autorisée",
+          "Votre session a expiré. Veuillez vous reconnecter.",
           "error",
         );
       });

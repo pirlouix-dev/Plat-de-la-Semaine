@@ -44,8 +44,9 @@ describe("App component — rendering states", { timeout: 15_000 }, () => {
       </MemoryRouter>,
     );
     expect(
-      screen.getByText(/Failed to initialize database: IndexedDB unavailable/),
+      screen.getByText(/Impossible d'initialiser la base de données locale/),
     ).toBeTruthy();
+    expect(screen.queryByText(/IndexedDB unavailable/)).toBeNull();
   });
 
   it("renders HomePage when database is ready", async () => {

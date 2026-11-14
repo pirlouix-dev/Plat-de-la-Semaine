@@ -13,11 +13,12 @@ import RegisterPage from "./pages/RegisterPage/RegisterPage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import LogoutPage from "./pages/LogoutPage/LogoutPage";
 
-function DatabaseError({ message }: { message: string }) {
+function DatabaseError() {
   return (
     <div className="app-container">
       <p className="status-message status-error">
-        Failed to initialize database: {message}
+        Impossible d'initialiser la base de données locale. Rechargez la page ou
+        contactez le support.
       </p>
     </div>
   );
@@ -28,7 +29,7 @@ function AppContent() {
   useSync();
 
   if (error) {
-    return <DatabaseError message={error} />;
+    return <DatabaseError />;
   }
 
   return (

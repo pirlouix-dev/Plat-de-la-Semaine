@@ -2,14 +2,12 @@ import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   apiPost,
-  getApiErrorMessage,
-  getApiErrorToastDuration,
-  getLoginErrorMessage,
   isInvalidCredentialsError,
   notifyAuthChange,
 } from "../../services/api";
 import type { components } from "../../schema";
 import { useToast } from "../../components/toastContext";
+import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
 import "../../styles/auth.css";
@@ -25,6 +23,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const showApiErrorToast = useApiErrorToast();
   const [forgotLoading, setForgotLoading] = useState(false);
 
   useWarmupPing();
@@ -50,11 +49,7 @@ function LoginPage() {
       notifyAuthChange();
       navigate("/");
     } else {
-      showToast(
-        getLoginErrorMessage(result.error),
-        "error",
-        getApiErrorToastDuration(result.error),
-      );
+      showApiErrorToast(result.error);
       if (isInvalidCredentialsError(result.error)) {
         setPassword("");
       }
@@ -77,11 +72,7 @@ function LoginPage() {
         "warning",
       );
     } else {
-      showToast(
-        getApiErrorMessage(result.error),
-        "error",
-        getApiErrorToastDuration(result.error),
-      );
+      showApiErrorToast(result.error);
     }
     setForgotLoading(false);
   };

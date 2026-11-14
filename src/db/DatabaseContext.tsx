@@ -79,6 +79,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           error: null,
         });
       } catch (err) {
+        console.error("Database initialization failed:", err);
         const message =
           err instanceof Error
             ? err.message
