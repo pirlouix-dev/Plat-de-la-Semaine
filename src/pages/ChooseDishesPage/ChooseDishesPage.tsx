@@ -178,9 +178,8 @@ export function ChooseDishesPage() {
       selectedIds: pendingRemoteApply.selectedIds,
       history: [],
     });
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the remote menu arrives through the sync engine
     setMode(pendingRemoteApply.mode);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- consume the applied remote menu once
+    // consume the applied remote menu once
     setPendingRemoteApply(null);
   }, [pendingRemoteApply, dishesReady, dishes]);
 
