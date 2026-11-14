@@ -115,6 +115,34 @@ export function getApiErrorToastDuration(
     : undefined;
 }
 
+/**
+ * Raw Firebase Identity Toolkit messages that the backend currently forwards
+ * verbatim as the error message. Mapped to user-facing copy on the client until
+ * the backend returns friendly messages itself.
+ */
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_LOGIN_CREDENTIALS: "Email ou mot de passe incorrect.",
+  EMAIL_NOT_FOUND: "Email ou mot de passe incorrect.",
+  INVALID_PASSWORD: "Email ou mot de passe incorrect.",
+  USER_DISABLED: "Ce compte est désactivé.",
+  TOO_MANY_ATTEMPTS_TRY_LATER:
+    "Trop de tentatives. Veuillez réessayer plus tard.",
+};
+
+/** Whether a failed login was rejected because of the credentials themselves. */
+export function isInvalidCredentialsError(error: ApiErrorDetail): boolean {
+  return error.code === "UNAUTHORIZED" || error.code === "INVALID_CREDENTIALS";
+}
+
+/** Human-readable message for a failed login attempt. */
+export function getLoginErrorMessage(error: ApiErrorDetail): string {
+  if (error.code === API_ERROR_CODES.TIMEOUT) return SERVER_WARMUP_MESSAGE;
+  return (
+    AUTH_ERROR_MESSAGES[error.message] ??
+    (error.message || "Une erreur est survenue.")
+  );
+}
+
 async function parseJsonSafe(res: Response): Promise<unknown> {
   try {
     return (await res.json()) as unknown;

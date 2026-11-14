@@ -54,16 +54,6 @@
   text-decoration: underline;
 }
 
-.auth-error {
-  background: rgba(255, 82, 82, 0.15);
-  color: #ff5252;
-  padding: 12px 18px;
-  border-radius: 12px;
-  font-size: 14px;
-  text-align: center;
-  font-weight: 600;
-}
-
 .auth-container .dish-form {
   gap: 8px;
 }
