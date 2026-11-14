@@ -39,19 +39,19 @@ public class FeedbackController : BaseController
 
         return result.ErrorCode switch
         {
-            "VERSION_MISMATCH" => BadRequest(new ApiErrorDetail
+            ApiErrorCodes.VersionMismatch => BadRequest(new ApiErrorDetail
             {
                 Code = result.ErrorCode,
                 Message = result.ErrorMessage!
             }),
-            "RATE_LIMITED" => StatusCode(StatusCodes.Status429TooManyRequests, new ApiErrorDetail
+            ApiErrorCodes.RateLimited => StatusCode(StatusCodes.Status429TooManyRequests, new ApiErrorDetail
             {
                 Code = result.ErrorCode,
                 Message = result.ErrorMessage!
             }),
             _ => StatusCode(StatusCodes.Status500InternalServerError, new ApiErrorDetail
             {
-                Code = result.ErrorCode ?? "UNKNOWN_ERROR",
+                Code = result.ErrorCode ?? ApiErrorCodes.UnknownError,
                 Message = result.ErrorMessage ?? "An unexpected error occurred."
             })
         };

@@ -71,14 +71,17 @@ public class AuthServiceTests
         Assert.Equal("testuser", result.Username);
     }
 
-    [Fact]
-    public async Task LoginAsync_InvalidCredentials_ThrowsUnauthorizedAccessException()
+    [Theory]
+    [InlineData("INVALID_LOGIN_CREDENTIALS")]
+    [InlineData("EMAIL_NOT_FOUND")]
+    [InlineData("INVALID_PASSWORD")]
+    public async Task LoginAsync_InvalidCredentials_ThrowsInvalidCredentialsApiException(string firebaseMessage)
     {
         // Arrange
         var (service, handler, _) = CreateService();
         handler.OnSend = (req, ct) =>
         {
-            var body = new { error = new { message = "INVALID_PASSWORD" } };
+            var body = new { error = new { message = firebaseMessage } };
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
             {
                 Content = JsonContent.Create(body)
@@ -86,9 +89,53 @@ public class AuthServiceTests
         };
 
         // Act & Assert
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        var ex = await Assert.ThrowsAsync<ApiException>(
             () => service.LoginAsync("test@example.com", "wrongpassword"));
-        Assert.Contains("INVALID_PASSWORD", ex.Message);
+        Assert.Equal(HttpStatusCode.Unauthorized, ex.StatusCode);
+        Assert.Equal(ApiErrorCodes.InvalidCredentials, ex.ErrorCode);
+        Assert.Equal("Email or password is incorrect.", ex.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_TooManyAttempts_ThrowsTooManyAttemptsApiException()
+    {
+        // Arrange
+        var (service, handler, _) = CreateService();
+        handler.OnSend = (req, ct) =>
+        {
+            var body = new { error = new { message = "TOO_MANY_ATTEMPTS_TRY_LATER" } };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+            {
+                Content = JsonContent.Create(body)
+            });
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ApiException>(
+            () => service.LoginAsync("test@example.com", "wrongpassword"));
+        Assert.Equal(HttpStatusCode.TooManyRequests, ex.StatusCode);
+        Assert.Equal(ApiErrorCodes.TooManyAttempts, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task LoginAsync_UserDisabled_ThrowsUserDisabledApiException()
+    {
+        // Arrange
+        var (service, handler, _) = CreateService();
+        handler.OnSend = (req, ct) =>
+        {
+            var body = new { error = new { message = "USER_DISABLED" } };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = JsonContent.Create(body)
+            });
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ApiException>(
+            () => service.LoginAsync("test@example.com", "wrongpassword"));
+        Assert.Equal(HttpStatusCode.Unauthorized, ex.StatusCode);
+        Assert.Equal(ApiErrorCodes.UserDisabled, ex.ErrorCode);
     }
 
     [Fact]
@@ -154,7 +201,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RefreshTokenAsync_InvalidToken_ThrowsHttpRequestException()
+    public async Task RefreshTokenAsync_InvalidToken_ThrowsInvalidRefreshTokenApiException()
     {
         // Arrange
         var (service, handler, _) = CreateService();
@@ -168,8 +215,10 @@ public class AuthServiceTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<HttpRequestException>(
+        var ex = await Assert.ThrowsAsync<ApiException>(
             () => service.RefreshTokenAsync("invalid-token"));
+        Assert.Equal(HttpStatusCode.Unauthorized, ex.StatusCode);
+        Assert.Equal(ApiErrorCodes.InvalidRefreshToken, ex.ErrorCode);
     }
 
     [Fact]

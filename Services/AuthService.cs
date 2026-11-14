@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using FirebaseAdmin.Auth;
@@ -42,7 +43,25 @@ public class AuthService : IAuthService
             EmailVerified = true,
         };
 
-        var userRecord = await FirebaseAuth.DefaultInstance.CreateUserAsync(userRecordArgs);
+        UserRecord userRecord;
+        try
+        {
+            userRecord = await FirebaseAuth.DefaultInstance.CreateUserAsync(userRecordArgs);
+        }
+        catch (FirebaseAuthException exception)
+        {
+            throw exception.AuthErrorCode switch
+            {
+                AuthErrorCode.EmailAlreadyExists => new ApiException(
+                    HttpStatusCode.BadRequest,
+                    ApiErrorCodes.EmailExists,
+                    "An account already exists for this email address."),
+                _ => new ApiException(
+                    HttpStatusCode.BadRequest,
+                    ApiErrorCodes.AuthFailed,
+                    "Registration failed.")
+            };
+        }
 
         var user = new User
         {
@@ -91,7 +110,14 @@ public class AuthService : IAuthService
         };
 
         var response = await _http.PostAsJsonAsync($"{SecureTokenUrl}?key={_apiKey}", request);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new ApiException(
+                HttpStatusCode.Unauthorized,
+                ApiErrorCodes.InvalidRefreshToken,
+                "The refresh token is invalid or expired.");
+        }
 
         var result = await response.Content.ReadFromJsonAsync<SecureTokenResponse>()
             ?? throw new InvalidOperationException("Invalid response from Firebase.");
@@ -118,13 +144,41 @@ public class AuthService : IAuthService
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadFromJsonAsync<SignInErrorResponse>();
-            var errorMessage = errorBody?.Error?.Message ?? "Authentication failed.";
-            throw new UnauthorizedAccessException(errorMessage);
+            throw MapSignInError(errorBody?.Error?.Message);
         }
 
         return await response.Content.ReadFromJsonAsync<SignInResponse>()
             ?? throw new InvalidOperationException("Invalid response from Firebase.");
     }
+
+    /// <summary>
+    /// Translates Firebase Identity Toolkit login errors into stable API codes.
+    /// Credential failures deliberately share one code and one message so the
+    /// response does not reveal whether the email exists.
+    /// </summary>
+    private static ApiException MapSignInError(string? firebaseMessage) => firebaseMessage switch
+    {
+        "INVALID_LOGIN_CREDENTIALS" or "EMAIL_NOT_FOUND" or "INVALID_PASSWORD" => new ApiException(
+            HttpStatusCode.Unauthorized,
+            ApiErrorCodes.InvalidCredentials,
+            "Email or password is incorrect."),
+        "USER_DISABLED" => new ApiException(
+            HttpStatusCode.Unauthorized,
+            ApiErrorCodes.UserDisabled,
+            "This account is disabled."),
+        "TOO_MANY_ATTEMPTS_TRY_LATER" => new ApiException(
+            HttpStatusCode.TooManyRequests,
+            ApiErrorCodes.TooManyAttempts,
+            "Too many attempts. Try again later."),
+        "INVALID_EMAIL" => new ApiException(
+            HttpStatusCode.BadRequest,
+            ApiErrorCodes.InvalidEmail,
+            "The email address is invalid."),
+        _ => new ApiException(
+            HttpStatusCode.Unauthorized,
+            ApiErrorCodes.AuthFailed,
+            "Authentication failed.")
+    };
 
     /// <inheritdoc />
     public async Task UpdateUsernameAsync(string userId, string username)

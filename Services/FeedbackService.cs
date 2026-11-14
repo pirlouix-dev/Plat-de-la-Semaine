@@ -37,7 +37,7 @@ public class FeedbackService : IFeedbackService
             return new FeedbackResult
             {
                 Success = false,
-                ErrorCode = "VERSION_MISMATCH",
+                ErrorCode = ApiErrorCodes.VersionMismatch,
                 ErrorMessage = "Feedback is only accepted from the latest version of the app."
             };
         }
@@ -53,7 +53,7 @@ public class FeedbackService : IFeedbackService
                 return new FeedbackResult
                 {
                     Success = false,
-                    ErrorCode = "RATE_LIMITED",
+                    ErrorCode = ApiErrorCodes.RateLimited,
                     ErrorMessage = $"Too many feedback messages. Try again later."
                 };
             }
@@ -67,7 +67,7 @@ public class FeedbackService : IFeedbackService
             return new FeedbackResult
             {
                 Success = false,
-                ErrorCode = "WEBHOOK_NOT_CONFIGURED",
+                ErrorCode = ApiErrorCodes.WebhookNotConfigured,
                 ErrorMessage = "Discord webhook is not configured."
             };
         }
@@ -93,7 +93,7 @@ public class FeedbackService : IFeedbackService
             return new FeedbackResult
             {
                 Success = false,
-                ErrorCode = "WEBHOOK_FAILED",
+                ErrorCode = ApiErrorCodes.WebhookFailed,
                 ErrorMessage = "Failed to send feedback to Discord."
             };
         }

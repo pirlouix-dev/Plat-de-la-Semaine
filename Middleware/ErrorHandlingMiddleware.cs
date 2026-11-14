@@ -42,13 +42,14 @@ public class ErrorHandlingMiddleware
 
         var (statusCode, errorCode, message) = exception switch
         {
-            KeyNotFoundException => (HttpStatusCode.NotFound, "NOT_FOUND", "The requested resource was not found."),
+            ApiException apiException => (apiException.StatusCode, apiException.ErrorCode, apiException.Message),
+            KeyNotFoundException => (HttpStatusCode.NotFound, ApiErrorCodes.NotFound, "The requested resource was not found."),
             MenuVersionConflictException => (HttpStatusCode.Conflict, MenuVersionConflictException.ErrorCode, exception.Message),
-            ArgumentException => (HttpStatusCode.BadRequest, "BAD_REQUEST", exception.Message),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),
-            FirebaseAdmin.Auth.FirebaseAuthException => (HttpStatusCode.Unauthorized, "UNAUTHORIZED", exception.Message),
-            InvalidOperationException => (HttpStatusCode.BadRequest, "INVALID_OPERATION", exception.Message),
-            _ => (HttpStatusCode.InternalServerError, "INTERNAL_ERROR", "An unexpected error occurred.")
+            ArgumentException => (HttpStatusCode.BadRequest, ApiErrorCodes.BadRequest, exception.Message),
+            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ApiErrorCodes.Unauthorized, exception.Message),
+            FirebaseAdmin.Auth.FirebaseAuthException => (HttpStatusCode.Unauthorized, ApiErrorCodes.AuthFailed, "Authentication failed."),
+            InvalidOperationException => (HttpStatusCode.BadRequest, ApiErrorCodes.InvalidOperation, exception.Message),
+            _ => (HttpStatusCode.InternalServerError, ApiErrorCodes.InternalError, "An unexpected error occurred.")
         };
 
         context.Response.StatusCode = (int)statusCode;
