@@ -26,6 +26,16 @@ public class FirestoreService : IFirestoreService
     public bool IsConnected => _initialized && _db != null;
 
     /// <summary>
+    /// Fails the operation when Firestore is unavailable. Readers must not fall
+    /// back to an empty result: clients treat a successful empty response as
+    /// authoritative and would erase their local copy during an outage.
+    /// </summary>
+    private void EnsureConnected()
+    {
+        if (!IsConnected) throw new FirestoreUnavailableException();
+    }
+
+    /// <summary>
     /// Initializes the Firebase Admin SDK and Firestore client using the configured settings.
     /// </summary>
     public Task<bool> InitializeAsync()
@@ -87,7 +97,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since)
     {
-        if (!IsConnected) return new List<Dish>();
+        EnsureConnected();
         Query query = DishesCollection(userId);
         if (since.HasValue)
             query = query.WhereGreaterThanOrEqualTo("UpdatedAt", since.Value);
@@ -98,7 +108,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<Dish?> GetDishByIdAsync(string userId, string dishId)
     {
-        if (!IsConnected) return null;
+        EnsureConnected();
         var doc = await DishesCollection(userId).Document(dishId).GetSnapshotAsync();
         return doc.Exists ? doc.ConvertTo<Dish>() : null;
     }
@@ -106,7 +116,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<Dish> InsertDishAsync(Dish dish)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         if (string.IsNullOrEmpty(dish.UserId)) throw new ArgumentException("Dish UserId cannot be null or empty.");
 
         var collection = DishesCollection(dish.UserId);
@@ -124,7 +134,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task UpdateDishAsync(Dish dish)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         if (dish.Id == null) throw new ArgumentException("Dish ID cannot be null.");
         if (string.IsNullOrEmpty(dish.UserId)) throw new ArgumentException("Dish UserId cannot be null or empty.");
 
@@ -134,7 +144,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task DeleteDishAsync(string userId, string dishId)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         await DishesCollection(userId).Document(dishId).DeleteAsync();
     }
 
@@ -150,10 +160,9 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<Menu?> GetMenuAsync(string userId)
     {
-        // Unlike the dish readers, this throws when Firestore is unavailable: an empty
-        // menu is a meaningful value here (a reset), so silence would let a client
-        // conclude the user has no saved menu and erase the local copy.
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        // An empty menu is a meaningful value here (a reset), so an outage must
+        // not be reported as one either.
+        EnsureConnected();
         var doc = await MenuDocument(userId).GetSnapshotAsync();
         return doc.Exists ? doc.ConvertTo<Menu>() : null;
     }
@@ -164,7 +173,7 @@ public class FirestoreService : IFirestoreService
         IReadOnlyList<string> selectedDishIds,
         DateTimeOffset? expectedUpdatedAt)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         if (string.IsNullOrEmpty(userId)) throw new ArgumentException("Menu UserId cannot be null or empty.");
 
         var document = MenuDocument(userId);
@@ -216,7 +225,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<User?> GetUserByIdAsync(string userId)
     {
-        if (!IsConnected) return null;
+        EnsureConnected();
         var doc = await _db!.Collection("Users").Document(userId).GetSnapshotAsync();
         return doc.Exists ? doc.ConvertTo<User>() : null;
     }
@@ -224,7 +233,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<User> InsertUserAsync(User user, string id)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
 
         user.Id = id;
         var docRef = _db!.Collection("Users").Document(id);
@@ -235,7 +244,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task UpdateUserAsync(User user)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         if (user.Id == null) throw new ArgumentException("User ID cannot be null.");
 
         await _db!.Collection("Users").Document(user.Id).SetAsync(user, SetOptions.MergeAll);
@@ -244,7 +253,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task DeleteUserAsync(string userId)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         await _db!.Collection("Users").Document(userId).DeleteAsync();
     }
 
@@ -260,7 +269,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<Backup?> GetBackupByIdAsync(string userId, string backupId)
     {
-        if (!IsConnected) return null;
+        EnsureConnected();
         var doc = await BackupsCollection(userId).Document(backupId).GetSnapshotAsync();
         return doc.Exists ? doc.ConvertTo<Backup>() : null;
     }
@@ -268,7 +277,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<Backup> InsertBackupAsync(Backup backup)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         if (string.IsNullOrEmpty(backup.UserId)) throw new ArgumentException("Backup UserId cannot be null or empty.");
 
         var collection = BackupsCollection(backup.UserId);
@@ -286,14 +295,14 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task DeleteBackupAsync(string userId, string backupId)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
         await BackupsCollection(userId).Document(backupId).DeleteAsync();
     }
 
     /// <inheritdoc />
     public async Task<List<Backup>> GetBackupsByUserIdAsync(string userId)
     {
-        if (!IsConnected) return new List<Backup>();
+        EnsureConnected();
         var snapshot = await BackupsCollection(userId).GetSnapshotAsync();
         return snapshot.Documents.Select(doc => doc.ConvertTo<Backup>()).ToList();
     }
@@ -301,7 +310,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task DeleteBatchAsync(string userId, string collection, IEnumerable<string> ids)
     {
-        if (!IsConnected) throw new InvalidOperationException("Firestore client is not initialized.");
+        EnsureConnected();
 
         var subcollection = _db!.Collection("Users").Document(userId).Collection(collection);
         var batch = _db.StartBatch();
@@ -315,7 +324,7 @@ public class FirestoreService : IFirestoreService
     /// <inheritdoc />
     public async Task<VersionInfo?> GetVersionInfoAsync()
     {
-        if (!IsConnected) return null;
+        EnsureConnected();
         var doc = await _db!.Collection("Config").Document("version").GetSnapshotAsync();
         if (!doc.Exists) return null;
         return new VersionInfo

@@ -28,6 +28,7 @@ public class MenuController : BaseController
     [ProducesResponseType(typeof(MenuResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Get()
     {
         var userId = await GetUserIdAsync();
@@ -44,6 +45,7 @@ public class MenuController : BaseController
     [ProducesResponseType(typeof(MenuResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Save([FromBody] SaveMenuPayload payload)
     {

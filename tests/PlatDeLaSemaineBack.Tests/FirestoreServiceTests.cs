@@ -36,30 +36,6 @@ public class FirestoreServiceTests
     }
 
     [Fact]
-    public async Task InsertDishAsync_WhenNotConnected_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var service = CreateService();
-        var dish = new Dish { Name = "Test" };
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.InsertDishAsync(dish));
-    }
-
-    [Fact]
-    public async Task InsertUserAsync_WhenNotConnected_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var service = CreateService();
-        var user = new User { CreatedAt = DateTimeOffset.UtcNow };
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.InsertUserAsync(user, "test-id"));
-    }
-
-    [Fact]
     public async Task InitializeAsync_WithEmptyProjectId_ReturnsFalse()
     {
         // Arrange
@@ -71,5 +47,106 @@ public class FirestoreServiceTests
         // Assert
         Assert.False(result);
         Assert.False(service.IsConnected);
+    }
+
+    [Fact]
+    public async Task GetDishesByUserIdAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.GetDishesByUserIdAsync("user1", null));
+    }
+
+    [Fact]
+    public async Task GetDishByIdAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.GetDishByIdAsync("user1", "dish1"));
+    }
+
+    [Fact]
+    public async Task GetMenuAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.GetMenuAsync("user1"));
+    }
+
+    [Fact]
+    public async Task GetUserByIdAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.GetUserByIdAsync("user1"));
+    }
+
+    [Fact]
+    public async Task GetBackupByIdAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.GetBackupByIdAsync("user1", "backup1"));
+    }
+
+    [Fact]
+    public async Task GetBackupsByUserIdAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.GetBackupsByUserIdAsync("user1"));
+    }
+
+    [Fact]
+    public async Task GetVersionInfoAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.GetVersionInfoAsync());
+    }
+
+    [Fact]
+    public async Task InsertDishAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+        var dish = new Dish { Name = "Test" };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.InsertDishAsync(dish));
+    }
+
+    [Fact]
+    public async Task InsertUserAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+        var user = new User { CreatedAt = DateTimeOffset.UtcNow };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.InsertUserAsync(user, "test-id"));
     }
 }
