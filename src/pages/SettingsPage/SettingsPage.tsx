@@ -39,6 +39,7 @@ import {
 import { clearAuth, getApiErrorMessage } from "../../services/api";
 import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
+import { useSyncState } from "../../hooks/useSyncStatus";
 import { MAX_FEEDBACK_LENGTH, MAX_USERNAME_LENGTH } from "../../types/dish";
 import type { BackupSummary } from "../../types";
 import type { VersionInfo } from "../../services/settingsService";
@@ -99,13 +100,16 @@ function formatBackupDate(isoDate: string): {
 function formatLastSync(isoDate: string | null): string {
   if (!isoDate) return "Jamais";
   const d = new Date(isoDate);
-  return d.toLocaleDateString("fr-FR", {
+  const date = d.toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  });
+  const time = d.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
   });
+  return `${date} à ${time}`;
 }
 
 function LoginPrompt() {
@@ -325,6 +329,42 @@ export function SettingsPage() {
 
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const syncState = useSyncState();
+  const syncBusy = refreshing || syncState.phase === "syncing";
+
+  const handleRefreshFromServer = async () => {
+    if (!db) {
+      showToast(
+        "Base de données indisponible. Réessayez dans un instant.",
+        "error",
+      );
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      const ok = await refreshFromServer(db);
+      if (ok) {
+        setLastSyncAt(await getLastSyncAt(db));
+        showToast("Plats rafraîchis depuis le serveur", "success");
+      } else {
+        showToast(
+          navigator.onLine
+            ? "Le rafraîchissement des plats a échoué. Réessayez plus tard."
+            : "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "error",
+        );
+      }
+    } catch {
+      showToast(
+        "Le rafraîchissement des plats a échoué. Réessayez plus tard.",
+        "error",
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -360,7 +400,7 @@ export function SettingsPage() {
   }, [currentTab, backups.length, isLoggedIn]);
 
   useEffect(() => {
-    if (currentTab !== "info") return;
+    if (currentTab !== "info" && currentTab !== "data") return;
     let cancelled = false;
     if (isLoggedIn && db) {
       getLastSyncAt(db).then((iso) => {
@@ -554,6 +594,31 @@ export function SettingsPage() {
           {currentTab === "data" &&
             (isLoggedIn ? (
               <div className="settings-panel">
+                <section className="settings-section-card">
+                  <h2 className="section-title">Synchronisation</h2>
+                  <p className="section-description">
+                    Recharge tous vos plats depuis le serveur si vous pensez
+                    qu'ils ne sont plus à jour.
+                  </p>
+                  <p className="section-description">
+                    Dernière synchronisation : {formatLastSync(lastSyncAt)}
+                  </p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleRefreshFromServer}
+                    disabled={syncBusy}
+                    title={
+                      !refreshing && syncState.phase === "syncing"
+                        ? "Synchronisation en cours…"
+                        : undefined
+                    }
+                  >
+                    {refreshing
+                      ? "Rafraîchissement…"
+                      : "Rafraîchir les plats depuis le serveur"}
+                  </button>
+                </section>
+
                 <section className="settings-section-card">
                   <h2 className="section-title">Importer / Exporter des plats</h2>
                   <p className="section-description">
