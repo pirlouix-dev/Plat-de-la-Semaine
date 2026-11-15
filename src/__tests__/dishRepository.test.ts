@@ -207,7 +207,7 @@ describe("softDeleteDish", () => {
     expect(result!.syncStatus).toBe("pending_delete");
   });
 
-  it("keeps syncStatus as pending_create for unsynced dish", async () => {
+  it("removes a never-synced creation locally instead of queueing a delete", async () => {
     await insertDish(
       db,
       makeDish({
@@ -219,8 +219,24 @@ describe("softDeleteDish", () => {
     await softDeleteDish(db, "sd-2");
 
     const result = await getDishById(db, "sd-2");
+    expect(result).toBeNull();
+  });
+
+  it("queues a remote delete when a pending_create dish already has a serverId", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sd-4",
+        serverId: "srv-4",
+        syncStatus: "pending_create",
+        isDeleted: false,
+      })
+    );
+    await softDeleteDish(db, "sd-4");
+
+    const result = await getDishById(db, "sd-4");
     expect(result!.isDeleted).toBe(true);
-    expect(result!.syncStatus).toBe("pending_create");
+    expect(result!.syncStatus).toBe("pending_delete");
   });
 
   it("sets syncStatus to pending_delete for pending_update dish", async () => {

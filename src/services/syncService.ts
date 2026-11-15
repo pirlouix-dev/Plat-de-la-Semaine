@@ -102,6 +102,13 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
     const json = doc.toJSON() as DishDocType;
 
     try {
+      if (json.syncStatus === "pending_create" && json.isDeleted) {
+        // A draft deleted before its first sync never reached the server:
+        // drop it locally instead of creating it remotely.
+        await doc.remove();
+        continue;
+      }
+
       if (json.syncStatus === "pending_create") {
         const result = await createDish({
           id: json.id,

@@ -213,6 +213,27 @@ describe("sync", () => {
     expect(doc!.get("serverId")).toBe("server-1");
   });
 
+  it("drops a pending_create dish deleted before its first sync without calling the API", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-draft-deleted",
+        name: "Brouillon",
+        syncStatus: "pending_create",
+        isDeleted: true,
+      }),
+    );
+
+    await sync(db);
+
+    expect(mockCreateDish).not.toHaveBeenCalled();
+    expect(mockDeleteDish).not.toHaveBeenCalled();
+
+    const doc = await db.dishes.findOne("sync-draft-deleted").exec();
+    expect(doc).toBeNull();
+    expect(getSyncState().retryCount).toBe(0);
+  });
+
   it("pushes pending_update dishes to the API", async () => {
     await insertDish(
       db,
