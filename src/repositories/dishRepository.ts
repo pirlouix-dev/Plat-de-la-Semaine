@@ -65,14 +65,17 @@ export async function softDeleteDish(
   if (!doc) {
     throw new Error(`Dish not found: ${id}`);
   }
-  const syncStatus = doc.get("syncStatus");
-  const newSyncStatus =
-    syncStatus === "pending_create" ? "pending_create" : "pending_delete";
-  const now = new Date().toISOString();
+  // A creation that never reached the server cannot be deleted remotely:
+  // drop it locally so the sync engine never POSTs it.
+  if (doc.get("syncStatus") === "pending_create" && !doc.get("serverId")) {
+    await doc.remove();
+    return;
+  }
+
   await doc.patch({
     isDeleted: true,
-    syncStatus: newSyncStatus as DishDocType["syncStatus"],
-    updatedAt: now,
+    syncStatus: "pending_delete",
+    updatedAt: new Date().toISOString(),
   });
 }
 

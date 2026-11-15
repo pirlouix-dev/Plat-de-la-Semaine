@@ -16,6 +16,7 @@ import { preferencesSchema } from "../db/schemas/preferences";
 import type { DatabaseCollections } from "../db/collections";
 import type { AppDatabase } from "../db/DatabaseContext";
 import { hashFunction } from "../db/hashFunction";
+import { userDatabaseName } from "../db/databaseName";
 import { insertDish } from "../repositories/dishRepository";
 import {
   _resetMenuStorageState,
@@ -92,7 +93,7 @@ beforeAll(async () => {
   const validatedStorage = wrappedValidateAjvStorage({ storage: rawStorage });
 
   db = (await createRxDatabase<DatabaseCollections>({
-    name: "test-sync-" + crypto.randomUUID(),
+    name: userDatabaseName("test-user"),
     storage: validatedStorage,
     ignoreDuplicate: true,
     hashFunction,
@@ -156,6 +157,23 @@ describe("sync", () => {
     expect(mockGetDishes).not.toHaveBeenCalled();
   });
 
+  it("does not push when the database belongs to another account", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "other-account",
+        syncStatus: "pending_update",
+        serverId: "server-other",
+      }),
+    );
+    localStorage.setItem("user_id", "another-user");
+
+    await sync(db);
+
+    expect(mockUpdateDish).not.toHaveBeenCalled();
+    expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
   it("pushes pending_create dishes to the API", async () => {
     await insertDish(
       db,
@@ -211,6 +229,27 @@ describe("sync", () => {
     const doc = await db.dishes.findOne("sync-1").exec();
     expect(doc!.get("syncStatus")).toBe("synced");
     expect(doc!.get("serverId")).toBe("server-1");
+  });
+
+  it("drops a pending_create dish deleted before its first sync without calling the API", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-draft-deleted",
+        name: "Brouillon",
+        syncStatus: "pending_create",
+        isDeleted: true,
+      }),
+    );
+
+    await sync(db);
+
+    expect(mockCreateDish).not.toHaveBeenCalled();
+    expect(mockDeleteDish).not.toHaveBeenCalled();
+
+    const doc = await db.dishes.findOne("sync-draft-deleted").exec();
+    expect(doc).toBeNull();
+    expect(getSyncState().retryCount).toBe(0);
   });
 
   it("pushes pending_update dishes to the API", async () => {
@@ -308,6 +347,47 @@ describe("sync", () => {
       .find({ selector: { serverId: "srv-3" } })
       .exec();
     expect(reInserted).toHaveLength(0);
+  });
+
+  it("deletes the remote dish when it is removed locally while the POST is in flight", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-race",
+        name: "Course",
+        syncStatus: "pending_create",
+        description: "",
+        course: 1,
+        seasons: [0],
+      }),
+    );
+
+    mockCreateDish.mockImplementation(async () => {
+      // The user deletes the draft before the create response arrives.
+      const doc = await db.dishes.findOne("sync-race").exec();
+      if (doc) await doc.remove();
+      return {
+        ok: true,
+        data: {
+          id: "server-race",
+          userId: "u1",
+          name: "Course",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-01-01T00:00:00Z",
+          isDeleted: false,
+        },
+      };
+    });
+    mockDeleteDish.mockResolvedValue({ ok: true, data: undefined });
+
+    await sync(db);
+
+    expect(mockDeleteDish).toHaveBeenCalledWith("server-race");
+
+    const doc = await db.dishes.findOne("sync-race").exec();
+    expect(doc).toBeNull();
   });
 
   it("pulls remote dishes and inserts new ones locally", async () => {
@@ -1334,6 +1414,53 @@ describe("refreshFromServer", () => {
 
     expect(ok).toBe(false);
     expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
+  it("ignores a recent lastSyncAt and pulls without since", async () => {
+    const recentDate = new Date(Date.now() - 60_000).toISOString();
+    await db.preferences.upsert({
+      key: "lastSyncAt",
+      value: recentDate,
+      updatedAt: recentDate,
+    });
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    const ok = await refreshFromServer(db);
+
+    expect(ok).toBe(true);
+    expect(mockGetDishes).toHaveBeenCalledWith({ since: undefined });
+  });
+
+  it("does not start a second pull while a sync is running", async () => {
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    const syncPromise = sync(db);
+    const ok = await refreshFromServer(db);
+
+    expect(ok).toBe(false);
+    await syncPromise;
+    expect(mockGetDishes).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents a scheduled sync from overlapping a refresh", async () => {
+    let resolveDishes!: (value: Awaited<ReturnType<typeof getDishes>>) => void;
+    mockGetDishes.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDishes = resolve;
+      }),
+    );
+
+    const refreshPromise = refreshFromServer(db);
+    await vi.waitFor(() => {
+      expect(mockGetDishes).toHaveBeenCalledTimes(1);
+    });
+
+    await sync(db);
+
+    expect(mockGetDishes).toHaveBeenCalledTimes(1);
+
+    resolveDishes({ ok: true, data: [] });
+    await refreshPromise;
   });
 
   it("forces a full pull and merges remote dishes", async () => {

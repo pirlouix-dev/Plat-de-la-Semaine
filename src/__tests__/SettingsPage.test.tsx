@@ -49,9 +49,21 @@ const mockUpdateUsername = vi.fn();
 const mockResetPassword = vi.fn();
 const mockDeleteAccount = vi.fn();
 const mockIsLoggedIn = vi.fn();
+const mockUseSyncState = vi.fn();
+const mockRemoveLocalDatabaseForUser = vi.fn();
 
 vi.mock("../db/DatabaseContext", () => ({
-  useDatabase: () => ({ db: {}, isLoading: false, error: null }),
+  useDatabase: () => ({
+    db: {},
+    isLoading: false,
+    error: null,
+    dbUserId: null,
+  }),
+}));
+
+vi.mock("../db/databaseManagerInstance", () => ({
+  removeLocalDatabaseForUser: (...args: unknown[]) =>
+    mockRemoveLocalDatabaseForUser(...args),
 }));
 
 vi.mock("../components/toastContext", () => ({
@@ -83,9 +95,13 @@ vi.mock("../repositories/dishRepository", () => ({
   getAllDishes: (...args: unknown[]) => mockGetAllDishes(...args),
 }));
 
-vi.mock("../services/api", () => ({
-  clearAuth: (...args: unknown[]) => mockClearAuth(...args),
-}));
+vi.mock("../services/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/api")>();
+  return {
+    ...actual,
+    clearAuth: (...args: unknown[]) => mockClearAuth(...args),
+  };
+});
 
 vi.mock("../services/authService", () => ({
   updateUsername: (...args: unknown[]) => mockUpdateUsername(...args),
@@ -95,6 +111,10 @@ vi.mock("../services/authService", () => ({
 
 vi.mock("../hooks/useIsLoggedIn", () => ({
   useIsLoggedIn: () => mockIsLoggedIn(),
+}));
+
+vi.mock("../hooks/useSyncStatus", () => ({
+  useSyncState: () => mockUseSyncState(),
 }));
 
 import SettingsPage from "../pages/SettingsPage/SettingsPage";
@@ -162,7 +182,15 @@ describe("SettingsPage", () => {
     mockUpdateUsername.mockResolvedValue({ ok: true, data: undefined });
     mockResetPassword.mockResolvedValue({ ok: true, data: undefined });
     mockDeleteAccount.mockResolvedValue({ ok: true, data: { message: "Account deleted" } });
+    mockRemoveLocalDatabaseForUser.mockResolvedValue(undefined);
     mockIsLoggedIn.mockReturnValue(true);
+    mockUseSyncState.mockReturnValue({
+      phase: "idle",
+      online: true,
+      lastSyncAt: null,
+      lastErrorAt: null,
+      retryCount: 0,
+    });
   });
 
   afterEach(() => {
@@ -248,6 +276,130 @@ describe("SettingsPage", () => {
   });
 
   describe("Data & Plats tab", () => {
+    describe("manual full refresh", () => {
+      function renderDataTab() {
+        mockMatchMedia(false);
+        const rendered = renderSettingsPage();
+        fireEvent.click(
+          screen.getByRole("button", { name: /données & plats/i }),
+        );
+        return rendered;
+      }
+
+      function refreshButton() {
+        return screen.getByRole("button", {
+          name: /rafraîchir les plats depuis le serveur/i,
+        });
+      }
+
+      it("forces a full pull when clicked", async () => {
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(mockRefreshFromServer).toHaveBeenCalledWith({});
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Plats rafraîchis depuis le serveur",
+            "success",
+          );
+        });
+      });
+
+      it("disables the button and shows progress while refreshing", async () => {
+        let resolveRefresh!: (value: boolean) => void;
+        mockRefreshFromServer.mockReturnValue(
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          }),
+        );
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        expect(
+          screen.getByRole("button", { name: /rafraîchissement…/i }),
+        ).toBeDisabled();
+
+        await act(async () => {
+          resolveRefresh(true);
+        });
+
+        await waitFor(() => {
+          expect(refreshButton()).toBeEnabled();
+        });
+      });
+
+      it("is disabled while a scheduled sync is running", () => {
+        mockUseSyncState.mockReturnValue({
+          phase: "syncing",
+          online: true,
+          lastSyncAt: null,
+          lastErrorAt: null,
+          retryCount: 0,
+        });
+        renderDataTab();
+
+        expect(refreshButton()).toBeDisabled();
+      });
+
+      it("shows the updated last sync date on success", async () => {
+        mockGetLastSyncAt.mockResolvedValue(null);
+        renderDataTab();
+
+        await waitFor(() => {
+          expect(
+            screen.getByText(/Dernière synchronisation : Jamais/),
+          ).toBeTruthy();
+        });
+
+        mockGetLastSyncAt.mockResolvedValue("2026-08-25T09:21:00Z");
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(
+            screen.queryByText(/Dernière synchronisation : Jamais/),
+          ).toBeNull();
+        });
+        expect(
+          screen.getByText(/Dernière synchronisation : .+ à \d{2}:\d{2}/),
+        ).toBeTruthy();
+      });
+
+      it("shows an error toast when the refresh fails", async () => {
+        mockRefreshFromServer.mockResolvedValue(false);
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Le rafraîchissement des plats a échoué. Réessayez plus tard.",
+            "error",
+          );
+        });
+        expect(mockShowToast).not.toHaveBeenCalledWith(
+          "Plats rafraîchis depuis le serveur",
+          "success",
+        );
+      });
+
+      it("shows an offline error toast when offline", async () => {
+        vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+        mockRefreshFromServer.mockResolvedValue(false);
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+            "error",
+          );
+        });
+      });
+    });
+
     it("fetches backups when switching to the data tab", async () => {
       mockMatchMedia(false);
       renderSettingsPage();
@@ -344,7 +496,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByText("Restaurer"));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Backup not found", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "L'élément demandé est introuvable.",
+          "error",
+        );
       });
     });
 
@@ -358,7 +513,8 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("Internal server error")).toBeTruthy();
+        expect(screen.getByText("Une erreur est survenue.")).toBeTruthy();
+        expect(screen.queryByText("Internal server error")).toBeNull();
       });
     });
 
@@ -529,7 +685,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Import impossible",
+            "Une erreur est survenue.",
             "error",
           );
         });
@@ -720,7 +876,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /envoyer le rapport/i }));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Too many requests", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Trop de signalements envoyés. Veuillez réessayer plus tard.",
+          "error",
+        );
       });
     });
   });
@@ -792,7 +951,10 @@ describe("SettingsPage", () => {
     it("shows error toast when username update fails", async () => {
       mockUpdateUsername.mockResolvedValue({
         ok: false,
-        error: { code: "CONFLICT", message: "Nom déjà pris" },
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "The username is invalid.",
+        },
       });
       localStorage.setItem("auth_token", "test-token");
       mockMatchMedia(false);
@@ -803,7 +965,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: /enregistrer/i }));
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Nom déjà pris", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Certaines informations sont invalides. Vérifiez votre saisie.",
+          "error",
+        );
       });
     });
 
@@ -835,7 +1000,10 @@ describe("SettingsPage", () => {
     it("shows error toast when password reset fails", async () => {
       mockResetPassword.mockResolvedValue({
         ok: false,
-        error: { code: "SERVER_ERROR", message: "Erreur serveur" },
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "An unexpected error occurred.",
+        },
       });
       mockMatchMedia(false);
       renderSettingsPage();
@@ -845,7 +1013,10 @@ describe("SettingsPage", () => {
       );
 
       await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith("Erreur serveur", "error");
+        expect(mockShowToast).toHaveBeenCalledWith(
+          "Le serveur a rencontré une erreur. Veuillez réessayer plus tard.",
+          "error",
+        );
       });
     });
 
@@ -888,7 +1059,10 @@ describe("SettingsPage", () => {
     it("shows error toast when account deletion fails", async () => {
       mockDeleteAccount.mockResolvedValue({
         ok: false,
-        error: { code: "FORBIDDEN", message: "Action non autorisée" },
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Missing or invalid authorization header.",
+        },
       });
       mockMatchMedia(false);
       renderSettingsPage();
@@ -900,7 +1074,7 @@ describe("SettingsPage", () => {
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Action non autorisée",
+          "Votre session a expiré. Veuillez vous reconnecter.",
           "error",
         );
       });

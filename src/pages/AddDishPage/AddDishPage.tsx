@@ -104,6 +104,13 @@ function AddDishPage() {
     return () => clearTimeout(timer);
   }, [name, dishCourse, selectedSeasons, description]);
 
+  const resetForm = () => {
+    setName(EMPTY_DRAFT.name);
+    setDishCourse(EMPTY_DRAFT.dishCourse);
+    setSelectedSeasons([...EMPTY_DRAFT.selectedSeasons]);
+    setDescription(EMPTY_DRAFT.description);
+  };
+
   const toggleSeason = (season: Season) => {
     setSelectedSeasons((prev) =>
       prev.includes(season)
@@ -134,6 +141,7 @@ function AddDishPage() {
     try {
       await addDish(dish);
       localStorage.removeItem(DRAFT_KEY);
+      resetForm();
       showToast("Plat ajouté avec succès", "success");
     } catch {
       showToast("Erreur lors de la création", "error");

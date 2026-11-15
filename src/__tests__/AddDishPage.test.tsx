@@ -156,6 +156,56 @@ describe("AddDishPage draft persistence", () => {
     expect(getDraft()).toBeNull();
   });
 
+  it("resets every field after a successful save", async () => {
+    addDishMock.mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Lasagnes" },
+    });
+    fireEvent.click(screen.getByText("Plat"));
+    fireEvent.click(screen.getByText("Automne"));
+    fireEvent.change(screen.getByPlaceholderText(DESCRIPTION_PLACEHOLDER), {
+      target: { value: "Avec de la béchamel." },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Sauvegarder"));
+    });
+
+    expect((screen.getByPlaceholderText(NAME_PLACEHOLDER) as HTMLInputElement).value).toBe("");
+    expect(
+      (screen.getByPlaceholderText(DESCRIPTION_PLACEHOLDER) as HTMLTextAreaElement).value,
+    ).toBe("");
+    expect(screen.getByText("Plat").closest("button")).not.toHaveClass("active");
+    expect(screen.getByText("Automne").closest("button")).not.toHaveClass("selected");
+    expect(screen.getByText("Sauvegarder")).toBeDisabled();
+
+    act(() => vi.advanceTimersByTime(400));
+    expect(getDraft()).toBeNull();
+  });
+
+  it("keeps the form values when addDish throws", async () => {
+    addDishMock.mockRejectedValue(new Error("fail"));
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Lasagnes" },
+    });
+    fireEvent.click(screen.getByText("Plat"));
+    fireEvent.click(screen.getByText("Automne"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Sauvegarder"));
+    });
+
+    expect((screen.getByPlaceholderText(NAME_PLACEHOLDER) as HTMLInputElement).value).toBe(
+      "Lasagnes",
+    );
+    expect(screen.getByText("Plat").closest("button")).toHaveClass("active");
+    expect(screen.getByText("Automne").closest("button")).toHaveClass("selected");
+  });
+
   it("shows success toast on successful save", async () => {
     addDishMock.mockResolvedValue(undefined);
     renderPage();

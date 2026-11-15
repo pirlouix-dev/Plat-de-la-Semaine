@@ -2,13 +2,15 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { RxDatabase } from "rxdb";
-import { hashFunction } from "./hashFunction";
-import { dishesSchema, type DishDocType } from "./schemas/dishes";
-import { preferencesSchema } from "./schemas/preferences";
+import { getDatabaseManager } from "./databaseManagerInstance";
+import { useCurrentUserId } from "../hooks/useIsLoggedIn";
+import type { DishDocType } from "./schemas/dishes";
 import type { DatabaseCollections } from "./collections";
 
 // ── Re-export types ──────────────────────────────────────────────────────────
@@ -22,6 +24,11 @@ export interface DatabaseState {
   db: AppDatabase | null;
   isLoading: boolean;
   error: string | null;
+  /**
+   * Account the current database belongs to, or `null` for the guest database
+   * (and while the database is loading).
+   */
+  dbUserId: string | null;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -31,65 +38,59 @@ const DatabaseContext = createContext<DatabaseState | null>(null);
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function DatabaseProvider({ children }: { children: ReactNode }) {
+  const userId = useCurrentUserId();
   const [state, setState] = useState<DatabaseState>({
     db: null,
     isLoading: true,
     error: null,
+    dbUserId: null,
   });
 
+  // Guards against an older async switch publishing after a newer one.
+  const generationRef = useRef(0);
+
   useEffect(() => {
-    (async () => {
-      try {
-        if (import.meta.env.DEV) {
-          const { RxDBDevModePlugin } = await import("rxdb/plugins/dev-mode");
-          const { addRxPlugin } = await import("rxdb/plugins/core");
-          addRxPlugin(RxDBDevModePlugin);
-        }
+    const generation = ++generationRef.current;
+    let cancelled = false;
 
-        const { createRxDatabase } = await import("rxdb/plugins/core");
-        const { getRxStorageDexie } =
-          await import("rxdb/plugins/storage-dexie");
-        const { wrappedValidateAjvStorage } =
-          await import("rxdb/plugins/validate-ajv");
+    void (async () => {
+      const manager = await getDatabaseManager();
+      if (cancelled || generation !== generationRef.current) return;
 
-        const rawStorage = getRxStorageDexie();
-        const validatedStorage = wrappedValidateAjvStorage({
-          storage: rawStorage,
-        });
+      const db = await manager.openForUser(userId);
+      if (cancelled || generation !== generationRef.current) return;
 
-        const db = await createRxDatabase<DatabaseCollections>({
-          name: "pdlsv4",
-          storage: validatedStorage,
-          ignoreDuplicate: import.meta.env.DEV,
-          hashFunction,
-        });
+      setState({ db, isLoading: false, error: null, dbUserId: userId });
+    })().catch((err: unknown) => {
+      if (cancelled || generation !== generationRef.current) return;
 
-        await db.addCollections({
-          dishes: {
-            schema: dishesSchema,
-          },
-          preferences: {
-            schema: preferencesSchema,
-          },
-        });
+      console.error("Database initialization failed:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Unknown error initializing database";
+      setState({ db: null, isLoading: false, error: message, dbUserId: userId });
+    });
 
-        setState({
-          db: db as unknown as AppDatabase,
-          isLoading: false,
-          error: null,
-        });
-      } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Unknown error initializing database";
-        setState({ db: null, isLoading: false, error: message });
-      }
-    })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  // Hide the database until it belongs to the account that is logged in now,
+  // which prevents showing the previous account's dishes during the switch.
+  const value = useMemo<DatabaseState>(() => {
+    const matches = state.dbUserId === userId;
+    return {
+      db: matches ? state.db : null,
+      isLoading: state.isLoading || !matches,
+      error: matches ? state.error : null,
+      dbUserId: matches ? state.dbUserId : null,
+    };
+  }, [state, userId]);
 
   return (
-    <DatabaseContext.Provider value={state}>
+    <DatabaseContext.Provider value={value}>
       {children}
     </DatabaseContext.Provider>
   );

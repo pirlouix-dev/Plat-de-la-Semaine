@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   apiPost,
-  getApiErrorMessage,
-  getApiErrorToastDuration,
+  isInvalidCredentialsError,
   notifyAuthChange,
 } from "../../services/api";
 import type { components } from "../../schema";
 import { useToast } from "../../components/toastContext";
+import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
 import "../../styles/auth.css";
@@ -21,16 +21,15 @@ function LoginPage() {
 
   const [email, setEmail] = useState(location.state?.email ?? "");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const showApiErrorToast = useApiErrorToast();
   const [forgotLoading, setForgotLoading] = useState(false);
 
   useWarmupPing();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     const result = await apiPost<AuthResponse>("/api/auth/login", {
@@ -50,17 +49,19 @@ function LoginPage() {
       notifyAuthChange();
       navigate("/");
     } else {
-      setError(getApiErrorMessage(result.error));
+      showApiErrorToast(result.error);
+      if (isInvalidCredentialsError(result.error)) {
+        setPassword("");
+      }
     }
     setLoading(false);
   };
 
   const handleForgotPassword = async () => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Veuillez entrer une adresse email valide.");
+      showToast("Veuillez entrer une adresse email valide.", "error");
       return;
     }
-    setError(null);
     setForgotLoading(true);
     const result = await apiPost<undefined>("/api/auth/forgot-password", {
       email,
@@ -71,11 +72,7 @@ function LoginPage() {
         "warning",
       );
     } else {
-      showToast(
-        getApiErrorMessage(result.error),
-        "error",
-        getApiErrorToastDuration(result.error),
-      );
+      showApiErrorToast(result.error);
     }
     setForgotLoading(false);
   };
@@ -124,8 +121,6 @@ function LoginPage() {
             </button>
           </div>
         </div>
-
-        {error && <div className="auth-error">{error}</div>}
 
         <div className="auth-actions">
           <button type="submit" className="btn btn-primary" disabled={loading}>

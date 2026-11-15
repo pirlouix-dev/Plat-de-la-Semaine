@@ -21,6 +21,7 @@ import {
 import type { RemoteMenu, StoredMenu } from "./menuStorage";
 import type { components } from "../schema";
 import { isLoggedIn, getCurrentUserId } from "./api";
+import { userDatabaseName } from "../db/databaseName";
 import {
   markSyncStarted,
   markSyncSuccess,
@@ -58,6 +59,16 @@ export function _resetSyncState(): void {
 
 function isOnline(): boolean {
   return navigator.onLine;
+}
+
+/**
+ * Whether `db` is the database scoped to the account that is logged in now.
+ * A scheduled retry from a previous account must never push its documents with
+ * the new account's token, even if its timer fires during an account switch.
+ */
+function isCurrentAccountDatabase(db: AppDatabase): boolean {
+  const userId = getCurrentUserId();
+  return !!userId && db.name === userDatabaseName(userId);
 }
 
 export async function getLastSyncAt(db: AppDatabase): Promise<string | null> {
@@ -102,6 +113,13 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
     const json = doc.toJSON() as DishDocType;
 
     try {
+      if (json.syncStatus === "pending_create" && json.isDeleted) {
+        // A draft deleted before its first sync never reached the server:
+        // drop it locally instead of creating it remotely.
+        await doc.remove();
+        continue;
+      }
+
       if (json.syncStatus === "pending_create") {
         const result = await createDish({
           id: json.id,
@@ -111,10 +129,17 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
           seasons: json.seasons,
         });
         if (result.ok) {
-          await doc.patch({
-            serverId: String(result.data.id),
-            syncStatus: "synced",
-          });
+          const current = await db.dishes.findOne(json.id).exec();
+          if (!current) {
+            // Deleted locally while the POST was in flight: undo the creation
+            // so the dish is not pulled back as a live one.
+            await deleteDish(String(result.data.id));
+          } else {
+            await current.patch({
+              serverId: String(result.data.id),
+              syncStatus: "synced",
+            });
+          }
         } else {
           anyFailed = true;
         }
@@ -128,8 +153,8 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
         if (result.ok) {
           await doc.patch({ syncStatus: "synced" });
         } else {
-          // A 404 can mean the dish belongs to another account (the local DB is
-          // shared across logins), so it is transient and must not be dropped.
+          // A 404 is ambiguous (the dish may have been deleted on the server),
+          // so it is transient and the local document must not be dropped.
           anyFailed = true;
         }
       } else if (json.syncStatus === "pending_delete" && json.serverId) {
@@ -249,14 +274,27 @@ async function pullAndMerge(
 
 /**
  * Force a full pull of remote dishes and merge them into the local database.
- * Used after operations that mutate data server-side (e.g. bulk import) so the
- * local store reflects the result without waiting for the next scheduled sync.
- * Returns `true` when the pull succeeded.
+ * Used after operations that mutate data server-side (e.g. bulk import or a
+ * manual refresh from Settings) so the local store reflects the result without
+ * waiting for the next scheduled sync.
+ *
+ * This only pulls: pending local changes are kept as-is (the merge never
+ * overwrites dishes that are not `synced`) and are pushed by the next
+ * scheduled sync.
+ *
+ * Returns `true` when the pull succeeded, `false` when offline, not logged in,
+ * already syncing, or the request failed.
  */
 export async function refreshFromServer(db: AppDatabase): Promise<boolean> {
-  if (!isOnline() || !db?.dishes || !isLoggedIn()) return false;
-  const result = await pullAndMerge(db, { forceFullSync: true });
-  return result !== null;
+  if (!isOnline() || !db?.dishes || !isLoggedIn() || syncRunning) return false;
+  if (!isCurrentAccountDatabase(db)) return false;
+  syncRunning = true;
+  try {
+    const result = await pullAndMerge(db, { forceFullSync: true });
+    return result !== null;
+  } finally {
+    syncRunning = false;
+  }
 }
 
 const MENU_CONFLICT_CODE = "MENU_VERSION_CONFLICT";
@@ -504,6 +542,7 @@ export async function sync(db: AppDatabase): Promise<void> {
   if (!isOnline()) return;
   if (!db?.dishes) return;
   if (!isLoggedIn()) return;
+  if (!isCurrentAccountDatabase(db)) return;
 
   syncRunning = true;
   markSyncStarted();

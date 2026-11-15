@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { ToastProvider } from "../components/Toast";
 import RegisterPage from "../pages/RegisterPage/RegisterPage";
 import { MAX_USERNAME_LENGTH } from "../types";
 import { SERVER_WARMUP_MESSAGE } from "../services/api";
@@ -30,7 +31,9 @@ function mockFetchError(status: number, body: { code: string; message: string })
 function renderPage() {
   return render(
     <MemoryRouter>
-      <RegisterPage />
+      <ToastProvider>
+        <RegisterPage />
+      </ToastProvider>
     </MemoryRouter>,
   );
 }
@@ -229,10 +232,10 @@ describe("RegisterPage", () => {
     });
   });
 
-  it("shows error message when registration fails", async () => {
+  it("shows a French error toast when the email is already used", async () => {
     mockFetchError(400, {
-      code: "VALIDATION_ERROR",
-      message: "Email already in use",
+      code: "EMAIL_EXISTS",
+      message: "An account already exists for this email address.",
     });
 
     renderPage();
@@ -252,7 +255,43 @@ describe("RegisterPage", () => {
 
     fireEvent.click(screen.getByText("S'inscrire"));
 
-    expect(await screen.findByText("Email already in use")).toBeTruthy();
+    const toast = await screen.findByText(
+      "Un compte existe déjà avec cette adresse email.",
+    );
+    expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("EMAIL_EXISTS")).toBeNull();
+    expect(
+      screen.queryByText("An account already exists for this email address."),
+    ).toBeNull();
+    expect(document.querySelector(".auth-error")).toBeNull();
+  });
+
+  it("shows a generic French message for an unknown registration code", async () => {
+    mockFetchError(400, {
+      code: "SOMETHING_NEW",
+      message: "SOMETHING_NEW",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText("Nom d'utilisateur"), {
+      target: { value: "existinguser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Email"), {
+      target: { value: "taken@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Confirmer le mot de passe"), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText("S'inscrire"));
+
+    const toast = await screen.findByText("Une erreur est survenue.");
+    expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("SOMETHING_NEW")).toBeNull();
   });
 
   it("shows the warm-up message instead of the raw timeout error on register", async () => {
@@ -278,7 +317,8 @@ describe("RegisterPage", () => {
 
     fireEvent.click(screen.getByText("S'inscrire"));
 
-    expect(await screen.findByText(SERVER_WARMUP_MESSAGE)).toBeTruthy();
+    const toast = await screen.findByText(SERVER_WARMUP_MESSAGE);
+    expect(toast.className).toContain("toast-error");
     expect(screen.queryByText("Request timed out")).toBeNull();
   });
 

@@ -26,9 +26,15 @@ export interface ApiEmptyResponse {
 
 /** Structured error detail returned by the backend error middleware */
 export interface ApiErrorDetail {
-  /** Machine-readable error code (e.g., "VALIDATION_ERROR", "NOT_FOUND") */
+  /**
+   * Stable machine-readable error code (e.g., "VALIDATION_ERROR", "NOT_FOUND").
+   * The UI maps this to user-facing French copy.
+   */
   code: string;
-  /** Human-readable error message */
+  /**
+   * English diagnostic from the backend. Never render it directly; use
+   * `getApiErrorMessage` instead.
+   */
   message: string;
   /** Optional field-level validation errors */
   details?: ApiFieldError[];

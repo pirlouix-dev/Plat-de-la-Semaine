@@ -92,17 +92,91 @@ function buildNetworkError(cause: unknown): ApiErrorDetail {
 
 // ── User-facing error messages ───────────────────────────────────────────────
 
-export const API_ERROR_CODES = { TIMEOUT: "TIMEOUT" } as const;
+export const API_ERROR_CODES = {
+  TIMEOUT: "TIMEOUT",
+  NETWORK_ERROR: "NETWORK_ERROR",
+  MISSING_CONFIG: "MISSING_CONFIG",
+  UNAUTHORIZED: "UNAUTHORIZED",
+} as const;
 
 export const SERVER_WARMUP_MESSAGE =
   "Le serveur est en cours de démarrage et sera disponible dans quelques secondes. Veuillez réessayer.";
 
+export const GENERIC_ERROR_MESSAGE = "Une erreur est survenue.";
+const NETWORK_ERROR_MESSAGE =
+  "Impossible de contacter le serveur. Vérifiez votre connexion Internet.";
+const SERVER_ERROR_MESSAGE =
+  "Le serveur a rencontré une erreur. Veuillez réessayer plus tard.";
+const SESSION_EXPIRED_MESSAGE =
+  "Votre session a expiré. Veuillez vous reconnecter.";
+
+/**
+ * Backend error codes mapped to French UI copy. The backend `message` is an
+ * English diagnostic and is never shown to users; unknown codes fall back to
+ * the generic message.
+ *
+ * Keep these codes in sync with the backend `ApiErrorCodes` class.
+ */
+const ERROR_MESSAGES: Record<string, string> = {
+  // Auth
+  EMAIL_EXISTS: "Un compte existe déjà avec cette adresse email.",
+  INVALID_EMAIL: "L'adresse email est invalide.",
+  INVALID_CREDENTIALS: "Email ou mot de passe incorrect.",
+  USER_DISABLED: "Ce compte est désactivé.",
+  TOO_MANY_ATTEMPTS: "Trop de tentatives. Veuillez réessayer plus tard.",
+  INVALID_REFRESH_TOKEN: SESSION_EXPIRED_MESSAGE,
+  AUTH_FAILED: "L'authentification a échoué. Veuillez réessayer.",
+  UNAUTHORIZED: SESSION_EXPIRED_MESSAGE,
+
+  // General API
+  VALIDATION_ERROR:
+    "Certaines informations sont invalides. Vérifiez votre saisie.",
+  NOT_FOUND: "L'élément demandé est introuvable.",
+  BAD_REQUEST: "La demande n'a pas pu être traitée.",
+  INVALID_OPERATION: "L'opération n'a pas pu être effectuée.",
+  SERVICE_UNAVAILABLE:
+    "Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.",
+  MENU_VERSION_CONFLICT:
+    "Le menu a été modifié sur un autre appareil. Il a été actualisé.",
+  INTERNAL_ERROR: SERVER_ERROR_MESSAGE,
+  UNKNOWN_ERROR: SERVER_ERROR_MESSAGE,
+
+  // Feedback
+  VERSION_MISMATCH:
+    "Mettez à jour l'application pour envoyer un signalement.",
+  RATE_LIMITED: "Trop de signalements envoyés. Veuillez réessayer plus tard.",
+  WEBHOOK_NOT_CONFIGURED:
+    "Le signalement n'a pas pu être envoyé. Veuillez réessayer plus tard.",
+  WEBHOOK_FAILED:
+    "Le signalement n'a pas pu être envoyé. Veuillez réessayer plus tard.",
+
+  // Transport
+  NETWORK_ERROR: NETWORK_ERROR_MESSAGE,
+  MISSING_CONFIG: "Le service est indisponible. Veuillez réessayer plus tard.",
+};
+
+function getHttpStatusMessage(code: string): string | undefined {
+  const match = /^HTTP_(\d{3})$/.exec(code);
+  if (!match) return undefined;
+
+  const status = Number(match[1]);
+  if (status === 401) return SESSION_EXPIRED_MESSAGE;
+  if (status === 403)
+    return "Vous n'avez pas l'autorisation d'effectuer cette action.";
+  if (status === 404) return ERROR_MESSAGES.NOT_FOUND;
+  if (status === 429)
+    return "Trop de requêtes. Veuillez réessayer plus tard.";
+  if (status >= 500) return SERVER_ERROR_MESSAGE;
+  return undefined;
+}
+
 export function getApiErrorMessage(
   error: ApiErrorDetail,
-  fallback = "Une erreur est survenue.",
+  fallback = GENERIC_ERROR_MESSAGE,
 ): string {
   if (error.code === API_ERROR_CODES.TIMEOUT) return SERVER_WARMUP_MESSAGE;
-  return error.message || fallback;
+
+  return ERROR_MESSAGES[error.code] ?? getHttpStatusMessage(error.code) ?? fallback;
 }
 
 export const SERVER_WARMUP_TOAST_DURATION_MS = 6000;
@@ -113,6 +187,11 @@ export function getApiErrorToastDuration(
   return error.code === API_ERROR_CODES.TIMEOUT
     ? SERVER_WARMUP_TOAST_DURATION_MS
     : undefined;
+}
+
+/** Whether a failed login was rejected because of the credentials themselves. */
+export function isInvalidCredentialsError(error: ApiErrorDetail): boolean {
+  return error.code === "INVALID_CREDENTIALS";
 }
 
 async function parseJsonSafe(res: Response): Promise<unknown> {

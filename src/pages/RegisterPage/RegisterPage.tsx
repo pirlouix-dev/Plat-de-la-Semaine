@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import CharacterCounter from "../../components/CharacterCounter";
-import { apiPost, getApiErrorMessage, notifyAuthChange } from "../../services/api";
+import { apiPost, notifyAuthChange } from "../../services/api";
 import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
+import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
 import "../../styles/auth.css";
@@ -18,8 +19,8 @@ function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const showApiErrorToast = useApiErrorToast();
 
   const passwordsMatch = password === confirmPassword;
   const showMismatch = confirmPassword.length > 0 && !passwordsMatch;
@@ -29,7 +30,6 @@ function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     if (passwordTooShort || !passwordsMatch) {
       return;
@@ -44,7 +44,7 @@ function RegisterPage() {
     });
 
     if (!result.ok) {
-      setError(getApiErrorMessage(result.error));
+      showApiErrorToast(result.error);
       setLoading(false);
       return;
     }
@@ -126,8 +126,6 @@ function RegisterPage() {
             </span>
           )}
         </div>
-
-        {error && <div className="auth-error">{error}</div>}
 
         <div className="auth-actions">
           <button

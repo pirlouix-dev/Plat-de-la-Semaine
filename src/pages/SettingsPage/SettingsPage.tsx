@@ -15,6 +15,7 @@ import {
 } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
 import { useDatabase } from "../../db/DatabaseContext";
+import { removeLocalDatabaseForUser } from "../../db/databaseManagerInstance";
 import { useToast } from "../../components/toastContext";
 import { getBackups, restoreBackup } from "../../services/backupService";
 import { importDishes } from "../../services/dishService";
@@ -36,8 +37,14 @@ import {
   resetPassword,
   deleteAccount,
 } from "../../services/authService";
-import { clearAuth } from "../../services/api";
+import {
+  clearAuth,
+  getApiErrorMessage,
+  getCurrentUserId,
+} from "../../services/api";
+import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
+import { useSyncState } from "../../hooks/useSyncStatus";
 import { MAX_FEEDBACK_LENGTH, MAX_USERNAME_LENGTH } from "../../types/dish";
 import type { BackupSummary } from "../../types";
 import type { VersionInfo } from "../../services/settingsService";
@@ -98,13 +105,16 @@ function formatBackupDate(isoDate: string): {
 function formatLastSync(isoDate: string | null): string {
   if (!isoDate) return "Jamais";
   const d = new Date(isoDate);
-  return d.toLocaleDateString("fr-FR", {
+  const date = d.toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  });
+  const time = d.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
   });
+  return `${date} à ${time}`;
 }
 
 function LoginPrompt() {
@@ -133,6 +143,7 @@ export function SettingsPage() {
   const location = useLocation();
   const { db } = useDatabase();
   const { showToast } = useToast();
+  const showApiErrorToast = useApiErrorToast();
   const isLoggedIn = useIsLoggedIn();
 
   const isMobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
@@ -159,7 +170,7 @@ export function SettingsPage() {
       localStorage.setItem("user_username", trimmed);
       showToast("Nom d'utilisateur mis à jour", "success");
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setUsernameSaving(false);
   };
@@ -173,7 +184,7 @@ export function SettingsPage() {
         "warning",
       );
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setResettingPassword(false);
   };
@@ -182,10 +193,23 @@ export function SettingsPage() {
     setDeleting(true);
     const result = await deleteAccount();
     if (result.ok) {
+      const deletedUserId = getCurrentUserId();
+      // Switch to the guest database first, then erase the deleted account's
+      // local copy without tearing down the database the UI is still using.
       clearAuth();
       navigate("/", { replace: true });
+
+      if (deletedUserId) {
+        try {
+          await removeLocalDatabaseForUser(deletedUserId);
+        } catch (err) {
+          // The account is already gone server-side; a local cleanup failure
+          // must not block the logout.
+          console.error("Failed to remove local account data:", err);
+        }
+      }
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
       setDeleting(false);
       setShowDeleteModal(false);
     }
@@ -226,7 +250,7 @@ export function SettingsPage() {
         } else {
           const result = await importDishes(parsed.items);
           if (!result.ok) {
-            showToast(result.error.message, "error");
+            showApiErrorToast(result.error);
             return;
           }
           if (db) {
@@ -285,7 +309,7 @@ export function SettingsPage() {
     if (result.ok) {
       setBackups(result.data);
     } else {
-      setBackupsError(result.error.message);
+      setBackupsError(getApiErrorMessage(result.error));
     }
     setBackupsLoading(false);
   }, []);
@@ -297,7 +321,7 @@ export function SettingsPage() {
       showToast("Sauvegarde restaurée avec succès", "success");
       await fetchBackups();
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setRestoringId(null);
   };
@@ -316,13 +340,49 @@ export function SettingsPage() {
       showToast("Rapport envoyé, merci !", "success");
       setBugDescription("");
     } else {
-      showToast(result.error.message, "error");
+      showApiErrorToast(result.error);
     }
     setBugSubmitting(false);
   };
 
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const syncState = useSyncState();
+  const syncBusy = refreshing || syncState.phase === "syncing";
+
+  const handleRefreshFromServer = async () => {
+    if (!db) {
+      showToast(
+        "Base de données indisponible. Réessayez dans un instant.",
+        "error",
+      );
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      const ok = await refreshFromServer(db);
+      if (ok) {
+        setLastSyncAt(await getLastSyncAt(db));
+        showToast("Plats rafraîchis depuis le serveur", "success");
+      } else {
+        showToast(
+          navigator.onLine
+            ? "Le rafraîchissement des plats a échoué. Réessayez plus tard."
+            : "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+          "error",
+        );
+      }
+    } catch {
+      showToast(
+        "Le rafraîchissement des plats a échoué. Réessayez plus tard.",
+        "error",
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -347,7 +407,7 @@ export function SettingsPage() {
       if (result.ok) {
         setBackups(result.data);
       } else {
-        setBackupsError(result.error.message);
+        setBackupsError(getApiErrorMessage(result.error));
       }
       setBackupsLoading(false);
     };
@@ -358,7 +418,7 @@ export function SettingsPage() {
   }, [currentTab, backups.length, isLoggedIn]);
 
   useEffect(() => {
-    if (currentTab !== "info") return;
+    if (currentTab !== "info" && currentTab !== "data") return;
     let cancelled = false;
     if (isLoggedIn && db) {
       getLastSyncAt(db).then((iso) => {
@@ -552,6 +612,31 @@ export function SettingsPage() {
           {currentTab === "data" &&
             (isLoggedIn ? (
               <div className="settings-panel">
+                <section className="settings-section-card">
+                  <h2 className="section-title">Synchronisation</h2>
+                  <p className="section-description">
+                    Recharge tous vos plats depuis le serveur si vous pensez
+                    qu'ils ne sont plus à jour.
+                  </p>
+                  <p className="section-description">
+                    Dernière synchronisation : {formatLastSync(lastSyncAt)}
+                  </p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleRefreshFromServer}
+                    disabled={syncBusy}
+                    title={
+                      !refreshing && syncState.phase === "syncing"
+                        ? "Synchronisation en cours…"
+                        : undefined
+                    }
+                  >
+                    {refreshing
+                      ? "Rafraîchissement…"
+                      : "Rafraîchir les plats depuis le serveur"}
+                  </button>
+                </section>
+
                 <section className="settings-section-card">
                   <h2 className="section-title">Importer / Exporter des plats</h2>
                   <p className="section-description">
