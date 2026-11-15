@@ -315,6 +315,38 @@ describe("LoginPage", () => {
     ).toBeNull();
   });
 
+  it("toggles the password visibility without submitting the form", () => {
+    renderLogin();
+
+    const passwordInput = screen.getByPlaceholderText("Mot de passe");
+    expect(passwordInput).toHaveAttribute("type", "password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+
+    fireEvent.change(passwordInput, { target: { value: "secret-password" } });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Afficher le mot de passe" }),
+    );
+
+    const revealedInput = screen.getByPlaceholderText("Mot de passe");
+    expect(revealedInput).toHaveAttribute("type", "text");
+    expect(revealedInput).toHaveValue("secret-password");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Masquer le mot de passe" }),
+    );
+
+    expect(screen.getByPlaceholderText("Mot de passe")).toHaveAttribute(
+      "type",
+      "password",
+    );
+    expect(
+      vi.mocked(fetch).mock.calls.some(([url]) =>
+        String(url).includes("/api/auth/login"),
+      ),
+    ).toBe(false);
+  });
+
   it("pings the backend on mount to warm it up", async () => {
     renderLogin();
 

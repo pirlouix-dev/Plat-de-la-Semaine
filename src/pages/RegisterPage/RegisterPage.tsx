@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import CharacterCounter from "../../components/CharacterCounter";
+import PasswordInput from "../../components/PasswordInput";
 import { apiPost, notifyAuthChange } from "../../services/api";
 import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
@@ -79,6 +80,7 @@ function RegisterPage() {
             type="text"
             className="modern-input"
             placeholder="Nom d'utilisateur"
+            autoComplete="nickname"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             maxLength={MAX_USERNAME_LENGTH}
@@ -92,6 +94,7 @@ function RegisterPage() {
             type="email"
             className="modern-input"
             placeholder="Email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -99,10 +102,9 @@ function RegisterPage() {
         </div>
 
         <div className="input-group">
-          <input
-            type="password"
-            className="modern-input"
+          <PasswordInput
             placeholder="Mot de passe"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -111,10 +113,11 @@ function RegisterPage() {
         </div>
 
         <div className="input-group">
-          <input
-            type="password"
-            className="modern-input"
+          <PasswordInput
             placeholder="Confirmer le mot de passe"
+            autoComplete="new-password"
+            showLabel="Afficher la confirmation du mot de passe"
+            hideLabel="Masquer la confirmation du mot de passe"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required

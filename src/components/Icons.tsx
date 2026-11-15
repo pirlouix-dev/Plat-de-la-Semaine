@@ -160,6 +160,48 @@ export function UploadIcon({ size = 18, ...props }: IconProps) {
   );
 }
 
+export function EyeIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M2.06 12.35a1 1 0 0 1 0-.7C3.5 7.9 7.4 5 12 5s8.5 2.9 9.94 6.65a1 1 0 0 1 0 .7C20.5 16.1 16.6 19 12 19s-8.5-2.9-9.94-6.65" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon({ size = 18, ...props }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M10.73 5.08A10.4 10.4 0 0 1 12 5c4.6 0 8.5 2.9 9.94 6.65a1 1 0 0 1 0 .7 12.6 12.6 0 0 1-1.44 2.6" />
+      <path d="M6.61 6.61A12.6 12.6 0 0 0 2.06 11.65a1 1 0 0 0 0 .7C3.5 16.1 7.4 19 12 19a10.4 10.4 0 0 0 5.39-1.61" />
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <line x1="2" x2="22" y1="2" y2="22" />
+    </svg>
+  );
+}
+
 export function FilterIcon({ size = 16 }: IconProps) {
   return (
     <svg
