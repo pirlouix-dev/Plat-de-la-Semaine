@@ -28,6 +28,7 @@ public class AuthController : BaseController
     [EndpointSummary("Register a new account")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Register([FromBody] RegisterPayload payload)
     {
         var response = await _authService.RegisterAsync(payload.Email, payload.Password, payload.Username);
@@ -41,6 +42,7 @@ public class AuthController : BaseController
     [EndpointSummary("Authenticate and return a JWT")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Login([FromBody] LoginPayload payload)
     {
         var response = await _authService.LoginAsync(payload.Email, payload.Password);
@@ -88,6 +90,7 @@ public class AuthController : BaseController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> UpdateUsername([FromBody] UpdateUsernamePayload payload)
     {
         var userId = await GetUserIdAsync();
@@ -118,6 +121,7 @@ public class AuthController : BaseController
     [EndpointSummary("Delete the authenticated user's account and all associated data")]
     [ProducesResponseType(typeof(AccountDeletionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> DeleteAccount()
     {
         var userId = await GetUserIdAsync();

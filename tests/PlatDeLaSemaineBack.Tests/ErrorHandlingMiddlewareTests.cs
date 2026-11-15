@@ -129,7 +129,43 @@ public class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_GenericException_Returns500()
+    public async Task InvokeAsync_FirestoreUnavailable_Returns503()
+    {
+        // Arrange & Act
+        var (statusCode, body) = await CaptureAsync(new FirestoreUnavailableException());
+
+        // Assert
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, statusCode);
+
+        var response = JsonSerializer.Deserialize<ApiErrorDetail>(body, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        Assert.NotNull(response);
+        Assert.Equal("SERVICE_UNAVAILABLE", response!.Code);
+        Assert.Equal("The database is temporarily unavailable.", response.Message);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_FirestoreUnavailable_SetsRetryAfter()
+    {
+        // Arrange
+        var middleware = new ErrorHandlingMiddleware(
+            _ => throw new FirestoreUnavailableException(),
+            NullLogger<ErrorHandlingMiddleware>.Instance);
+
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal("5", context.Response.Headers.RetryAfter.ToString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_InvalidOperationException_Returns400()
     {
         // Arrange
         var middleware = new ErrorHandlingMiddleware(

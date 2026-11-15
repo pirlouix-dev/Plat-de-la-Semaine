@@ -12,6 +12,7 @@ public static class ApiErrorCodes
     public const string BadRequest = "BAD_REQUEST";
     public const string Unauthorized = "UNAUTHORIZED";
     public const string InvalidOperation = "INVALID_OPERATION";
+    public const string ServiceUnavailable = "SERVICE_UNAVAILABLE";
     public const string InternalError = "INTERNAL_ERROR";
     public const string UnknownError = "UNKNOWN_ERROR";
     public const string MenuVersionConflict = "MENU_VERSION_CONFLICT";

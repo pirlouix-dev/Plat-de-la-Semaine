@@ -26,6 +26,7 @@ public class VersionController : ControllerBase
     [EndpointSummary("Fetch the latest version information")]
     [ProducesResponseType(typeof(VersionInfo), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> GetVersion()
     {
         var response = await _versionService.GetVersionInfoAsync();
