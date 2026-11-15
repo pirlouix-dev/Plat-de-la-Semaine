@@ -112,12 +112,35 @@ public class DishSingleResponse
 }
 
 /// <summary>
-/// A single dish entry inside a bulk import request.
-/// Fields are nullable and carry no validation attributes so that one invalid
-/// entry does not reject the whole request; validation happens per item.
+/// Request payload for a batch of dish write operations.
 /// </summary>
-public class DishImportItem
+public class DishBatchPayload
 {
+    /// <summary>
+    /// Operations to apply, in order.
+    /// </summary>
+    [Required]
+    public required List<DishBatchOperation> Operations { get; set; } = new();
+}
+
+/// <summary>
+/// A single create, update, or delete inside a batch. Fields are nullable and
+/// carry no validation attributes so that one invalid operation does not reject
+/// the whole request; each operation is validated on its own.
+/// </summary>
+public class DishBatchOperation
+{
+    /// <summary>
+    /// Operation kind: "create", "update", or "delete".
+    /// </summary>
+    public string? Op { get; set; }
+
+    /// <summary>
+    /// Target dish id. Required for update and delete; optional for create,
+    /// where a client-supplied id (e.g. generated offline) is preserved.
+    /// </summary>
+    public string? Id { get; set; }
+
     public string? Name { get; set; }
 
     public string? Description { get; set; }
@@ -128,45 +151,80 @@ public class DishImportItem
 }
 
 /// <summary>
-/// Validation errors for a single rejected item in a bulk import.
+/// Status values reported for a single batch operation.
 /// </summary>
-public class DishImportError
+public static class DishBatchStatus
+{
+    public const string Created = "created";
+    public const string Updated = "updated";
+    public const string Deleted = "deleted";
+    public const string Failed = "failed";
+}
+
+/// <summary>
+/// Outcome of a single batch operation.
+/// </summary>
+public class DishBatchOperationResult
 {
     /// <summary>
-    /// Zero-based position of the item in the submitted array.
+    /// Zero-based position of the operation in the submitted batch.
     /// </summary>
     public required int Index { get; set; }
 
     /// <summary>
-    /// The item's name, when it could be read, to help the client identify it.
+    /// Operation kind as submitted, so a rejected unknown kind is echoed.
     /// </summary>
-    public string? Name { get; set; }
+    public string? Op { get; set; }
 
     /// <summary>
-    /// Field-level validation errors for the item.
+    /// One of the <see cref="DishBatchStatus"/> values.
     /// </summary>
-    public required List<ApiFieldError> Errors { get; set; } = new();
+    public required string Status { get; set; }
+
+    /// <summary>
+    /// Target dish id, server-generated for a create without an id.
+    /// </summary>
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// The persisted dish, for every successful outcome. A delete returns the
+    /// tombstone so the client can mirror it.
+    /// </summary>
+    public Dish? Data { get; set; }
+
+    /// <summary>
+    /// Machine-readable failure code, when the operation failed.
+    /// </summary>
+    public string? Code { get; set; }
+
+    /// <summary>
+    /// Diagnostic message, when the operation failed.
+    /// </summary>
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// Field-level validation errors, when the operation failed validation.
+    /// </summary>
+    public List<ApiFieldError>? Errors { get; set; }
 }
 
 /// <summary>
-/// Response from a bulk dish import.
+/// Response from a dish batch request.
 /// </summary>
-public class DishImportResponse
+public class DishBatchResponse
 {
-    /// <summary>
-    /// Number of dishes that were persisted.
-    /// </summary>
-    public required int Imported { get; set; }
+    public required int Created { get; set; }
 
-    /// <summary>
-    /// Number of dishes that were rejected.
-    /// </summary>
+    public required int Updated { get; set; }
+
+    public required int Deleted { get; set; }
+
     public required int Failed { get; set; }
 
     /// <summary>
-    /// Details of each rejected dish.
+    /// One outcome per submitted operation, in request order.
     /// </summary>
-    public required List<DishImportError> Errors { get; set; } = new();
+    public required List<DishBatchOperationResult> Results { get; set; } = new();
 }
 
 /// <summary>
