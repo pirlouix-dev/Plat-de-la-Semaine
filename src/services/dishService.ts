@@ -13,8 +13,14 @@ type DishListResponse = components["schemas"]["DishListResponse"];
 type DishSingleResponse = components["schemas"]["DishSingleResponse"];
 type CreateDishPayload = components["schemas"]["CreateDishPayload"];
 type UpdateDishPayload = components["schemas"]["UpdateDishPayload"];
-type DishImportItem = components["schemas"]["DishImportItem"];
-type DishImportResponse = components["schemas"]["DishImportResponse"];
+type DishBatchPayload = components["schemas"]["DishBatchPayload"];
+type DishBatchResponse = components["schemas"]["DishBatchResponse"];
+
+/**
+ * Backend cap on the number of operations in one batch
+ * (`DishService.MaxBatchSize`).
+ */
+export const DISH_BATCH_MAX_OPERATIONS = 500;
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
@@ -76,19 +82,17 @@ export async function updateDish(
 }
 
 /**
- * Bulk-import dishes from a JSON array.
- * The backend validates each item and persists the valid ones, returning a
- * success/error breakdown even when some items fail.
+ * Apply a batch of dish create, update, and delete operations.
+ *
+ * The backend applies the operations in order and reports each outcome
+ * separately, so a partial failure does not roll back the operations that
+ * succeeded. At most `DISH_BATCH_MAX_OPERATIONS` operations fit in one call.
  */
-export async function importDishes(
-  items: DishImportItem[],
+export async function applyDishBatch(
+  payload: DishBatchPayload,
   options?: { signal?: AbortSignal }
-): Promise<ApiResult<DishImportResponse>> {
-  return apiPost<DishImportResponse>(
-    "/api/dishes/import",
-    items,
-    options
-  );
+): Promise<ApiResult<DishBatchResponse>> {
+  return apiPost<DishBatchResponse>("/api/dishes/batch", payload, options);
 }
 
 /**

@@ -18,9 +18,12 @@ import { useDatabase } from "../../db/DatabaseContext";
 import { removeLocalDatabaseForUser } from "../../db/databaseManagerInstance";
 import { useToast } from "../../components/toastContext";
 import { getBackups, restoreBackup } from "../../services/backupService";
-import { importDishes } from "../../services/dishService";
 import { getVersionInfo, submitFeedback } from "../../services/settingsService";
-import { getLastSyncAt, refreshFromServer } from "../../services/syncService";
+import {
+  flushPendingDishes,
+  getLastSyncAt,
+  refreshFromServer,
+} from "../../services/syncService";
 import {
   insertManyDishes,
   buildPendingDishes,
@@ -240,32 +243,24 @@ export function SettingsPage() {
       }
 
       try {
-        const offline = !navigator.onLine;
-        let imported: number;
-        let failed = 0;
-        if (offline) {
-          if (!db) throw new Error("Database not ready");
-          await insertManyDishes(db, buildPendingDishes(parsed.items));
-          imported = parsed.items.length;
-        } else {
-          const result = await importDishes(parsed.items);
-          if (!result.ok) {
-            showApiErrorToast(result.error);
-            return;
-          }
-          if (db) {
-            await refreshFromServer(db);
-          }
-          imported = Number(result.data.imported);
-          failed = Number(result.data.failed);
-        }
+        if (!db) throw new Error("Database not ready");
 
-        const rejected = parsed.errors.length + failed;
-        const parts = offline
-          ? [`${imported} plat(s) enregistré(s) localement`]
-          : [`${imported} plat(s) importé(s)`];
+        // Imports are local-first: the dishes show up immediately and travel to
+        // the server through the same pending-changes push as any other edit.
+        await insertManyDishes(db, buildPendingDishes(parsed.items));
+        const flush = await flushPendingDishes(db);
+
+        const saved = parsed.items.length;
+        const rejected = parsed.errors.length;
+        const parts =
+          flush === null
+            ? [`${saved} plat(s) enregistré(s) localement`]
+            : [`${saved} plat(s) importé(s)`];
         if (rejected > 0) parts.push(`${rejected} en échec`);
-        showToast(parts.join(", "), rejected > 0 ? "error" : "success");
+        if (flush?.failed) parts.push("synchronisation incomplète");
+
+        const failed = rejected > 0 || flush?.failed === true;
+        showToast(parts.join(", "), failed ? "error" : "success");
       } catch {
         showToast("Erreur lors de l'import", "error");
       }

@@ -2,9 +2,8 @@ import type { AppDatabase } from "../db/DatabaseContext";
 import type { DishDocType } from "../db/schemas/dishes";
 import {
   getDishes,
-  createDish,
-  updateDish,
-  deleteDish,
+  applyDishBatch,
+  DISH_BATCH_MAX_OPERATIONS,
 } from "./dishService";
 import { getMenu, saveMenu } from "./menuService";
 import {
@@ -32,6 +31,10 @@ import {
 } from "./syncStatusStore";
 
 type ApiDish = components["schemas"]["Dish"];
+type DishBatchOperation = components["schemas"]["DishBatchOperation"];
+type DishBatchOperationResult =
+  components["schemas"]["DishBatchOperationResult"];
+type DishBatchStatus = "created" | "updated" | "deleted" | "failed";
 
 const BACKOFF_DELAYS_MS = [1_000, 5_000, 15_000, 30_000, 60_000];
 const LAST_SYNC_KEY = "lastSyncAt";
@@ -100,6 +103,172 @@ function mapApiDishToLocal(apiDish: ApiDish): DishDocType {
   };
 }
 
+/**
+ * One pending local change, plus the local document as it was when the batch
+ * was built. The backend echoes the operation's position back as `index`, so
+ * results are correlated by array position rather than by dish id.
+ */
+type PendingOperation = {
+  docId: string;
+  operation: DishBatchOperation;
+  /** Local edit stamp at the time the batch was built. */
+  updatedAt: string;
+};
+
+/**
+ * Turn pending documents into batch operations.
+ *
+ * `draftsToDrop` holds creations that were deleted before ever reaching the
+ * server: they must disappear locally instead of being created remotely.
+ */
+export function buildPendingBatch(docs: DishDocType[]): {
+  operations: PendingOperation[];
+  draftsToDrop: string[];
+} {
+  const operations: PendingOperation[] = [];
+  const draftsToDrop: string[] = [];
+
+  for (const doc of docs) {
+    if (doc.syncStatus === "pending_create") {
+      if (doc.isDeleted) {
+        draftsToDrop.push(doc.id);
+        continue;
+      }
+
+      operations.push({
+        docId: doc.id,
+        updatedAt: doc.updatedAt,
+        operation: {
+          // The local id is sent so the server keeps it. A create that is
+          // retried after a timeout then overwrites the same document instead
+          // of duplicating the dish.
+          op: "create",
+          id: doc.id,
+          name: doc.name,
+          description: doc.description,
+          course: doc.course,
+          seasons: doc.seasons,
+        },
+      });
+      continue;
+    }
+
+    // Updates and deletes are addressed by the server id; without one there is
+    // nothing the backend could apply.
+    if (!doc.serverId) continue;
+
+    if (doc.syncStatus === "pending_delete") {
+      operations.push({
+        docId: doc.id,
+        updatedAt: doc.updatedAt,
+        operation: { op: "delete", id: doc.serverId },
+      });
+      continue;
+    }
+
+    if (doc.syncStatus === "pending_update") {
+      operations.push({
+        docId: doc.id,
+        updatedAt: doc.updatedAt,
+        operation: {
+          op: "update",
+          id: doc.serverId,
+          name: doc.name,
+          description: doc.description,
+          course: doc.course,
+          seasons: doc.seasons,
+        },
+      });
+    }
+  }
+
+  return { operations, draftsToDrop };
+}
+
+/**
+ * Apply per-operation batch results to the local documents.
+ * Returns `true` when at least one operation failed and should be retried.
+ */
+async function applyBatchResults(
+  db: AppDatabase,
+  operations: PendingOperation[],
+  results: DishBatchOperationResult[]
+): Promise<boolean> {
+  let anyFailed = false;
+
+  for (const result of results) {
+    const pending = operations[Number(result.index)];
+    if (!pending) continue;
+
+    const status = result.status as DishBatchStatus;
+    if (status === "failed") {
+      // The operation did not apply: leave the document pending so the next
+      // sync retries it. A 404 is ambiguous (the dish may have been deleted on
+      // another device), so it is not treated as success either.
+      anyFailed = true;
+      continue;
+    }
+
+    const doc = await db.dishes.findOne(pending.docId).exec();
+    if (!doc) {
+      // Deleted locally while the request was in flight. For a creation that
+      // now exists remotely, leave a tombstone so the next push deletes it
+      // instead of the next pull resurrecting it.
+      if (status === "created" && result.id) {
+        await db.dishes.upsert({
+          id: String(result.id),
+          serverId: String(result.id),
+          name: "",
+          description: "",
+          course: 1,
+          seasons: [],
+          updatedAt: new Date().toISOString(),
+          isDeleted: true,
+          syncStatus: "pending_delete",
+        });
+      }
+      continue;
+    }
+
+    if (status === "deleted") {
+      // `softDeleteDish` hides the row as soon as it is marked, so a delete
+      // cannot race a local edit.
+      await doc.remove();
+      continue;
+    }
+
+    // An edit made while the request was in flight is newer than what the
+    // server acknowledged: keep it pending instead of marking it synced.
+    const editedMeanwhile = doc.get("updatedAt") !== pending.updatedAt;
+    const acknowledgedAt = result.data?.updatedAt
+      ? String(result.data.updatedAt)
+      : null;
+
+    await doc.patch({
+      ...(status === "created" ? { serverId: String(result.id) } : {}),
+      syncStatus: editedMeanwhile ? "pending_update" : "synced",
+      ...(acknowledgedAt && !editedMeanwhile
+        ? { updatedAt: acknowledgedAt }
+        : {}),
+    });
+  }
+
+  return anyFailed;
+}
+
+/** @internal Split operations into batches the backend accepts. */
+export function chunkOperations<T>(operations: T[]): T[][] {
+  const chunks: T[][] = [];
+  for (
+    let start = 0;
+    start < operations.length;
+    start += DISH_BATCH_MAX_OPERATIONS
+  ) {
+    chunks.push(operations.slice(start, start + DISH_BATCH_MAX_OPERATIONS));
+  }
+  return chunks;
+}
+
 async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
   const docs = await db.dishes
     .find({
@@ -107,65 +276,39 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
     })
     .exec();
 
+  const { operations, draftsToDrop } = buildPendingBatch(
+    docs.map((doc) => doc.toJSON() as DishDocType)
+  );
+
+  for (const id of draftsToDrop) {
+    const doc = await db.dishes.findOne(id).exec();
+    if (doc) await doc.remove();
+  }
+
   let anyFailed = false;
 
-  for (const doc of docs) {
-    const json = doc.toJSON() as DishDocType;
-
+  for (const chunk of chunkOperations(operations)) {
     try {
-      if (json.syncStatus === "pending_create" && json.isDeleted) {
-        // A draft deleted before its first sync never reached the server:
-        // drop it locally instead of creating it remotely.
-        await doc.remove();
+      const result = await applyDishBatch({
+        operations: chunk.map((pending) => pending.operation),
+      });
+
+      if (!result.ok) {
+        // The request itself failed: nothing was acknowledged, so every
+        // document in this chunk stays pending for the retry.
+        anyFailed = true;
         continue;
       }
 
-      if (json.syncStatus === "pending_create") {
-        const result = await createDish({
-          id: json.id,
-          name: json.name,
-          description: json.description,
-          course: json.course,
-          seasons: json.seasons,
-        });
-        if (result.ok) {
-          const current = await db.dishes.findOne(json.id).exec();
-          if (!current) {
-            // Deleted locally while the POST was in flight: undo the creation
-            // so the dish is not pulled back as a live one.
-            await deleteDish(String(result.data.id));
-          } else {
-            await current.patch({
-              serverId: String(result.data.id),
-              syncStatus: "synced",
-            });
-          }
-        } else {
-          anyFailed = true;
-        }
-      } else if (json.syncStatus === "pending_update" && json.serverId) {
-        const result = await updateDish(json.serverId, {
-          name: json.name,
-          description: json.description,
-          course: json.course,
-          seasons: json.seasons,
-        });
-        if (result.ok) {
-          await doc.patch({ syncStatus: "synced" });
-        } else {
-          // A 404 is ambiguous (the dish may have been deleted on the server),
-          // so it is transient and the local document must not be dropped.
-          anyFailed = true;
-        }
-      } else if (json.syncStatus === "pending_delete" && json.serverId) {
-        const result = await deleteDish(json.serverId);
-        if (result.ok) {
-          await doc.remove();
-        } else {
-          anyFailed = true;
-        }
-      }
+      const chunkFailed = await applyBatchResults(
+        db,
+        chunk,
+        result.data.results ?? []
+      );
+      anyFailed = anyFailed || chunkFailed;
     } catch {
+      // A malformed response or a local write failure must not abort the other
+      // chunks: keep this one pending and let the retry pick it up.
       anyFailed = true;
     }
   }
@@ -274,13 +417,13 @@ async function pullAndMerge(
 
 /**
  * Force a full pull of remote dishes and merge them into the local database.
- * Used after operations that mutate data server-side (e.g. bulk import or a
- * manual refresh from Settings) so the local store reflects the result without
- * waiting for the next scheduled sync.
+ * Used after operations that mutate data server-side, or a manual refresh from
+ * Settings, so the local store reflects the result without waiting for the next
+ * scheduled sync.
  *
  * This only pulls: pending local changes are kept as-is (the merge never
  * overwrites dishes that are not `synced`) and are pushed by the next
- * scheduled sync.
+ * scheduled sync or by `flushPendingDishes`.
  *
  * Returns `true` when the pull succeeded, `false` when offline, not logged in,
  * already syncing, or the request failed.
@@ -535,6 +678,27 @@ export async function resolveMenuConflict(
 /** @internal Current local menu document, for UI/tests. */
 export function getLocalMenu(userId: string | null): StoredMenu | null {
   return loadStoredMenu(userId);
+}
+
+/**
+ * Push pending dish changes without pulling.
+ *
+ * This is the push half of `sync`, exposed so a local change can be sent as
+ * soon as it happens instead of waiting for the next scheduled run. It does not
+ * touch sync status reporting or retry scheduling; the periodic sync remains
+ * the recovery path for failures.
+ *
+ * Returns `null` when the push was skipped (offline, not logged in, database
+ * belonging to another account, or a full sync already running), otherwise
+ * whether any operation failed and is still pending.
+ */
+export async function flushPendingDishes(
+  db: AppDatabase,
+): Promise<{ failed: boolean } | null> {
+  if (!isOnline() || !db?.dishes || !isLoggedIn() || syncRunning) return null;
+  if (!isCurrentAccountDatabase(db)) return null;
+
+  return { failed: await pushPendingChanges(db) };
 }
 
 export async function sync(db: AppDatabase): Promise<void> {

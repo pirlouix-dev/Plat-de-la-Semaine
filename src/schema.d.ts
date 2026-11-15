@@ -709,7 +709,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/dishes/import": {
+    "/api/dishes/batch": {
         parameters: {
             query?: never;
             header?: never;
@@ -718,7 +718,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Bulk-import dishes from a JSON array */
+        /** Apply a batch of dish create, update, and delete operations */
         post: {
             parameters: {
                 query?: never;
@@ -728,9 +728,9 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["DishImportItem"][];
-                    "text/json": components["schemas"]["DishImportItem"][];
-                    "application/*+json": components["schemas"]["DishImportItem"][];
+                    "application/json": components["schemas"]["DishBatchPayload"];
+                    "text/json": components["schemas"]["DishBatchPayload"];
+                    "application/*+json": components["schemas"]["DishBatchPayload"];
                 };
             };
             responses: {
@@ -740,9 +740,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["DishImportResponse"];
-                        "application/json": components["schemas"]["DishImportResponse"];
-                        "text/json": components["schemas"]["DishImportResponse"];
+                        "text/plain": components["schemas"]["DishBatchResponse"];
+                        "application/json": components["schemas"]["DishBatchResponse"];
+                        "text/json": components["schemas"]["DishBatchResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1320,25 +1320,39 @@ export interface components {
             updatedAt?: string;
             isDeleted?: boolean;
         };
-        DishImportError: {
-            /** Format: int32 */
-            index: number | string;
-            name?: null | string;
-            errors: components["schemas"]["ApiFieldError"][];
-        };
-        DishImportItem: {
+        DishBatchOperation: {
+            op?: null | string;
+            id?: null | string;
             name?: null | string;
             description?: null | string;
             /** Format: int32 */
             course?: null | number | string;
             seasons?: null | (number | string)[];
         };
-        DishImportResponse: {
+        DishBatchOperationResult: {
             /** Format: int32 */
-            imported: number | string;
+            index: number | string;
+            op?: null | string;
+            status: string;
+            id?: null | string;
+            data?: null | components["schemas"]["Dish"];
+            code?: null | string;
+            message?: null | string;
+            errors?: null | components["schemas"]["ApiFieldError"][];
+        };
+        DishBatchPayload: {
+            operations: components["schemas"]["DishBatchOperation"][];
+        };
+        DishBatchResponse: {
+            /** Format: int32 */
+            created: number | string;
+            /** Format: int32 */
+            updated: number | string;
+            /** Format: int32 */
+            deleted: number | string;
             /** Format: int32 */
             failed: number | string;
-            errors: components["schemas"]["DishImportError"][];
+            results: components["schemas"]["DishBatchOperationResult"][];
         };
         DishListResponse: {
             data: components["schemas"]["Dish"][];
