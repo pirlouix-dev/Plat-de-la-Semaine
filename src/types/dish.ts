@@ -3,6 +3,7 @@
  */
 
 import type { components } from "../schema";
+import type { ApiFieldError } from "./api";
 
 export const Course = {
   Starter: 0,
@@ -67,13 +68,28 @@ export type Dish = components["schemas"]["Dish"];
 export type CreateDishPayload = components["schemas"]["CreateDishPayload"];
 export type UpdateDishPayload = components["schemas"]["UpdateDishPayload"];
 
-export type DishImportItem = components["schemas"]["DishImportItem"];
-export type DishImportError = components["schemas"]["DishImportError"];
-export type DishImportResponse = components["schemas"]["DishImportResponse"];
+export type DishBatchOperation = components["schemas"]["DishBatchOperation"];
+export type DishBatchOperationResult =
+  components["schemas"]["DishBatchOperationResult"];
+export type DishBatchPayload = components["schemas"]["DishBatchPayload"];
+export type DishBatchResponse = components["schemas"]["DishBatchResponse"];
+
+/** Outcome the batch endpoint reports for one operation. */
+export type DishBatchStatus = "created" | "updated" | "deleted" | "failed";
 
 /**
- * A dish import entry that passed client-side validation.
- * Unlike the nullable API `DishImportItem`, every field is guaranteed present.
+ * Client-side report for one rejected import entry. Importing is a local-first
+ * operation now, so this is no longer derived from the API schema.
+ */
+export interface DishImportError {
+  index: number;
+  name: string | null;
+  errors: ApiFieldError[];
+}
+
+/**
+ * A dish import entry that passed client-side validation: every field is
+ * guaranteed present, unlike the nullable batch operation payload.
  */
 export interface ValidatedDishImportItem {
   name: string;

@@ -29,9 +29,8 @@ import {
 
 vi.mock("../services/dishService", () => ({
   getDishes: vi.fn(),
-  createDish: vi.fn(),
-  updateDish: vi.fn(),
-  deleteDish: vi.fn(),
+  applyDishBatch: vi.fn(),
+  DISH_BATCH_MAX_OPERATIONS: 500,
 }));
 
 vi.mock("../services/menuService", () => ({
@@ -39,21 +38,14 @@ vi.mock("../services/menuService", () => ({
   saveMenu: vi.fn(),
 }));
 
-import {
-  getDishes,
-  createDish,
-  updateDish,
-  deleteDish,
-} from "../services/dishService";
+import { getDishes, applyDishBatch } from "../services/dishService";
 import { getMenu } from "../services/menuService";
 import { sync, _resetSyncState } from "../services/syncService";
 
 addRxPlugin(RxDBDevModePlugin);
 
 const mockGetDishes = vi.mocked(getDishes);
-const mockCreateDish = vi.mocked(createDish);
-const mockUpdateDish = vi.mocked(updateDish);
-const mockDeleteDish = vi.mocked(deleteDish);
+const mockApplyDishBatch = vi.mocked(applyDishBatch);
 const mockGetMenu = vi.mocked(getMenu);
 
 const storage = wrappedValidateAjvStorage({
@@ -180,32 +172,43 @@ describe("DatabaseManager", () => {
     localStorage.setItem("user_id", userB);
     await sync(dbB);
 
-    expect(mockUpdateDish).not.toHaveBeenCalled();
-    expect(mockDeleteDish).not.toHaveBeenCalled();
-    expect(mockCreateDish).not.toHaveBeenCalled();
+    expect(mockApplyDishBatch).not.toHaveBeenCalled();
 
     localStorage.setItem("user_id", userA);
-    mockUpdateDish.mockResolvedValue({
+    mockApplyDishBatch.mockResolvedValue({
       ok: true,
       data: {
-        id: "server-a",
-        userId: userA,
-        name: "Test Dish",
-        description: "A test dish",
-        course: 1,
-        seasons: [0, 1],
-        updatedAt: "2026-01-02T00:00:00.000Z",
-        isDeleted: false,
+        created: 0,
+        updated: 1,
+        deleted: 0,
+        failed: 0,
+        results: [
+          {
+            index: 0,
+            op: "update",
+            status: "updated",
+            id: "server-a",
+            data: {
+              id: "server-a",
+              userId: userA,
+              name: "Test Dish",
+              description: "A test dish",
+              course: 1,
+              seasons: [0, 1],
+              updatedAt: "2026-01-02T00:00:00.000Z",
+              isDeleted: false,
+            },
+          },
+        ],
       },
     });
 
     const dbAAgain = await manager.openForUser(userA);
     await sync(dbAAgain);
 
-    expect(mockUpdateDish).toHaveBeenCalledWith(
-      "server-a",
-      expect.anything(),
-    );
+    expect(mockApplyDishBatch).toHaveBeenCalledWith({
+      operations: [expect.objectContaining({ op: "update", id: "server-a" })],
+    });
   });
 
   it("adopts guest-created dishes but not ambiguous legacy changes", async () => {

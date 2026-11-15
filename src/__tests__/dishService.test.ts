@@ -4,14 +4,14 @@ import {
   createDish,
   updateDish,
   deleteDish,
-  importDishes,
+  applyDishBatch,
 } from "../services/dishService";
 import { setBaseUrl } from "../services/api";
 import type {
   Dish,
   CreateDishPayload,
   UpdateDishPayload,
-  DishImportItem,
+  DishBatchPayload,
 } from "../types";
 import { Course, Season } from "../types";
 
@@ -253,33 +253,49 @@ describe("deleteDish", () => {
   });
 });
 
-describe("importDishes", () => {
-  const items: DishImportItem[] = [
-    {
-      name: "Ratatouille",
-      description: "Légumes mijotés",
-      course: Course.Main,
-      seasons: [Season.Summer],
-    },
-  ];
+describe("applyDishBatch", () => {
+  const payload: DishBatchPayload = {
+    operations: [
+      {
+        op: "create",
+        id: "local-1",
+        name: "Ratatouille",
+        description: "Légumes mijotés",
+        course: Course.Main,
+        seasons: [Season.Summer],
+      },
+      { op: "delete", id: "dish-2" },
+    ],
+  };
 
-  it("posts the array to the import endpoint and returns the summary", async () => {
+  it("posts the operations to the batch endpoint and returns the per-operation results", async () => {
     const response = {
-      imported: 1,
+      created: 1,
+      updated: 0,
+      deleted: 1,
       failed: 0,
-      errors: [],
+      results: [
+        {
+          index: 0,
+          op: "create",
+          status: "created",
+          id: "local-1",
+          data: SAMPLE_DISH,
+        },
+        { index: 1, op: "delete", status: "deleted", id: "dish-2" },
+      ],
     };
     mockFetchResponse(200, response);
 
-    const result = await importDishes(items);
+    const result = await applyDishBatch(payload);
 
     expect(result).toEqual({ ok: true, data: response });
 
     const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
-    expect(url).toBe(`${FAKE_BASE_URL}/api/dishes/import`);
+    expect(url).toBe(`${FAKE_BASE_URL}/api/dishes/batch`);
     const options = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
     expect(options.method).toBe("POST");
-    expect(JSON.parse(options.body as string)).toEqual(items);
+    expect(JSON.parse(options.body as string)).toEqual(payload);
   });
 
   it("propagates API errors", async () => {
@@ -288,7 +304,7 @@ describe("importDishes", () => {
       message: "Invalid payload",
     });
 
-    const result = await importDishes(items);
+    const result = await applyDishBatch(payload);
 
     expect(result).toEqual({
       ok: false,

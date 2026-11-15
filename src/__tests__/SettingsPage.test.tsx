@@ -39,7 +39,7 @@ const mockGetVersionInfo = vi.fn();
 const mockSubmitFeedback = vi.fn();
 const mockGetLastSyncAt = vi.fn();
 const mockRefreshFromServer = vi.fn();
-const mockImportDishes = vi.fn();
+const mockFlushPendingDishes = vi.fn();
 const mockInsertManyDishes = vi.fn();
 const mockBuildPendingDishes = vi.fn();
 const mockGetAllDishes = vi.fn();
@@ -83,10 +83,8 @@ vi.mock("../services/settingsService", () => ({
 vi.mock("../services/syncService", () => ({
   getLastSyncAt: (...args: unknown[]) => mockGetLastSyncAt(...args),
   refreshFromServer: (...args: unknown[]) => mockRefreshFromServer(...args),
-}));
-
-vi.mock("../services/dishService", () => ({
-  importDishes: (...args: unknown[]) => mockImportDishes(...args),
+  flushPendingDishes: (...args: unknown[]) =>
+    mockFlushPendingDishes(...args),
 }));
 
 vi.mock("../repositories/dishRepository", () => ({
@@ -169,10 +167,7 @@ describe("SettingsPage", () => {
     mockSubmitFeedback.mockResolvedValue({ ok: true, data: undefined });
     mockGetLastSyncAt.mockResolvedValue(null);
     mockRefreshFromServer.mockResolvedValue(true);
-    mockImportDishes.mockResolvedValue({
-      ok: true,
-      data: { imported: 1, failed: 0, errors: [] },
-    });
+    mockFlushPendingDishes.mockResolvedValue({ failed: false });
     mockInsertManyDishes.mockResolvedValue(undefined);
     mockBuildPendingDishes.mockReturnValue([
       { id: "local-1", syncStatus: "pending_create" },
@@ -564,7 +559,7 @@ describe("SettingsPage", () => {
         expect(clickSpy).toHaveBeenCalled();
       });
 
-      it("imports a selected file through the API and refreshes local data", async () => {
+      it("stores the file locally, then flushes it to the server", async () => {
         const { container } = renderDataTab();
         await selectFile(
           container,
@@ -572,7 +567,7 @@ describe("SettingsPage", () => {
         );
 
         await waitFor(() => {
-          expect(mockImportDishes).toHaveBeenCalledWith([
+          expect(mockBuildPendingDishes).toHaveBeenCalledWith([
             {
               name: "Ratatouille",
               description: "",
@@ -580,7 +575,8 @@ describe("SettingsPage", () => {
               seasons: [1],
             },
           ]);
-          expect(mockRefreshFromServer).toHaveBeenCalled();
+          expect(mockInsertManyDishes).toHaveBeenCalled();
+          expect(mockFlushPendingDishes).toHaveBeenCalled();
           expect(mockShowToast).toHaveBeenCalledWith(
             "1 plat(s) importé(s)",
             "success",
@@ -589,10 +585,10 @@ describe("SettingsPage", () => {
       });
 
       it("disables the import button while the import is running", async () => {
-        let resolveImport!: (value: unknown) => void;
-        mockImportDishes.mockReturnValue(
+        let resolveFlush!: (value: unknown) => void;
+        mockFlushPendingDishes.mockReturnValue(
           new Promise((resolve) => {
-            resolveImport = resolve;
+            resolveFlush = resolve;
           }),
         );
         const { container } = renderDataTab();
@@ -606,10 +602,7 @@ describe("SettingsPage", () => {
         ).toBeDisabled();
 
         await act(async () => {
-          resolveImport({
-            ok: true,
-            data: { imported: 1, failed: 0, errors: [] },
-          });
+          resolveFlush({ failed: false });
         });
 
         await waitFor(() => {
@@ -629,11 +622,12 @@ describe("SettingsPage", () => {
             "error",
           );
         });
-        expect(mockImportDishes).not.toHaveBeenCalled();
+        expect(mockInsertManyDishes).not.toHaveBeenCalled();
+        expect(mockFlushPendingDishes).not.toHaveBeenCalled();
       });
 
-      it("stores dishes locally when offline", async () => {
-        vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+      it("keeps the dishes locally when the flush is skipped", async () => {
+        mockFlushPendingDishes.mockResolvedValue(null);
         const { container } = renderDataTab();
         await selectFile(
           container,
@@ -641,8 +635,6 @@ describe("SettingsPage", () => {
         );
 
         await waitFor(() => {
-          expect(mockImportDishes).not.toHaveBeenCalled();
-          expect(mockBuildPendingDishes).toHaveBeenCalled();
           expect(mockInsertManyDishes).toHaveBeenCalled();
           expect(mockShowToast).toHaveBeenCalledWith(
             "1 plat(s) enregistré(s) localement",
@@ -662,7 +654,7 @@ describe("SettingsPage", () => {
         );
 
         await waitFor(() => {
-          expect(mockImportDishes).toHaveBeenCalledWith([
+          expect(mockBuildPendingDishes).toHaveBeenCalledWith([
             { name: "Ok", description: "", course: 1, seasons: [0] },
           ]);
           expect(mockShowToast).toHaveBeenCalledWith(
@@ -672,11 +664,8 @@ describe("SettingsPage", () => {
         });
       });
 
-      it("shows the API error message when the import fails", async () => {
-        mockImportDishes.mockResolvedValue({
-          ok: false,
-          error: { code: "SERVER_ERROR", message: "Import impossible" },
-        });
+      it("warns when the flush is incomplete", async () => {
+        mockFlushPendingDishes.mockResolvedValue({ failed: true });
         const { container } = renderDataTab();
         await selectFile(
           container,
@@ -685,8 +674,8 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Une erreur est survenue.",
-            "error",
+            "1 plat(s) importé(s), synchronisation incomplète",
+            "warning",
           );
         });
       });

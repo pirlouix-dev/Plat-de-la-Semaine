@@ -16,7 +16,8 @@ export {
   createDish,
   updateDish,
   deleteDish,
-  importDishes,
+  applyDishBatch,
+  DISH_BATCH_MAX_OPERATIONS,
 } from "./dishService";
 
 // ── Backup service ───────────────────────────────────────────────────────────
