@@ -53,49 +53,8 @@
   width: 42px;
 }
 
-.dish-form {
-  display: flex;
-  flex-direction: column;
-  gap: min(22px, 3svh);
-}
-
-.char-counter-field {
-  position: relative;
-}
-
-.character-counter {
-  position: absolute;
-  right: 14px;
-  bottom: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #8e8e93;
-  background-color: #ffffff;
-  border-radius: 8px;
-  padding: 1px 5px;
-  pointer-events: none;
-  line-height: 1.4;
-}
-
-.character-counter.over {
-  color: #ff5252;
-}
-
-.modern-input {
-  width: 100%;
-  background-color: #ffffff;
-  border: 2px solid transparent;
-  border-radius: 18px;
-  padding: 16px 22px;
-  font-size: clamp(14px, 2.4svh, 18px);
-  color: #1a1a1a;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease;
-}
-
-.modern-input::placeholder {
-  color: #8e8e93;
-}
+/* .dish-form, .char-counter-field, .character-counter and .modern-input are
+   shared primitives and live in src/styles/forms.css. */
 
 .name-input {
   height: min(60px, 8svh);

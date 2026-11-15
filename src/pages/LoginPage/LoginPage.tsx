@@ -7,6 +7,7 @@ import {
 } from "../../services/api";
 import type { components } from "../../schema";
 import { useToast } from "../../components/toastContext";
+import PasswordInput from "../../components/PasswordInput";
 import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
 import logo_img from "../../../assets/logo.png";
@@ -95,6 +96,7 @@ function LoginPage() {
             type="email"
             className="modern-input"
             placeholder="Email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -102,10 +104,9 @@ function LoginPage() {
         </div>
 
         <div className="input-group">
-          <input
-            type="password"
-            className="modern-input"
+          <PasswordInput
             placeholder="Mot de passe"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

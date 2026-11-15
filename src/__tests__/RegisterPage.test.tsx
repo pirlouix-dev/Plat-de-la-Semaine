@@ -355,6 +355,82 @@ describe("RegisterPage", () => {
     ).toBeNull();
   });
 
+  it("uses new-password autocomplete on both password fields", () => {
+    renderPage();
+
+    expect(screen.getByPlaceholderText("Mot de passe")).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
+    expect(
+      screen.getByPlaceholderText("Confirmer le mot de passe"),
+    ).toHaveAttribute("autocomplete", "new-password");
+  });
+
+  it("keeps the account identifier on the email field for password managers", () => {
+    renderPage();
+
+    // "username" would make browsers fill the saved email here instead of in
+    // the Email field; this field is only a display name.
+    expect(screen.getByPlaceholderText("Nom d'utilisateur")).toHaveAttribute(
+      "autocomplete",
+      "nickname",
+    );
+    expect(screen.getByPlaceholderText("Email")).toHaveAttribute(
+      "autocomplete",
+      "email",
+    );
+  });
+
+  it("reveals each password field independently", () => {
+    renderPage();
+
+    const passwordInput = screen.getByPlaceholderText("Mot de passe");
+    const confirmInput = screen.getByPlaceholderText("Confirmer le mot de passe");
+    expect(passwordInput).toHaveAttribute("type", "password");
+    expect(confirmInput).toHaveAttribute("type", "password");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Afficher le mot de passe" }),
+    );
+
+    expect(screen.getByPlaceholderText("Mot de passe")).toHaveAttribute(
+      "type",
+      "text",
+    );
+    expect(
+      screen.getByPlaceholderText("Confirmer le mot de passe"),
+    ).toHaveAttribute("type", "password");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Afficher la confirmation du mot de passe",
+      }),
+    );
+
+    expect(
+      screen.getByPlaceholderText("Confirmer le mot de passe"),
+    ).toHaveAttribute("type", "text");
+  });
+
+  it("hides a revealed password again and keeps its value", () => {
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Afficher le mot de passe" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Masquer le mot de passe" }),
+    );
+
+    const passwordInput = screen.getByPlaceholderText("Mot de passe");
+    expect(passwordInput).toHaveAttribute("type", "password");
+    expect(passwordInput).toHaveValue("password123");
+  });
   it("pings the backend on mount to warm it up", async () => {
     renderPage();
 
