@@ -213,6 +213,27 @@ describe("sync", () => {
     expect(doc!.get("serverId")).toBe("server-1");
   });
 
+  it("drops a pending_create dish deleted before its first sync without calling the API", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-draft-deleted",
+        name: "Brouillon",
+        syncStatus: "pending_create",
+        isDeleted: true,
+      }),
+    );
+
+    await sync(db);
+
+    expect(mockCreateDish).not.toHaveBeenCalled();
+    expect(mockDeleteDish).not.toHaveBeenCalled();
+
+    const doc = await db.dishes.findOne("sync-draft-deleted").exec();
+    expect(doc).toBeNull();
+    expect(getSyncState().retryCount).toBe(0);
+  });
+
   it("pushes pending_update dishes to the API", async () => {
     await insertDish(
       db,
@@ -308,6 +329,47 @@ describe("sync", () => {
       .find({ selector: { serverId: "srv-3" } })
       .exec();
     expect(reInserted).toHaveLength(0);
+  });
+
+  it("deletes the remote dish when it is removed locally while the POST is in flight", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "sync-race",
+        name: "Course",
+        syncStatus: "pending_create",
+        description: "",
+        course: 1,
+        seasons: [0],
+      }),
+    );
+
+    mockCreateDish.mockImplementation(async () => {
+      // The user deletes the draft before the create response arrives.
+      const doc = await db.dishes.findOne("sync-race").exec();
+      if (doc) await doc.remove();
+      return {
+        ok: true,
+        data: {
+          id: "server-race",
+          userId: "u1",
+          name: "Course",
+          description: "",
+          course: 1,
+          seasons: [0],
+          updatedAt: "2026-01-01T00:00:00Z",
+          isDeleted: false,
+        },
+      };
+    });
+    mockDeleteDish.mockResolvedValue({ ok: true, data: undefined });
+
+    await sync(db);
+
+    expect(mockDeleteDish).toHaveBeenCalledWith("server-race");
+
+    const doc = await db.dishes.findOne("sync-race").exec();
+    expect(doc).toBeNull();
   });
 
   it("pulls remote dishes and inserts new ones locally", async () => {
