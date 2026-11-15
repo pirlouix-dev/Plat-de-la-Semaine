@@ -85,6 +85,14 @@ export function seedLastSyncAt(lastSyncAt: string | null): void {
   }
 }
 
+/**
+ * Reset to the initial values (used when switching accounts, so the previous
+ * account's timestamps are never shown for the new one).
+ */
+export function resetSyncStatus(): void {
+  setState(initialState());
+}
+
 /** Reset to initial values. Only for use in tests. */
 export function _resetSyncStatus(): void {
   state = initialState();

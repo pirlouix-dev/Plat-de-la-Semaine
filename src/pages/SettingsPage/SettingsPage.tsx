@@ -15,6 +15,7 @@ import {
 } from "../../components/Icons";
 import CharacterCounter from "../../components/CharacterCounter";
 import { useDatabase } from "../../db/DatabaseContext";
+import { removeLocalDatabaseForUser } from "../../db/databaseManagerInstance";
 import { useToast } from "../../components/toastContext";
 import { getBackups, restoreBackup } from "../../services/backupService";
 import { importDishes } from "../../services/dishService";
@@ -36,7 +37,11 @@ import {
   resetPassword,
   deleteAccount,
 } from "../../services/authService";
-import { clearAuth, getApiErrorMessage } from "../../services/api";
+import {
+  clearAuth,
+  getApiErrorMessage,
+  getCurrentUserId,
+} from "../../services/api";
 import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
 import { useSyncState } from "../../hooks/useSyncStatus";
@@ -188,8 +193,21 @@ export function SettingsPage() {
     setDeleting(true);
     const result = await deleteAccount();
     if (result.ok) {
+      const deletedUserId = getCurrentUserId();
+      // Switch to the guest database first, then erase the deleted account's
+      // local copy without tearing down the database the UI is still using.
       clearAuth();
       navigate("/", { replace: true });
+
+      if (deletedUserId) {
+        try {
+          await removeLocalDatabaseForUser(deletedUserId);
+        } catch (err) {
+          // The account is already gone server-side; a local cleanup failure
+          // must not block the logout.
+          console.error("Failed to remove local account data:", err);
+        }
+      }
     } else {
       showApiErrorToast(result.error);
       setDeleting(false);
