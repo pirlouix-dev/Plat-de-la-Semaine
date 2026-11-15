@@ -118,10 +118,17 @@ async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
           seasons: json.seasons,
         });
         if (result.ok) {
-          await doc.patch({
-            serverId: String(result.data.id),
-            syncStatus: "synced",
-          });
+          const current = await db.dishes.findOne(json.id).exec();
+          if (!current) {
+            // Deleted locally while the POST was in flight: undo the creation
+            // so the dish is not pulled back as a live one.
+            await deleteDish(String(result.data.id));
+          } else {
+            await current.patch({
+              serverId: String(result.data.id),
+              syncStatus: "synced",
+            });
+          }
         } else {
           anyFailed = true;
         }
