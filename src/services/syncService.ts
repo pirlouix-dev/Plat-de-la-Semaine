@@ -263,14 +263,26 @@ async function pullAndMerge(
 
 /**
  * Force a full pull of remote dishes and merge them into the local database.
- * Used after operations that mutate data server-side (e.g. bulk import) so the
- * local store reflects the result without waiting for the next scheduled sync.
- * Returns `true` when the pull succeeded.
+ * Used after operations that mutate data server-side (e.g. bulk import or a
+ * manual refresh from Settings) so the local store reflects the result without
+ * waiting for the next scheduled sync.
+ *
+ * This only pulls: pending local changes are kept as-is (the merge never
+ * overwrites dishes that are not `synced`) and are pushed by the next
+ * scheduled sync.
+ *
+ * Returns `true` when the pull succeeded, `false` when offline, not logged in,
+ * already syncing, or the request failed.
  */
 export async function refreshFromServer(db: AppDatabase): Promise<boolean> {
-  if (!isOnline() || !db?.dishes || !isLoggedIn()) return false;
-  const result = await pullAndMerge(db, { forceFullSync: true });
-  return result !== null;
+  if (!isOnline() || !db?.dishes || !isLoggedIn() || syncRunning) return false;
+  syncRunning = true;
+  try {
+    const result = await pullAndMerge(db, { forceFullSync: true });
+    return result !== null;
+  } finally {
+    syncRunning = false;
+  }
 }
 
 const MENU_CONFLICT_CODE = "MENU_VERSION_CONFLICT";

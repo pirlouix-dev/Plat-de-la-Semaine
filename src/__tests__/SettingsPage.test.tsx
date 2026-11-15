@@ -49,6 +49,7 @@ const mockUpdateUsername = vi.fn();
 const mockResetPassword = vi.fn();
 const mockDeleteAccount = vi.fn();
 const mockIsLoggedIn = vi.fn();
+const mockUseSyncState = vi.fn();
 
 vi.mock("../db/DatabaseContext", () => ({
   useDatabase: () => ({ db: {}, isLoading: false, error: null }),
@@ -99,6 +100,10 @@ vi.mock("../services/authService", () => ({
 
 vi.mock("../hooks/useIsLoggedIn", () => ({
   useIsLoggedIn: () => mockIsLoggedIn(),
+}));
+
+vi.mock("../hooks/useSyncStatus", () => ({
+  useSyncState: () => mockUseSyncState(),
 }));
 
 import SettingsPage from "../pages/SettingsPage/SettingsPage";
@@ -167,6 +172,13 @@ describe("SettingsPage", () => {
     mockResetPassword.mockResolvedValue({ ok: true, data: undefined });
     mockDeleteAccount.mockResolvedValue({ ok: true, data: { message: "Account deleted" } });
     mockIsLoggedIn.mockReturnValue(true);
+    mockUseSyncState.mockReturnValue({
+      phase: "idle",
+      online: true,
+      lastSyncAt: null,
+      lastErrorAt: null,
+      retryCount: 0,
+    });
   });
 
   afterEach(() => {
@@ -252,6 +264,130 @@ describe("SettingsPage", () => {
   });
 
   describe("Data & Plats tab", () => {
+    describe("manual full refresh", () => {
+      function renderDataTab() {
+        mockMatchMedia(false);
+        const rendered = renderSettingsPage();
+        fireEvent.click(
+          screen.getByRole("button", { name: /données & plats/i }),
+        );
+        return rendered;
+      }
+
+      function refreshButton() {
+        return screen.getByRole("button", {
+          name: /rafraîchir les plats depuis le serveur/i,
+        });
+      }
+
+      it("forces a full pull when clicked", async () => {
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(mockRefreshFromServer).toHaveBeenCalledWith({});
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Plats rafraîchis depuis le serveur",
+            "success",
+          );
+        });
+      });
+
+      it("disables the button and shows progress while refreshing", async () => {
+        let resolveRefresh!: (value: boolean) => void;
+        mockRefreshFromServer.mockReturnValue(
+          new Promise((resolve) => {
+            resolveRefresh = resolve;
+          }),
+        );
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        expect(
+          screen.getByRole("button", { name: /rafraîchissement…/i }),
+        ).toBeDisabled();
+
+        await act(async () => {
+          resolveRefresh(true);
+        });
+
+        await waitFor(() => {
+          expect(refreshButton()).toBeEnabled();
+        });
+      });
+
+      it("is disabled while a scheduled sync is running", () => {
+        mockUseSyncState.mockReturnValue({
+          phase: "syncing",
+          online: true,
+          lastSyncAt: null,
+          lastErrorAt: null,
+          retryCount: 0,
+        });
+        renderDataTab();
+
+        expect(refreshButton()).toBeDisabled();
+      });
+
+      it("shows the updated last sync date on success", async () => {
+        mockGetLastSyncAt.mockResolvedValue(null);
+        renderDataTab();
+
+        await waitFor(() => {
+          expect(
+            screen.getByText(/Dernière synchronisation : Jamais/),
+          ).toBeTruthy();
+        });
+
+        mockGetLastSyncAt.mockResolvedValue("2026-08-25T09:21:00Z");
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(
+            screen.queryByText(/Dernière synchronisation : Jamais/),
+          ).toBeNull();
+        });
+        expect(
+          screen.getByText(/Dernière synchronisation : .+ à \d{2}:\d{2}/),
+        ).toBeTruthy();
+      });
+
+      it("shows an error toast when the refresh fails", async () => {
+        mockRefreshFromServer.mockResolvedValue(false);
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Le rafraîchissement des plats a échoué. Réessayez plus tard.",
+            "error",
+          );
+        });
+        expect(mockShowToast).not.toHaveBeenCalledWith(
+          "Plats rafraîchis depuis le serveur",
+          "success",
+        );
+      });
+
+      it("shows an offline error toast when offline", async () => {
+        vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+        mockRefreshFromServer.mockResolvedValue(false);
+        renderDataTab();
+
+        fireEvent.click(refreshButton());
+
+        await waitFor(() => {
+          expect(mockShowToast).toHaveBeenCalledWith(
+            "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+            "error",
+          );
+        });
+      });
+    });
+
     it("fetches backups when switching to the data tab", async () => {
       mockMatchMedia(false);
       renderSettingsPage();

@@ -1398,6 +1398,53 @@ describe("refreshFromServer", () => {
     expect(mockGetDishes).not.toHaveBeenCalled();
   });
 
+  it("ignores a recent lastSyncAt and pulls without since", async () => {
+    const recentDate = new Date(Date.now() - 60_000).toISOString();
+    await db.preferences.upsert({
+      key: "lastSyncAt",
+      value: recentDate,
+      updatedAt: recentDate,
+    });
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    const ok = await refreshFromServer(db);
+
+    expect(ok).toBe(true);
+    expect(mockGetDishes).toHaveBeenCalledWith({ since: undefined });
+  });
+
+  it("does not start a second pull while a sync is running", async () => {
+    mockGetDishes.mockResolvedValue({ ok: true, data: [] });
+
+    const syncPromise = sync(db);
+    const ok = await refreshFromServer(db);
+
+    expect(ok).toBe(false);
+    await syncPromise;
+    expect(mockGetDishes).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents a scheduled sync from overlapping a refresh", async () => {
+    let resolveDishes!: (value: Awaited<ReturnType<typeof getDishes>>) => void;
+    mockGetDishes.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDishes = resolve;
+      }),
+    );
+
+    const refreshPromise = refreshFromServer(db);
+    await vi.waitFor(() => {
+      expect(mockGetDishes).toHaveBeenCalledTimes(1);
+    });
+
+    await sync(db);
+
+    expect(mockGetDishes).toHaveBeenCalledTimes(1);
+
+    resolveDishes({ ok: true, data: [] });
+    await refreshPromise;
+  });
+
   it("forces a full pull and merges remote dishes", async () => {
     mockGetDishes.mockResolvedValue({
       ok: true,
