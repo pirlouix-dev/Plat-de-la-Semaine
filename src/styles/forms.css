@@ -40,9 +40,6 @@
   padding: 16px 22px;
   font-size: clamp(14px, 2.4svh, 18px);
   color: #1a1a1a;
-  /* The field is always white, so keep the light palette even in dark mode:
-     otherwise browsers paint autofilled text white on the yellow highlight. */
-  color-scheme: light;
   box-sizing: border-box;
   transition: border-color 0.2s ease;
 }
@@ -52,20 +49,29 @@
 }
 
 /*
- * Browsers repaint autofilled fields (Firefox paints a yellow tint, Chrome and
- * Safari a pale blue one) and set the text colour to match their own palette.
+ * Browsers repaint autofilled fields (Firefox paints a tint matching the
+ * colour scheme, Chrome and Safari a pale blue one) and force their own text
+ * colour with !important, which pages cannot override through `color`.
+ *
  * The field is always white here, so keep our own look: an inset shadow paints
- * over the UA's !important background (which cannot be overridden with
- * background-color alone), and an opaque border hides it under the 2px border
- * ring, where inset shadows never reach. Text stays dark thanks to
- * color-scheme: light above.
+ * over the UA background, an opaque border hides it under the 2px border ring
+ * where inset shadows never reach, and -webkit-text-fill-color (which the UA
+ * does not set) restores dark text. The caret follows `color` rather than the
+ * fill colour, so it is set explicitly.
+ *
+ * We deliberately leave color-scheme alone: it governs the palette of browser
+ * UI attached to the field, such as Firefox's password-manager popup.
  */
 .modern-input:autofill {
   box-shadow: inset 0 0 0 1000px #ffffff;
   border-color: #ffffff;
+  -webkit-text-fill-color: #1a1a1a;
+  caret-color: #1a1a1a;
 }
 
 .modern-input:-webkit-autofill {
   box-shadow: inset 0 0 0 1000px #ffffff;
   border-color: #ffffff;
+  -webkit-text-fill-color: #1a1a1a;
+  caret-color: #1a1a1a;
 }
