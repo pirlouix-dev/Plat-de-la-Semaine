@@ -5,6 +5,11 @@ namespace PlatDeLaSemaineBack.Services;
 /// <summary>
 /// Service interface for Firestore database operations.
 /// </summary>
+/// <remarks>
+/// Every operation throws <see cref="FirestoreUnavailableException"/> when the
+/// client is not initialized. Reads never degrade to an empty result, because
+/// clients treat a successful empty response as authoritative.
+/// </remarks>
 public interface IFirestoreService
 {
     /// <summary>
@@ -22,12 +27,14 @@ public interface IFirestoreService
     /// <summary>
     /// Retrieves all dishes for a given user, optionally filtered by a minimum UpdatedAt timestamp.
     /// </summary>
+    /// <exception cref="FirestoreUnavailableException">The client is not initialized.</exception>
     Task<List<Dish>> GetDishesByUserIdAsync(string userId, DateTimeOffset? since);
 
     /// <summary>
     /// Retrieves a single dish by its ID within the given user's namespace.
     /// Returns null when the dish does not exist for that user.
     /// </summary>
+    /// <exception cref="FirestoreUnavailableException">The client is not initialized.</exception>
     Task<Dish?> GetDishByIdAsync(string userId, string dishId);
 
     /// <summary>
@@ -51,6 +58,7 @@ public interface IFirestoreService
     /// Retrieves the given user's saved menu.
     /// Returns null when the user has never saved one.
     /// </summary>
+    /// <exception cref="FirestoreUnavailableException">The client is not initialized.</exception>
     Task<Menu?> GetMenuAsync(string userId);
 
     /// <summary>
@@ -70,6 +78,7 @@ public interface IFirestoreService
     /// <summary>
     /// Retrieves a user by their ID.
     /// </summary>
+    /// <exception cref="FirestoreUnavailableException">The client is not initialized.</exception>
     Task<User?> GetUserByIdAsync(string userId);
 
     /// <summary>
@@ -93,6 +102,7 @@ public interface IFirestoreService
     /// Retrieves a single backup by its ID within the given user's namespace.
     /// Returns null when the backup does not exist for that user.
     /// </summary>
+    /// <exception cref="FirestoreUnavailableException">The client is not initialized.</exception>
     Task<Backup?> GetBackupByIdAsync(string userId, string backupId);
 
     /// <summary>
@@ -108,6 +118,7 @@ public interface IFirestoreService
     /// <summary>
     /// Retrieves all backups for a given user.
     /// </summary>
+    /// <exception cref="FirestoreUnavailableException">The client is not initialized.</exception>
     Task<List<Backup>> GetBackupsByUserIdAsync(string userId);
 
     /// <summary>
@@ -120,5 +131,6 @@ public interface IFirestoreService
     /// <summary>
     /// Reads the version info from the Config/version document.
     /// </summary>
+    /// <exception cref="FirestoreUnavailableException">The client is not initialized.</exception>
     Task<VersionInfo?> GetVersionInfoAsync();
 }

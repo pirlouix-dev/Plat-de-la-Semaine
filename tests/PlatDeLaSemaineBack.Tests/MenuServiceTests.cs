@@ -57,11 +57,11 @@ public class MenuServiceTests
         // reported as an empty menu: the client would erase its local copy.
         var firestore = Substitute.For<IFirestoreService>();
         firestore.GetMenuAsync("user1").Returns(
-            _ => Task.FromException<Menu?>(new InvalidOperationException("Firestore client is not initialized.")));
+            _ => Task.FromException<Menu?>(new FirestoreUnavailableException()));
         var service = new MenuService(firestore);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetMenuAsync("user1"));
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(() => service.GetMenuAsync("user1"));
     }
 
     [Fact]

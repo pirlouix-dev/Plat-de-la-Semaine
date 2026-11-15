@@ -54,6 +54,11 @@ public class ErrorHandlingMiddleware
 
         context.Response.StatusCode = (int)statusCode;
 
+        // An unavailable dependency is transient, so tell well-behaved clients
+        // when a retry is worth attempting instead of having them hammer us.
+        if (statusCode == HttpStatusCode.ServiceUnavailable)
+            context.Response.Headers.RetryAfter = "5";
+
         var errorResponse = new ApiErrorDetail
         {
             Code = errorCode,

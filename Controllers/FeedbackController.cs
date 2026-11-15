@@ -29,6 +29,7 @@ public class FeedbackController : BaseController
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Submit([FromBody] FeedbackPayload payload)
     {
         var userId = await GetUserIdAsync();
