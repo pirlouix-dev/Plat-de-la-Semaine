@@ -134,6 +134,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   NOT_FOUND: "L'élément demandé est introuvable.",
   BAD_REQUEST: "La demande n'a pas pu être traitée.",
   INVALID_OPERATION: "L'opération n'a pas pu être effectuée.",
+  SERVICE_UNAVAILABLE:
+    "Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.",
   MENU_VERSION_CONFLICT:
     "Le menu a été modifié sur un autre appareil. Il a été actualisé.",
   INTERNAL_ERROR: SERVER_ERROR_MESSAGE,

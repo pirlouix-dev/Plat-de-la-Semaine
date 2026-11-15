@@ -359,6 +359,10 @@ describe("getApiErrorMessage", () => {
     ],
     ["NOT_FOUND", "L'élément demandé est introuvable."],
     [
+      "SERVICE_UNAVAILABLE",
+      "Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.",
+    ],
+    [
       "RATE_LIMITED",
       "Trop de signalements envoyés. Veuillez réessayer plus tard.",
     ],
