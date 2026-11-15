@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { DatabaseProvider, useDatabase } from "./db/DatabaseContext";
 import { useSync } from "./hooks/useSync";
 import { ToastProvider } from "./components/Toast";
@@ -42,6 +42,7 @@ function AppContent() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/logout" element={<LogoutPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
