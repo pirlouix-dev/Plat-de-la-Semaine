@@ -259,8 +259,11 @@ export function SettingsPage() {
         if (rejected > 0) parts.push(`${rejected} en échec`);
         if (flush?.failed) parts.push("synchronisation incomplète");
 
-        const failed = rejected > 0 || flush?.failed === true;
-        showToast(parts.join(", "), failed ? "error" : "success");
+        // A failed flush is not an import failure: the dishes are stored and
+        // the next sync retries them, so it only warns.
+        const type =
+          rejected > 0 ? "error" : flush?.failed ? "warning" : "success";
+        showToast(parts.join(", "), type);
       } catch {
         showToast("Erreur lors de l'import", "error");
       }

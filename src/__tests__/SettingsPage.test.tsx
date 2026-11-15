@@ -664,7 +664,7 @@ describe("SettingsPage", () => {
         });
       });
 
-      it("reports an incomplete flush", async () => {
+      it("warns when the flush is incomplete", async () => {
         mockFlushPendingDishes.mockResolvedValue({ failed: true });
         const { container } = renderDataTab();
         await selectFile(
@@ -675,7 +675,7 @@ describe("SettingsPage", () => {
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
             "1 plat(s) importé(s), synchronisation incomplète",
-            "error",
+            "warning",
           );
         });
       });
