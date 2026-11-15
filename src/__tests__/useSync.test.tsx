@@ -3,10 +3,11 @@ import { render, act } from "@testing-library/react";
 import { useSync } from "../hooks/useSync";
 import { AUTH_CHANGED_EVENT } from "../services/api";
 
-const { mockStartAutoSync, mockSync, mockDb } = vi.hoisted(() => ({
+const { mockStartAutoSync, mockSync, mockDb, mockDbState } = vi.hoisted(() => ({
   mockStartAutoSync: vi.fn(() => vi.fn()),
   mockSync: vi.fn(),
   mockDb: { name: "test-db" },
+  mockDbState: { dbUserId: null as string | null },
 }));
 
 vi.mock("../services/syncService", () => ({
@@ -15,7 +16,7 @@ vi.mock("../services/syncService", () => ({
 }));
 
 vi.mock("../db/DatabaseContext", () => ({
-  useDatabase: () => ({ db: mockDb }),
+  useDatabase: () => ({ db: mockDb, dbUserId: mockDbState.dbUserId }),
 }));
 
 function Harness() {
@@ -23,9 +24,10 @@ function Harness() {
   return null;
 }
 
-function login() {
+function login(userId = "user-1") {
   act(() => {
-    localStorage.setItem("user_id", "user-1");
+    localStorage.setItem("user_id", userId);
+    mockDbState.dbUserId = userId;
     window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
   });
 }
@@ -33,6 +35,7 @@ function login() {
 function logout() {
   act(() => {
     localStorage.removeItem("user_id");
+    mockDbState.dbUserId = null;
     window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
   });
 }
@@ -40,6 +43,7 @@ function logout() {
 describe("useSync", () => {
   beforeEach(() => {
     localStorage.clear();
+    mockDbState.dbUserId = null;
     mockStartAutoSync.mockClear();
     mockSync.mockClear();
   });
@@ -67,5 +71,14 @@ describe("useSync", () => {
     logout();
 
     expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not start auto-sync while the database belongs to another account", () => {
+    localStorage.setItem("user_id", "user-2");
+    mockDbState.dbUserId = "user-1";
+
+    render(<Harness />);
+
+    expect(mockStartAutoSync).not.toHaveBeenCalled();
   });
 });

@@ -50,9 +50,20 @@ const mockResetPassword = vi.fn();
 const mockDeleteAccount = vi.fn();
 const mockIsLoggedIn = vi.fn();
 const mockUseSyncState = vi.fn();
+const mockRemoveLocalDatabaseForUser = vi.fn();
 
 vi.mock("../db/DatabaseContext", () => ({
-  useDatabase: () => ({ db: {}, isLoading: false, error: null }),
+  useDatabase: () => ({
+    db: {},
+    isLoading: false,
+    error: null,
+    dbUserId: null,
+  }),
+}));
+
+vi.mock("../db/databaseManagerInstance", () => ({
+  removeLocalDatabaseForUser: (...args: unknown[]) =>
+    mockRemoveLocalDatabaseForUser(...args),
 }));
 
 vi.mock("../components/toastContext", () => ({
@@ -171,6 +182,7 @@ describe("SettingsPage", () => {
     mockUpdateUsername.mockResolvedValue({ ok: true, data: undefined });
     mockResetPassword.mockResolvedValue({ ok: true, data: undefined });
     mockDeleteAccount.mockResolvedValue({ ok: true, data: { message: "Account deleted" } });
+    mockRemoveLocalDatabaseForUser.mockResolvedValue(undefined);
     mockIsLoggedIn.mockReturnValue(true);
     mockUseSyncState.mockReturnValue({
       phase: "idle",

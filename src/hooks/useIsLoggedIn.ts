@@ -1,5 +1,9 @@
 import { useSyncExternalStore } from "react";
-import { AUTH_CHANGED_EVENT, isLoggedIn } from "../services/api";
+import {
+  AUTH_CHANGED_EVENT,
+  getCurrentUserId,
+  isLoggedIn,
+} from "../services/api";
 
 function subscribe(onStoreChange: () => void): () => void {
   window.addEventListener(AUTH_CHANGED_EVENT, onStoreChange);
@@ -13,4 +17,9 @@ function subscribe(onStoreChange: () => void): () => void {
 /** Reactive login state: updates on login/logout (same tab) and cross-tab storage changes. */
 export function useIsLoggedIn(): boolean {
   return useSyncExternalStore(subscribe, isLoggedIn, isLoggedIn);
+}
+
+/** Reactive current account id, null when logged out. */
+export function useCurrentUserId(): string | null {
+  return useSyncExternalStore(subscribe, getCurrentUserId, getCurrentUserId);
 }

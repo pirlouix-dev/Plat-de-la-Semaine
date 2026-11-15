@@ -16,6 +16,7 @@ import { preferencesSchema } from "../db/schemas/preferences";
 import type { DatabaseCollections } from "../db/collections";
 import type { AppDatabase } from "../db/DatabaseContext";
 import { hashFunction } from "../db/hashFunction";
+import { userDatabaseName } from "../db/databaseName";
 import { insertDish } from "../repositories/dishRepository";
 import {
   _resetMenuStorageState,
@@ -92,7 +93,7 @@ beforeAll(async () => {
   const validatedStorage = wrappedValidateAjvStorage({ storage: rawStorage });
 
   db = (await createRxDatabase<DatabaseCollections>({
-    name: "test-sync-" + crypto.randomUUID(),
+    name: userDatabaseName("test-user"),
     storage: validatedStorage,
     ignoreDuplicate: true,
     hashFunction,
@@ -153,6 +154,23 @@ describe("sync", () => {
 
     await sync(db);
 
+    expect(mockGetDishes).not.toHaveBeenCalled();
+  });
+
+  it("does not push when the database belongs to another account", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "other-account",
+        syncStatus: "pending_update",
+        serverId: "server-other",
+      }),
+    );
+    localStorage.setItem("user_id", "another-user");
+
+    await sync(db);
+
+    expect(mockUpdateDish).not.toHaveBeenCalled();
     expect(mockGetDishes).not.toHaveBeenCalled();
   });
 
