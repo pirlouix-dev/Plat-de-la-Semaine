@@ -12,8 +12,22 @@ import pencil_img from "../../../assets/pencil.webp";
 import wheel_img from "../../../assets/wheel.webp";
 import textbox_img from "../../../assets/textbox.webp";
 
-const mainMenuItems = [
-  { id: 1, text: "Choisir les plats", icon: book_img, route: "/choose" },
+type MainMenuItem = {
+  id: number;
+  text: string;
+  icon: string;
+  route: string;
+  iconClassName?: string;
+};
+
+const mainMenuItems: MainMenuItem[] = [
+  {
+    id: 1,
+    text: "Choisir les plats",
+    icon: book_img,
+    route: "/choose",
+    iconClassName: "card-icon--book",
+  },
   { id: 2, text: "Ajouter un plat", icon: add_img, route: "/add" },
   { id: 3, text: "Modifier un plat", icon: pencil_img, route: "/edit" },
   { id: 4, text: "Paramètres", icon: wheel_img, route: "/settings" },
@@ -62,7 +76,14 @@ function HomePage() {
             className="menu-card-wrapper"
             onClick={() => navigate(item.route)}
           >
-            <img src={item.icon} alt={item.text} className="card-icon" />
+            <img
+              src={item.icon}
+              alt={item.text}
+              className={
+                "card-icon" +
+                (item.iconClassName ? " " + item.iconClassName : "")
+              }
+            />
 
             <div className="card-textbox-container">
               <img src={textbox_img} alt="" className="textbox-bg" />
