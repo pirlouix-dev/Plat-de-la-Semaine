@@ -109,6 +109,12 @@
   pointer-events: none;
 }
 
+/* The book artwork is narrower than the other icons, so it reads smaller at
+   the same box size. */
+.card-icon--book {
+  max-height: 49%;
+}
+
 .card-textbox-container {
   position: absolute;
   top: 76%;
@@ -200,6 +206,10 @@
     width: auto;
     aspect-ratio: 1;
     flex-shrink: 0;
+  }
+
+  .card-icon--book {
+    height: 71%;
   }
 
   .card-textbox-container {
