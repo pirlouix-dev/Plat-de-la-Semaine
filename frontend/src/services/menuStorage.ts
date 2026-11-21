@@ -1,12 +1,12 @@
 /**
- * Local storage for the saved weekly menu (the "Plats sauvegardés" recap).
+ * Local storage for the saved weekly menu (the "saved dishes" recap).
  *
  * The menu is kept locally so it is available offline and instantly on load.
  * When the user is logged in it also participates in the sync engine
  * (`syncService`), which conditionally pushes local saves and resolves remote
  * versions.
  *
- * Only an explicit "Valider" saves a snapshot (`savedIds`) to the server. Every
+ * Only an explicit "Confirm" saves a snapshot (`savedIds`) to the server. Every
  * accept/refuse/undo only changes the local working state and marks it dirty,
  * so a later retry never pushes unsaved working changes.
  */

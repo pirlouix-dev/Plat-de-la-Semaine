@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
+import { createTranslator } from "../i18n";
+
+const t = createTranslator("en");
 
 function LocationProbe() {
   const { pathname } = useLocation();
@@ -48,9 +51,7 @@ describe("App component — rendering states", { timeout: 15_000 }, () => {
         <MockApp />
       </MemoryRouter>,
     );
-    expect(
-      screen.getByText(/Impossible d'initialiser la base de données locale/),
-    ).toBeTruthy();
+    expect(screen.getByText(t("app.databaseError"))).toBeTruthy();
     expect(screen.queryByText(/IndexedDB unavailable/)).toBeNull();
   });
 
@@ -73,7 +74,7 @@ describe("App component — rendering states", { timeout: 15_000 }, () => {
         <MockApp />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Choisir les plats")).toBeTruthy();
+    expect(screen.getByText(t("home.menu.choose"))).toBeTruthy();
   });
 
   it.each(["/logni", "/foo/bar"])(
@@ -99,7 +100,7 @@ describe("App component — rendering states", { timeout: 15_000 }, () => {
         </MemoryRouter>,
       );
 
-      expect(screen.getByText("Choisir les plats")).toBeTruthy();
+      expect(screen.getByText(t("home.menu.choose"))).toBeTruthy();
       expect(screen.getByTestId("pathname").textContent).toBe("/");
     },
   );

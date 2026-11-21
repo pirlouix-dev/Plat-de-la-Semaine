@@ -7,8 +7,8 @@ import {
 import type { ApiErrorDetail } from "../types";
 
 /**
- * Returns a callback that shows an API error as a French toast. The duration is
- * only passed when the error needs a custom one, so callers keep the default
+ * Returns a callback that shows an API error as a localised toast. The duration
+ * is only passed when the error needs a custom one, so callers keep the default
  * toast behaviour otherwise.
  */
 export function useApiErrorToast(): (error: ApiErrorDetail) => void {

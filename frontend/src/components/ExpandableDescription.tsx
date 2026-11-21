@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useIsOverflowing } from "../hooks/useIsOverflowing";
+import { useTranslation } from "../i18n";
 
 interface ExpandableDescriptionProps {
   description: string;
@@ -16,6 +17,7 @@ export function ExpandableDescription({
 }: ExpandableDescriptionProps) {
   const ref = useRef<HTMLParagraphElement>(null);
   const isOverflowing = useIsOverflowing(ref, description, expanded);
+  const { t } = useTranslation();
 
   if (!description) return null;
 
@@ -36,7 +38,7 @@ export function ExpandableDescription({
             onToggle();
           }}
         >
-          {expanded ? "Voir moins" : "Voir plus"}
+          {expanded ? t("common.seeLess") : t("common.seeMore")}
         </button>
       )}
     </div>

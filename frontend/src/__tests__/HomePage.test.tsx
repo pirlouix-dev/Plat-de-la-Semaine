@@ -4,6 +4,9 @@ import { MemoryRouter } from "react-router-dom";
 import HomePage from "../pages/HomePage/HomePage";
 import { useSyncStatus } from "../hooks/useSyncStatus";
 import type { SyncDisplay } from "../hooks/useSyncStatus";
+import { createTranslator } from "../i18n";
+
+const t = createTranslator("en");
 
 vi.mock("../hooks/useSyncStatus", () => ({
   useSyncStatus: vi.fn(),
@@ -13,7 +16,7 @@ const mockUseSyncStatus = vi.mocked(useSyncStatus);
 
 function mockSyncStatus(overrides: Partial<SyncDisplay> = {}): void {
   mockUseSyncStatus.mockReturnValue({
-    text: "Vos plats sont synchronisés • il y a 5 min",
+    text: t("sync.synced", { age: t("sync.age.minutes", { count: 5 }) }),
     isError: false,
     ...overrides,
   });
@@ -48,10 +51,10 @@ describe("HomePage component", () => {
         <HomePage />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Choisir les plats")).toBeTruthy();
-    expect(screen.getByText("Ajouter un plat")).toBeTruthy();
-    expect(screen.getByText("Modifier un plat")).toBeTruthy();
-    expect(screen.getByText("Paramètres")).toBeTruthy();
+    expect(screen.getByText(t("home.menu.choose"))).toBeTruthy();
+    expect(screen.getByText(t("home.menu.add"))).toBeTruthy();
+    expect(screen.getByText(t("home.menu.edit"))).toBeTruthy();
+    expect(screen.getByText(t("home.menu.settings"))).toBeTruthy();
   });
 
   it("renders the logo image", () => {
@@ -74,10 +77,10 @@ describe("HomePage component", () => {
     const images = screen.getAllByRole("img");
     // logo + 4 menu cards
     expect(images.length).toBe(5);
-    expect(screen.getByAltText("Choisir les plats")).toBeTruthy();
-    expect(screen.getByAltText("Ajouter un plat")).toBeTruthy();
-    expect(screen.getByAltText("Modifier un plat")).toBeTruthy();
-    expect(screen.getByAltText("Paramètres")).toBeTruthy();
+    expect(screen.getByAltText(t("home.menu.choose"))).toBeTruthy();
+    expect(screen.getByAltText(t("home.menu.add"))).toBeTruthy();
+    expect(screen.getByAltText(t("home.menu.edit"))).toBeTruthy();
+    expect(screen.getByAltText(t("home.menu.settings"))).toBeTruthy();
   });
 
   it("has the correct CSS class structure", () => {
@@ -113,29 +116,33 @@ describe("HomePage component", () => {
         <HomePage />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Bonjour, Mathéo !")).toBeTruthy();
     expect(
-      screen.getByText("Vos plats sont synchronisés • il y a 5 min"),
+      screen.getByText(t("home.greeting", { username: "Mathéo" })),
     ).toBeTruthy();
-    expect(screen.getByText("Mon compte")).toBeTruthy();
+    expect(
+      screen.getByText(
+        t("sync.synced", { age: t("sync.age.minutes", { count: 5 }) }),
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(t("home.account"))).toBeTruthy();
   });
 
   it("shows the syncing message while a sync is running", () => {
     localStorage.setItem("user_id", "user-42");
-    mockSyncStatus({ text: "Synchronisation en cours…", isError: false });
+    mockSyncStatus({ text: t("sync.syncing"), isError: false });
 
     render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Synchronisation en cours…")).toBeTruthy();
+    expect(screen.getByText(t("sync.syncing"))).toBeTruthy();
   });
 
   it("shows the offline message in red when offline", () => {
     localStorage.setItem("user_id", "user-42");
     mockSyncStatus({
-      text: "Vous êtes hors ligne • synchronisation impossible",
+      text: t("sync.offline"),
       isError: true,
     });
 
@@ -144,14 +151,14 @@ describe("HomePage component", () => {
         <HomePage />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/hors ligne/)).toBeTruthy();
+    expect(screen.getByText(t("sync.offline"))).toBeTruthy();
     expect(container.querySelector(".account-subtitle--error")).toBeTruthy();
   });
 
   it("shows the sync error message in red when the last sync failed", () => {
     localStorage.setItem("user_id", "user-42");
     mockSyncStatus({
-      text: "Échec de la synchronisation • Tentative n°3",
+      text: t("sync.failedRetry", { count: 3 }),
       isError: true,
     });
 
@@ -160,21 +167,19 @@ describe("HomePage component", () => {
         <HomePage />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/Tentative n°3/)).toBeTruthy();
+    expect(screen.getByText(t("sync.failedRetry", { count: 3 }))).toBeTruthy();
     expect(container.querySelector(".account-subtitle--error")).toBeTruthy();
   });
 
   it("keeps the guest subtitle regardless of sync state", () => {
-    mockSyncStatus({ text: "Synchronisation en cours…", isError: false });
+    mockSyncStatus({ text: t("sync.syncing"), isError: false });
 
     render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>,
     );
-    expect(
-      screen.getByText("Connectez-vous pour sauvegarder vos plats"),
-    ).toBeTruthy();
+    expect(screen.getByText(t("home.guestHint"))).toBeTruthy();
   });
 
   it("pings the backend on mount when visiting as a guest", async () => {

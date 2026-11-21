@@ -5,6 +5,9 @@ import { ExpandableDescription } from "../../components/ExpandableDescription";
 import {
   Course,
   Season,
+  COURSE_LABEL_KEYS,
+  COURSE_PLURAL_LABEL_KEYS,
+  SEASON_LABEL_KEYS,
   getCurrentSeason,
   isValidCourse,
   isValidSeason,
@@ -30,19 +33,20 @@ import {
 import { resolveMenuConflict, saveMenuNow } from "../../services/syncService";
 import { shuffle } from "../../utils/shuffle";
 import { areDishesReady } from "../../utils/dishesReady";
+import { useTranslation, type Translate } from "../../i18n";
 import "./ChooseDishesPage.css";
 
-const DISH_COURSE_INFO: Record<Course, { label: string; icon: string }> = {
-  [Course.Starter]: { label: "Entrée", icon: "🥗" },
-  [Course.Main]: { label: "Plat", icon: "🍽️" },
-  [Course.Dessert]: { label: "Dessert", icon: "🍰" },
+const DISH_COURSE_ICONS: Record<Course, string> = {
+  [Course.Starter]: "🥗",
+  [Course.Main]: "🍽️",
+  [Course.Dessert]: "🍰",
 };
 
-const SEASON_INFO: Record<Season, { label: string; icon: string }> = {
-  [Season.Spring]: { label: "Printemps", icon: "🌱" },
-  [Season.Summer]: { label: "Été", icon: "☀️" },
-  [Season.Autumn]: { label: "Automne", icon: "🍂" },
-  [Season.Winter]: { label: "Hiver", icon: "❄️" },
+const SEASON_ICONS: Record<Season, string> = {
+  [Season.Spring]: "🌱",
+  [Season.Summer]: "☀️",
+  [Season.Autumn]: "🍂",
+  [Season.Winter]: "❄️",
 };
 
 const PASSES_PER_DISH = 3;
@@ -75,30 +79,23 @@ function buildFreshQueue(dishes: DishDocType[]): string[] {
   return Array.from({ length: PASSES_PER_DISH }, () => ids).flat();
 }
 
-function formatRemoteMenuTimestamp(updatedAt: string | null): string | null {
-  if (!updatedAt) return null;
-  const date = new Date(updatedAt);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(date);
-}
-
-function describeRemoteMenu(remote: RemoteMenu): string {
+function describeRemoteMenu(
+  remote: RemoteMenu,
+  t: Translate,
+  formatDateTime: (value: string) => string,
+): string {
   const count = remote.selectedDishIds.length;
-  const content =
-    count === 0
-      ? "est vide"
-      : `contient ${count} plat${count > 1 ? "s" : ""}`;
-  const date = formatRemoteMenuTimestamp(remote.updatedAt);
+  const date = remote.updatedAt ? formatDateTime(remote.updatedAt) : "";
+
+  if (count === 0) {
+    return date
+      ? t("choose.conflict.remoteEmptyOn", { date })
+      : t("choose.conflict.remoteEmpty");
+  }
+
   return date
-    ? `La version distante du ${date} ${content}.`
-    : `La version distante ${content}.`;
+    ? t("choose.conflict.remoteDishesOn", { count, date })
+    : t("choose.conflict.remoteDishes", { count });
 }
 
 export function ChooseDishesPage() {
@@ -106,6 +103,7 @@ export function ChooseDishesPage() {
   const { dishes, isLoaded } = useDishes();
   const isLoggedIn = useIsLoggedIn();
   const syncState = useSyncState();
+  const { t, formatDateTime } = useTranslation();
   const userId = isLoggedIn ? getCurrentUserId() : null;
 
   const dishesReady = areDishesReady({
@@ -265,13 +263,17 @@ export function ChooseDishesPage() {
   };
 
   const renderSeasonsBadges = (dishSeasons: Season[]) => {
-    if (dishSeasons.length === Object.keys(SEASON_INFO).length) {
-      return <span className="season-mini-tag">🗓️ Toutes saisons</span>;
+    if (dishSeasons.length === Object.keys(SEASON_ICONS).length) {
+      return (
+        <span className="season-mini-tag">
+          🗓️ {t("common.allSeasons")}
+        </span>
+      );
     }
 
     return dishSeasons.map((s) => (
       <span key={s} className="season-mini-tag">
-        {SEASON_INFO[s].icon} {SEASON_INFO[s].label}
+        {SEASON_ICONS[s]} {t(SEASON_LABEL_KEYS[s])}
       </span>
     ));
   };
@@ -386,19 +388,19 @@ export function ChooseDishesPage() {
         <button
           className="back-btn"
           onClick={() => navigate("/")}
-          aria-label="Retour"
+          aria-label={t("common.back")}
         >
           <BackArrowIcon size={20} />
         </button>
         <h1 className="page-title">
-          {mode === "editing" ? "Choisir les plats" : "Plats sauvegardés"}
+          {mode === "editing" ? t("choose.title.editing") : t("choose.title.saved")}
         </h1>
         {selectedDishes.length > 0 || history.length > 0 ? (
           <button
             className="icon-delete-btn"
             onClick={() => setShowResetModal(true)}
-            title="Réinitialiser"
-            aria-label="Réinitialiser les plats"
+            title={t("choose.reset")}
+            aria-label={t("choose.resetAria")}
           >
             <TrashIcon size={22} color="rgb(220, 57, 41)" />
           </button>
@@ -410,21 +412,21 @@ export function ChooseDishesPage() {
       {conflict && (
         <div className="menu-sync-banner" role="status">
           <div className="menu-sync-banner-text">
-            <strong>Un menu a été enregistré sur un autre appareil.</strong>
-            <span>{describeRemoteMenu(conflict)}</span>
+            <strong>{t("choose.conflict.title")}</strong>
+            <span>{describeRemoteMenu(conflict, t, formatDateTime)}</span>
           </div>
           <div className="menu-sync-banner-actions">
             <button
               className="btn btn-revert"
               onClick={() => void resolveMenuConflict("keep")}
             >
-              Garder mon menu
+              {t("choose.conflict.keep")}
             </button>
             <button
               className="btn btn-primary"
               onClick={() => void resolveMenuConflict("load")}
             >
-              Charger le menu distant
+              {t("choose.conflict.load")}
             </button>
           </div>
         </div>
@@ -434,7 +436,7 @@ export function ChooseDishesPage() {
         <div className="choose-menu-layout">
           <main className="menu-main-column">
             <section className="proposed-card-section">
-              <h2 className="section-subtitle">Plat proposé</h2>
+              <h2 className="section-subtitle">{t("choose.proposedDish")}</h2>
 
               {currentDish ? (
                 <div
@@ -445,8 +447,8 @@ export function ChooseDishesPage() {
                   <div className="card-header-row">
                     <h3 className="dish-name">{currentDish.name}</h3>
                     <span className="course-badge">
-                      {DISH_COURSE_INFO[currentDish.course as Course].icon}{" "}
-                      {DISH_COURSE_INFO[currentDish.course as Course].label}
+                      {DISH_COURSE_ICONS[currentDish.course as Course]}{" "}
+                      {t(COURSE_LABEL_KEYS[currentDish.course as Course])}
                     </span>
                   </div>
 
@@ -463,27 +465,27 @@ export function ChooseDishesPage() {
 
                   <div className="card-decision-actions">
                     <button className="btn btn-refuse" onClick={handleReject}>
-                      ✕ Refuser
+                      {t("choose.reject")}
                     </button>
                     <button className="btn btn-accept" onClick={handleAccept}>
-                      ✓ Accepter
+                      {t("choose.accept")}
                     </button>
                   </div>
                 </div>
               ) : !session ? (
                 <div className="empty-queue-card">
-                  <p>Chargement des plats…</p>
+                  <p>{t("choose.loading")}</p>
                 </div>
               ) : (
                 <div className="empty-queue-card">
                   {dishes.length === 0 ? (
                     <>
-                      <p>Aucun plat disponible.</p>
+                      <p>{t("choose.empty")}</p>
                       <button
                         className="btn btn-primary"
                         onClick={() => navigate("/add")}
                       >
-                        Ajouter un plat
+                        {t("choose.addDish")}
                       </button>
                     </>
                   ) : dishMap.size === 0 ||
@@ -492,9 +494,9 @@ export function ChooseDishesPage() {
                         isRenderableDish(d) &&
                         isInSeason(d, getCurrentSeason()),
                     ).length === 0 ? (
-                    <p>🍂 Aucun plat de saison pour le moment.</p>
+                    <p>{t("choose.noneInSeason")}</p>
                   ) : (
-                    <p>Tous les plats ont été passés en revue.</p>
+                    <p>{t("choose.reviewComplete")}</p>
                   )}
                 </div>
               )}
@@ -502,12 +504,12 @@ export function ChooseDishesPage() {
 
             <section className="selected-dishes-section">
               <h2 className="section-subtitle">
-                Plats sélectionnés ({counts.total})
+                {t("choose.selectedTitle", { count: counts.total })}
               </h2>
 
               {selectedDishes.length === 0 ? (
                 <div className="empty-selected-placeholder">
-                  Aucun plat accepté pour l'instant.
+                  {t("choose.noneAccepted")}
                 </div>
               ) : (
                 <div className="selected-dishes-list">
@@ -519,8 +521,8 @@ export function ChooseDishesPage() {
                       <div className="card-header-row">
                         <span className="dish-name">{dish.name}</span>
                         <span className="course-badge">
-                          {DISH_COURSE_INFO[dish.course as Course].icon}{" "}
-                          {DISH_COURSE_INFO[dish.course as Course].label}
+                          {DISH_COURSE_ICONS[dish.course as Course]}{" "}
+                          {t(COURSE_LABEL_KEYS[dish.course as Course])}
                         </span>
                       </div>
                       <div className="seasons-badges">
@@ -543,18 +545,18 @@ export function ChooseDishesPage() {
 
           <aside className="menu-sidebar">
             <div className="sidebar-card counters-card">
-              <h3 className="sidebar-title">Récapitulatif</h3>
+              <h3 className="sidebar-title">{t("choose.summary")}</h3>
               <ul className="counters-list">
                 <li>
-                  <span>🥗 Entrées</span>
+                  <span>{t("choose.counters.starters")}</span>
                   <strong>{counts.starters}</strong>
                 </li>
                 <li>
-                  <span>🍽️ Plats</span>
+                  <span>{t("choose.counters.mains")}</span>
                   <strong>{counts.mains}</strong>
                 </li>
                 <li>
-                  <span>🍰 Desserts</span>
+                  <span>{t("choose.counters.desserts")}</span>
                   <strong>{counts.desserts}</strong>
                 </li>
               </ul>
@@ -566,14 +568,14 @@ export function ChooseDishesPage() {
                 onClick={handleUndo}
                 disabled={history.length === 0}
               >
-                Annuler
+                {t("common.undo")}
               </button>
               <button
                 className="btn btn-primary"
                 onClick={handleValidate}
                 disabled={selectedDishes.length === 0}
               >
-                Valider ({counts.total})
+                {t("choose.validate", { count: counts.total })}
               </button>
             </div>
           </aside>
@@ -592,8 +594,11 @@ export function ChooseDishesPage() {
               return (
                 <div key={course} className="recap-category-block">
                   <h3 className="category-title">
-                    {DISH_COURSE_INFO[course].icon}{" "}
-                    {DISH_COURSE_INFO[course].label}s ({courseDishes.length})
+                    {DISH_COURSE_ICONS[course]}{" "}
+                    {t("choose.recapCategory", {
+                      label: t(COURSE_PLURAL_LABEL_KEYS[course]),
+                      count: courseDishes.length,
+                    })}
                   </h3>
                   <div className="category-cards">
                     {courseDishes.map((dish, index) => (
@@ -625,13 +630,13 @@ export function ChooseDishesPage() {
               className="btn btn-primary"
               onClick={() => setMode("editing")}
             >
-              Modifier les plats
+              {t("choose.editDishes")}
             </button>
             <button
               className="btn btn-danger"
               onClick={() => setShowResetModal(true)}
             >
-              Réinitialiser
+              {t("choose.reset")}
             </button>
           </div>
         </div>
@@ -640,21 +645,18 @@ export function ChooseDishesPage() {
       {showResetModal && (
         <div className="modal-overlay" onClick={() => setShowResetModal(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">Réinitialiser la liste ?</h3>
-            <p className="modal-text">
-              Voulez-vous vraiment effacer tous les plats sélectionnés et
-              repartir de zéro ?
-            </p>
-            <p className="modal-text">Cette action est irréversible.</p>
+            <h3 className="modal-title">{t("choose.resetTitle")}</h3>
+            <p className="modal-text">{t("choose.resetConfirm")}</p>
+            <p className="modal-text">{t("choose.resetIrreversible")}</p>
             <div className="modal-actions">
               <button
                 className="btn btn-revert"
                 onClick={() => setShowResetModal(false)}
               >
-                Annuler
+                {t("common.cancel")}
               </button>
               <button className="btn btn-danger" onClick={handleResetConfirm}>
-                Oui, réinitialiser
+                {t("choose.resetYes")}
               </button>
             </div>
           </div>

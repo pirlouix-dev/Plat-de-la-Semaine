@@ -7,25 +7,27 @@ import { useDishes } from "../../hooks/useDishes";
 import {
   Course,
   Season,
+  COURSE_LABEL_KEYS,
+  SEASON_LABEL_KEYS,
   MAX_NAME_LENGTH,
   MAX_DESCRIPTION_LENGTH,
+  isValidCourse,
 } from "../../types/dish";
 import type { DishDocType } from "../../db/schemas/dishes";
+import { useTranslation } from "../../i18n";
 import "./AddDishPage.css";
 
-type DishCourse = "Entrée" | "Plat" | "Dessert";
-
-const DISH_COURSES: { label: DishCourse; icon: string; course: Course }[] = [
-  { label: "Entrée", icon: "🥗", course: Course.Starter },
-  { label: "Plat", icon: "🍽️", course: Course.Main },
-  { label: "Dessert", icon: "🍰", course: Course.Dessert },
+const DISH_COURSES: { icon: string; course: Course }[] = [
+  { icon: "🥗", course: Course.Starter },
+  { icon: "🍽️", course: Course.Main },
+  { icon: "🍰", course: Course.Dessert },
 ];
 
-const SEASONS: { label: string; icon: string; season: Season }[] = [
-  { label: "Printemps", icon: "🌱", season: Season.Spring },
-  { label: "Été", icon: "☀️", season: Season.Summer },
-  { label: "Automne", icon: "🍂", season: Season.Autumn },
-  { label: "Hiver", icon: "❄️", season: Season.Winter },
+const SEASONS: { icon: string; season: Season }[] = [
+  { icon: "🌱", season: Season.Spring },
+  { icon: "☀️", season: Season.Summer },
+  { icon: "🍂", season: Season.Autumn },
+  { icon: "❄️", season: Season.Winter },
 ];
 
 const DRAFT_KEY = "add-dish-draft";
@@ -33,7 +35,7 @@ const DRAFT_SAVE_DELAY_MS = 400;
 
 type DishDraft = {
   name: string;
-  dishCourse: DishCourse | null;
+  dishCourse: Course | null;
   selectedSeasons: Season[];
   description: string;
 };
@@ -45,6 +47,21 @@ const EMPTY_DRAFT: DishDraft = {
   description: "",
 };
 
+/** Drafts written before the labels were localised stored the French label. */
+const LEGACY_COURSE_LABELS: Record<string, Course> = {
+  Entrée: Course.Starter,
+  Plat: Course.Main,
+  Dessert: Course.Dessert,
+};
+
+function parseDraftCourse(value: unknown): Course | null {
+  if (typeof value === "number" && isValidCourse(value)) return value;
+  if (typeof value === "string" && value in LEGACY_COURSE_LABELS) {
+    return LEGACY_COURSE_LABELS[value];
+  }
+  return null;
+}
+
 function loadDraft(): DishDraft {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
@@ -52,16 +69,16 @@ function loadDraft(): DishDraft {
     const parsed = JSON.parse(raw) as Partial<DishDraft>;
     return {
       name: typeof parsed.name === "string" ? parsed.name : "",
-      dishCourse: DISH_COURSES.some((t) => t.label === parsed.dishCourse)
-        ? (parsed.dishCourse as DishCourse)
-        : null,
+      dishCourse: parseDraftCourse(parsed.dishCourse),
       selectedSeasons: Array.isArray(parsed.selectedSeasons)
         ? parsed.selectedSeasons.filter(
             (s): s is Season =>
-              typeof s === "number" && SEASONS.some(({ season }) => season === s),
+              typeof s === "number" &&
+              SEASONS.some(({ season }) => season === s),
           )
         : [],
-      description: typeof parsed.description === "string" ? parsed.description : "",
+      description:
+        typeof parsed.description === "string" ? parsed.description : "",
     };
   } catch {
     return EMPTY_DRAFT;
@@ -81,16 +98,20 @@ function AddDishPage() {
   const navigate = useNavigate();
   const { addDish } = useDishes();
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const [initialDraft] = useState(loadDraft);
   const [name, setName] = useState(initialDraft.name);
-  const [dishCourse, setDishCourse] = useState<DishCourse | null>(initialDraft.dishCourse);
+  const [dishCourse, setDishCourse] = useState<Course | null>(
+    initialDraft.dishCourse,
+  );
   const [selectedSeasons, setSelectedSeasons] = useState<Season[]>(
     initialDraft.selectedSeasons,
   );
   const [description, setDescription] = useState(initialDraft.description);
 
-  const isFormValid = name.trim() !== "" && dishCourse !== null && selectedSeasons.length > 0;
+  const isFormValid =
+    name.trim() !== "" && dishCourse !== null && selectedSeasons.length > 0;
 
   useEffect(() => {
     const draft: DishDraft = { name, dishCourse, selectedSeasons, description };
@@ -121,9 +142,7 @@ function AddDishPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const courseEntry = DISH_COURSES.find((t) => t.label === dishCourse);
-    if (!courseEntry) return;
-    const course = courseEntry.course;
+    if (dishCourse === null) return;
 
     const now = new Date().toISOString();
     const dish: DishDocType = {
@@ -131,7 +150,7 @@ function AddDishPage() {
       serverId: "",
       name,
       description,
-      course,
+      course: dishCourse,
       seasons: selectedSeasons,
       updatedAt: now,
       isDeleted: false,
@@ -142,9 +161,9 @@ function AddDishPage() {
       await addDish(dish);
       localStorage.removeItem(DRAFT_KEY);
       resetForm();
-      showToast("Plat ajouté avec succès", "success");
+      showToast(t("add.success"), "success");
     } catch {
-      showToast("Erreur lors de la création", "error");
+      showToast(t("add.error"), "error");
     }
   };
 
@@ -154,11 +173,11 @@ function AddDishPage() {
         <button
           className="back-btn"
           onClick={() => navigate("/")}
-          aria-label="Retour"
+          aria-label={t("common.back")}
         >
           <BackArrowIcon size={20} />
         </button>
-        <h1 className="page-title">Ajouter un plat</h1>
+        <h1 className="page-title">{t("add.title")}</h1>
         <div className="header-spacer" />
       </header>
 
@@ -167,7 +186,7 @@ function AddDishPage() {
           <input
             type="text"
             className="modern-input name-input"
-            placeholder="Nom du plat"
+            placeholder={t("add.name")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={MAX_NAME_LENGTH}
@@ -178,33 +197,36 @@ function AddDishPage() {
 
         <div className="form-section-row">
           <div className="course-segmented-control">
-            {DISH_COURSES.map(({ label, icon }) => (
-              <button
-                type="button"
-                key={label}
-                className={`course-option ${dishCourse === label ? "active" : ""}`}
-                onClick={() =>
-                  setDishCourse((prev) => (prev === label ? null : label))
-                }
-              >
-                <span className="course-icon">{icon}</span>
-                <span className="course-label">{label}</span>
-              </button>
-            ))}
+            {DISH_COURSES.map(({ icon, course }) => {
+              const label = t(COURSE_LABEL_KEYS[course]);
+              return (
+                <button
+                  type="button"
+                  key={course}
+                  className={`course-option ${dishCourse === course ? "active" : ""}`}
+                  onClick={() =>
+                    setDishCourse((prev) => (prev === course ? null : course))
+                  }
+                >
+                  <span className="course-icon">{icon}</span>
+                  <span className="course-label">{label}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="seasons-group">
-            {SEASONS.map(({ label, icon, season }) => {
+            {SEASONS.map(({ icon, season }) => {
               const isSelected = selectedSeasons.includes(season);
               return (
                 <button
                   type="button"
-                  key={label}
+                  key={season}
                   className={`season-chip ${isSelected ? "selected" : ""}`}
                   onClick={() => toggleSeason(season)}
                 >
                   <span className="season-icon">{icon}</span>
-                  <span>{label}</span>
+                  <span>{t(SEASON_LABEL_KEYS[season])}</span>
                 </button>
               );
             })}
@@ -214,17 +236,24 @@ function AddDishPage() {
         <div className="input-group char-counter-field">
           <textarea
             className="modern-input description-input"
-            placeholder="Description, conseils de préparation ou ingrédients..."
+            placeholder={t("add.description")}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={MAX_DESCRIPTION_LENGTH}
           />
-          <CharacterCounter value={description} maxLength={MAX_DESCRIPTION_LENGTH} />
+          <CharacterCounter
+            value={description}
+            maxLength={MAX_DESCRIPTION_LENGTH}
+          />
         </div>
 
         <div className="action-buttons">
-          <button type="submit" className="btn btn-primary" disabled={!isFormValid}>
-            Sauvegarder
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={!isFormValid}
+          >
+            {t("add.submit")}
           </button>
         </div>
       </form>

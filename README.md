@@ -8,16 +8,16 @@ dishes, then review them one card at a time — accepting the ones that appeal t
 you right now and refusing the rest — until a menu for the current season takes
 shape.
 
-The app is in French, works offline, and installs to the home screen on phones
-and desktops.
+The app is available in English and French, works offline, and installs to the
+home screen on phones and desktops.
 
 ## What it does
 
 - **Keep your own dish book** — Add each dish with its name, a description
   (ingredients, preparation tips), its course (starter, main or dessert) and the
   seasons it suits. Edit or delete them whenever you like.
-- **Choose the week's menu** — "Choisir les plats" deals a card for a dish that
-  is in season. Accept or refuse it, undo a choice, and watch the starter, main
+- **Choose the week's menu** — "Choose dishes" deals a card for a dish that is
+  in season. Accept or refuse it, undo a choice, and watch the starter, main
   and dessert counters fill up. Validate when you are happy with the list.
 - **Review and rework** — The recap groups your selection by course. Go back to
   adjust it, or reset everything and deal a fresh deck.
@@ -36,6 +36,24 @@ and desktops.
 ## Development
 
 The app is a monorepo: a React frontend and an ASP.NET Core backend.
+
+## Languages
+
+The app ships with English and French. On first visit it follows the browser
+language when it is one of the supported locales and falls back to English
+otherwise. The choice is stored per device and can be changed at any time under
+**Settings → Language**; it applies without reloading the page.
+
+All user-facing copy lives in `frontend/src/i18n/locales/`. To add a language:
+
+1. Create `frontend/src/i18n/locales/xx.ts` typed as
+   `Record<MessageKey, MessageValue>`.
+2. Register it in `frontend/src/i18n/translate.ts` and add it to `LOCALES` in
+   `frontend/src/i18n/types.ts`.
+3. Add its native name to `LOCALE_OPTIONS`.
+
+No component changes are needed. The PWA manifest can only declare one language
+for the installed app, so it stays English regardless of the in-app choice.
 
 ## Layout
 

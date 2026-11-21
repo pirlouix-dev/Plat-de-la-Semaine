@@ -2,8 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   Course,
   Season,
-  COURSE_LABELS,
-  SEASON_LABELS,
+  COURSE_LABEL_KEYS,
+  COURSE_PLURAL_LABEL_KEYS,
+  SEASON_LABEL_KEYS,
   ALL_SEASONS,
   getCurrentSeason,
   MAX_NAME_LENGTH,
@@ -58,46 +59,58 @@ describe("Season", () => {
   });
 });
 
-describe("COURSE_LABELS", () => {
-  it("maps Starter to 'Entrée'", () => {
-    expect(COURSE_LABELS[Course.Starter]).toBe("Entrée");
+describe("COURSE_LABEL_KEYS", () => {
+  it("maps Starter to the starter key", () => {
+    expect(COURSE_LABEL_KEYS[Course.Starter]).toBe("course.starter");
   });
 
-  it("maps Main to 'Plat'", () => {
-    expect(COURSE_LABELS[Course.Main]).toBe("Plat");
+  it("maps Main to the main course key", () => {
+    expect(COURSE_LABEL_KEYS[Course.Main]).toBe("course.main");
   });
 
-  it("maps Dessert to 'Dessert'", () => {
-    expect(COURSE_LABELS[Course.Dessert]).toBe("Dessert");
+  it("maps Dessert to the dessert key", () => {
+    expect(COURSE_LABEL_KEYS[Course.Dessert]).toBe("course.dessert");
   });
 
   it("has entries for every Course value", () => {
     for (const value of Object.values(Course) as number[]) {
-      expect(COURSE_LABELS[value as keyof typeof COURSE_LABELS]).toBeDefined();
+      expect(
+        COURSE_LABEL_KEYS[value as keyof typeof COURSE_LABEL_KEYS],
+      ).toBeDefined();
+    }
+  });
+
+  it("provides a plural label key for every course", () => {
+    for (const value of Object.values(Course) as number[]) {
+      expect(
+        COURSE_PLURAL_LABEL_KEYS[value as keyof typeof COURSE_PLURAL_LABEL_KEYS],
+      ).toBeDefined();
     }
   });
 });
 
-describe("SEASON_LABELS", () => {
-  it("maps Spring to 'Printemps'", () => {
-    expect(SEASON_LABELS[Season.Spring]).toBe("Printemps");
+describe("SEASON_LABEL_KEYS", () => {
+  it("maps Spring to the spring key", () => {
+    expect(SEASON_LABEL_KEYS[Season.Spring]).toBe("season.spring");
   });
 
-  it("maps Summer to 'Été'", () => {
-    expect(SEASON_LABELS[Season.Summer]).toBe("Été");
+  it("maps Summer to the summer key", () => {
+    expect(SEASON_LABEL_KEYS[Season.Summer]).toBe("season.summer");
   });
 
-  it("maps Autumn to 'Automne'", () => {
-    expect(SEASON_LABELS[Season.Autumn]).toBe("Automne");
+  it("maps Autumn to the autumn key", () => {
+    expect(SEASON_LABEL_KEYS[Season.Autumn]).toBe("season.autumn");
   });
 
-  it("maps Winter to 'Hiver'", () => {
-    expect(SEASON_LABELS[Season.Winter]).toBe("Hiver");
+  it("maps Winter to the winter key", () => {
+    expect(SEASON_LABEL_KEYS[Season.Winter]).toBe("season.winter");
   });
 
   it("has entries for every Season value", () => {
     for (const value of Object.values(Season) as number[]) {
-      expect(SEASON_LABELS[value as keyof typeof SEASON_LABELS]).toBeDefined();
+      expect(
+        SEASON_LABEL_KEYS[value as keyof typeof SEASON_LABEL_KEYS],
+      ).toBeDefined();
     }
   });
 });
@@ -445,9 +458,10 @@ describe("Barrel exports (src/types/index.ts)", () => {
     expect(Object.keys(Course)).not.toHaveLength(0);
   });
 
-  it("exports COURSE_LABELS and SEASON_LABELS", () => {
-    expect(COURSE_LABELS).toBeDefined();
-    expect(SEASON_LABELS).toBeDefined();
+  it("exports the course and season label keys", () => {
+    expect(COURSE_LABEL_KEYS).toBeDefined();
+    expect(COURSE_PLURAL_LABEL_KEYS).toBeDefined();
+    expect(SEASON_LABEL_KEYS).toBeDefined();
   });
 
   it("exports ALL_SEASONS", () => {

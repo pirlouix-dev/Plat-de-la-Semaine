@@ -4,10 +4,10 @@ import "./PasswordInput.css";
 
 interface PasswordInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
-  /** Accessible name for the reveal button, e.g. "Afficher le mot de passe". */
-  showLabel?: string;
-  /** Accessible name for the hide button, e.g. "Masquer le mot de passe". */
-  hideLabel?: string;
+  /** Accessible name for the reveal button, e.g. "Show password". */
+  showLabel: string;
+  /** Accessible name for the hide button, e.g. "Hide password". */
+  hideLabel: string;
 }
 
 /**
@@ -20,8 +20,8 @@ interface PasswordInputProps
  * Visibility is local state only — it is never persisted.
  */
 function PasswordInput({
-  showLabel = "Afficher le mot de passe",
-  hideLabel = "Masquer le mot de passe",
+  showLabel,
+  hideLabel,
   className,
   ...inputProps
 }: PasswordInputProps) {

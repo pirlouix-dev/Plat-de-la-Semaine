@@ -9,29 +9,32 @@ import type { DishDocType } from "../../db/schemas/dishes";
 import {
   Course,
   Season,
-  COURSE_LABELS,
+  COURSE_LABEL_KEYS,
+  SEASON_LABEL_KEYS,
   MAX_NAME_LENGTH,
   MAX_DESCRIPTION_LENGTH,
 } from "../../types/dish";
+import { useTranslation } from "../../i18n";
 import "./EditDishPage.css";
 
-const DISH_COURSES: { label: string; icon: string; course: Course }[] = [
-  { label: "Entrée", icon: "🥗", course: Course.Starter },
-  { label: "Plat", icon: "🍽️", course: Course.Main },
-  { label: "Dessert", icon: "🍰", course: Course.Dessert },
+const DISH_COURSES: { icon: string; course: Course }[] = [
+  { icon: "🥗", course: Course.Starter },
+  { icon: "🍽️", course: Course.Main },
+  { icon: "🍰", course: Course.Dessert },
 ];
 
-const SEASONS: { label: string; icon: string; season: Season }[] = [
-  { label: "Printemps", icon: "🌱", season: Season.Spring },
-  { label: "Été", icon: "☀️", season: Season.Summer },
-  { label: "Automne", icon: "🍂", season: Season.Autumn },
-  { label: "Hiver", icon: "❄️", season: Season.Winter },
+const SEASONS: { icon: string; season: Season }[] = [
+  { icon: "🌱", season: Season.Spring },
+  { icon: "☀️", season: Season.Summer },
+  { icon: "🍂", season: Season.Autumn },
+  { icon: "❄️", season: Season.Winter },
 ];
 
 function EditDishPage() {
   const navigate = useNavigate();
   const { dishes, editDish, removeDish } = useDishes();
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
 
@@ -90,7 +93,7 @@ function EditDishPage() {
   const toggleFilterSeason = (season: Season) => {
     setFilterSeasons((prev) =>
       prev.includes(season)
-        ? prev.filter((s) => s !== season)
+        ? prev.filter((x) => x !== season)
         : [...prev, season],
     );
   };
@@ -105,7 +108,8 @@ function EditDishPage() {
       dish.description.toLowerCase().includes(q);
 
     const matchesCourse =
-      filterCourses.length === 0 || filterCourses.includes(dish.course as Course);
+      filterCourses.length === 0 ||
+      filterCourses.includes(dish.course as Course);
 
     const matchesSeason =
       filterSeasons.length === 0 ||
@@ -126,9 +130,9 @@ function EditDishPage() {
         course,
         seasons: selectedSeasons,
       });
-      showToast("Plat modifié avec succès", "success");
+      showToast(t("edit.saveSuccess"), "success");
     } catch {
-      showToast("Erreur lors de la sauvegarde", "error");
+      showToast(t("edit.saveError"), "error");
     } finally {
       setSaving(false);
     }
@@ -141,15 +145,19 @@ function EditDishPage() {
       await removeDish(selectedDishId);
       setSelectedDishId(null);
       setShowDeleteModal(false);
-      showToast("Plat supprimé", "success");
+      showToast(t("edit.deleteSuccess"), "success");
     } catch {
-      showToast("Erreur lors de la suppression", "error");
+      showToast(t("edit.deleteError"), "error");
     }
   };
 
   const renderSeasonsBadges = (dishSeasons: number[]) => {
     if (dishSeasons.length === SEASONS.length) {
-      return <span className="dish-card-season-badge">🗓️ Toutes saisons</span>;
+      return (
+        <span className="dish-card-season-badge">
+          🗓️ {t("common.allSeasons")}
+        </span>
+      );
     }
 
     return dishSeasons.map((s) => {
@@ -157,7 +165,7 @@ function EditDishPage() {
       if (!seasonObj) return null;
       return (
         <span key={s} className="dish-card-season-badge">
-          {seasonObj.icon} {seasonObj.label}
+          {seasonObj.icon} {t(SEASON_LABEL_KEYS[seasonObj.season])}
         </span>
       );
     });
@@ -177,11 +185,11 @@ function EditDishPage() {
           <button
             className="back-btn"
             onClick={() => navigate("/")}
-            aria-label="Retour"
+            aria-label={t("common.back")}
           >
             <BackArrowIcon size={20} />
           </button>
-          <h1 className="page-title">Modifier un plat</h1>
+          <h1 className="page-title">{t("edit.title")}</h1>
           <div className="header-spacer" />
         </header>
 
@@ -189,7 +197,7 @@ function EditDishPage() {
           <input
             type="text"
             className="search-input"
-            placeholder="Rechercher par nom ou ingrédient..."
+            placeholder={t("edit.search")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -199,7 +207,7 @@ function EditDishPage() {
               showFilters || activeFiltersCount > 0 ? "active" : ""
             }`}
             onClick={() => setShowFilters(!showFilters)}
-            title="Afficher/masquer les filtres"
+            title={t("edit.toggleFilters")}
           >
             <FilterIcon size={27} />
             {activeFiltersCount > 0 && (
@@ -212,16 +220,16 @@ function EditDishPage() {
           <div className="filters-container">
             <div className="filter-group">
               <div className="filter-row">
-                {DISH_COURSES.map(({ label, icon, course: c }) => {
+                {DISH_COURSES.map(({ icon, course: c }) => {
                   const isSelected = filterCourses.includes(c);
                   return (
                     <button
-                      key={label}
+                      key={c}
                       type="button"
                       className={`filter-chip ${isSelected ? "active" : ""}`}
                       onClick={() => toggleFilterCourse(c)}
                     >
-                      {icon} {label}
+                      {icon} {t(COURSE_LABEL_KEYS[c])}
                     </button>
                   );
                 })}
@@ -230,16 +238,16 @@ function EditDishPage() {
 
             <div className="filter-group">
               <div className="filter-row">
-                {SEASONS.map(({ label, icon, season }) => {
+                {SEASONS.map(({ icon, season }) => {
                   const isSelected = filterSeasons.includes(season);
                   return (
                     <button
-                      key={label}
+                      key={season}
                       type="button"
                       className={`filter-chip ${isSelected ? "active" : ""}`}
                       onClick={() => toggleFilterSeason(season)}
                     >
-                      {icon} {label}
+                      {icon} {t(SEASON_LABEL_KEYS[season])}
                     </button>
                   );
                 })}
@@ -265,7 +273,7 @@ function EditDishPage() {
                   <h3 className="dish-card-title">{dish.name}</h3>
                   <span className="dish-card-course-badge">
                     {courseInfo?.icon}{" "}
-                    {COURSE_LABELS[dish.course as keyof typeof COURSE_LABELS]}
+                    {t(COURSE_LABEL_KEYS[dish.course as Course])}
                   </span>
                 </div>
 
@@ -285,7 +293,7 @@ function EditDishPage() {
 
           {filteredDishes.length === 0 && (
             <div className="empty-search-state">
-              <p>Aucun plat ne correspond à vos critères.</p>
+              <p>{t("edit.noResults")}</p>
             </div>
           )}
         </div>
@@ -298,16 +306,18 @@ function EditDishPage() {
               <button
                 className="back-btn mobile-only-back"
                 onClick={handleDeselectDish}
-                aria-label="Retour à la liste"
+                aria-label={t("edit.backToList")}
               >
                 <BackArrowIcon size={20} />
               </button>
-              <h2 className="detail-title">Édition : {selectedDish.name}</h2>
+              <h2 className="detail-title">
+                {t("edit.detailTitle", { name: selectedDish.name })}
+              </h2>
               <button
                 type="button"
                 className="icon-delete-btn"
                 onClick={() => setShowDeleteModal(true)}
-                title="Supprimer ce plat"
+                title={t("edit.deleteDish")}
               >
                 <TrashIcon size={22} color="rgb(220, 57, 41)" />
               </button>
@@ -318,7 +328,7 @@ function EditDishPage() {
                 <input
                   type="text"
                   className="modern-input name-input"
-                  placeholder="Nom du plat"
+                  placeholder={t("add.name")}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   maxLength={MAX_NAME_LENGTH}
@@ -329,33 +339,35 @@ function EditDishPage() {
 
               <div className="form-section-row">
                 <div className="course-segmented-control">
-                  {DISH_COURSES.map(({ label, icon, course: c }) => (
+                  {DISH_COURSES.map(({ icon, course: c }) => (
                     <button
                       type="button"
-                      key={label}
+                      key={c}
                       className={`course-option ${course === c ? "active" : ""}`}
                       onClick={() =>
                         setCourse((prev) => (prev === c ? null : c))
                       }
                     >
                       <span className="course-icon">{icon}</span>
-                      <span className="course-label">{label}</span>
+                      <span className="course-label">
+                        {t(COURSE_LABEL_KEYS[c])}
+                      </span>
                     </button>
                   ))}
                 </div>
 
                 <div className="seasons-group">
-                  {SEASONS.map(({ label, icon, season }) => {
+                  {SEASONS.map(({ icon, season }) => {
                     const isSelected = selectedSeasons.includes(season);
                     return (
                       <button
                         type="button"
-                        key={label}
+                        key={season}
                         className={`season-chip ${isSelected ? "selected" : ""}`}
                         onClick={() => toggleSeason(season)}
                       >
                         <span className="season-icon">{icon}</span>
-                        <span>{label}</span>
+                        <span>{t(SEASON_LABEL_KEYS[season])}</span>
                       </button>
                     );
                   })}
@@ -365,7 +377,7 @@ function EditDishPage() {
               <div className="input-group char-counter-field">
                 <textarea
                   className="modern-input description-input"
-                  placeholder="Description, conseils de préparation ou ingrédients..."
+                  placeholder={t("add.description")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   maxLength={MAX_DESCRIPTION_LENGTH}
@@ -382,7 +394,7 @@ function EditDishPage() {
                   className="btn btn-primary"
                   disabled={!isFormValid || saving}
                 >
-                  {saving ? "Sauvegarde..." : "Sauvegarder"}
+                  {saving ? t("edit.saving") : t("edit.save")}
                 </button>
               </div>
             </form>
@@ -390,11 +402,8 @@ function EditDishPage() {
         ) : (
           <div className="empty-detail-state">
             <div className="empty-icon">🍽️</div>
-            <h3>Aucun plat sélectionné</h3>
-            <p>
-              Choisissez un plat dans la liste de gauche pour modifier ses
-              ingrédients, sa saison ou sa catégorie.
-            </p>
+            <h3>{t("edit.noSelectionTitle")}</h3>
+            <p>{t("edit.noSelectionHint")}</p>
           </div>
         )}
       </section>
@@ -405,18 +414,20 @@ function EditDishPage() {
           onClick={() => setShowDeleteModal(false)}
         >
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>Supprimer le plat ?</h3>
-            <p>Voulez-vous vraiment supprimer « {selectedDish?.name} » ?</p>
-            <p>Cette action est irréversible.</p>
+            <h3>{t("edit.deleteTitle")}</h3>
+            <p>
+              {t("edit.deleteConfirm", { name: selectedDish?.name ?? "" })}
+            </p>
+            <p>{t("edit.irreversible")}</p>
             <div className="modal-actions">
               <button
                 className="btn btn-cancel-modal"
                 onClick={() => setShowDeleteModal(false)}
               >
-                Annuler
+                {t("common.cancel")}
               </button>
               <button className="btn btn-delete-confirm" onClick={handleDelete}>
-                Supprimer
+                {t("common.delete")}
               </button>
             </div>
           </div>

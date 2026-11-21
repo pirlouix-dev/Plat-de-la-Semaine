@@ -10,6 +10,7 @@ import { useToast } from "../../components/toastContext";
 import PasswordInput from "../../components/PasswordInput";
 import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
+import { useTranslation } from "../../i18n";
 import logo_img from "../../../assets/logo.png";
 import "../../styles/auth.css";
 import "./LoginPage.css";
@@ -25,6 +26,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
   const showApiErrorToast = useApiErrorToast();
+  const { t } = useTranslation();
   const [forgotLoading, setForgotLoading] = useState(false);
 
   useWarmupPing();
@@ -60,7 +62,7 @@ function LoginPage() {
 
   const handleForgotPassword = async () => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showToast("Veuillez entrer une adresse email valide.", "error");
+      showToast(t("login.invalidEmail"), "error");
       return;
     }
     setForgotLoading(true);
@@ -68,10 +70,7 @@ function LoginPage() {
       email,
     });
     if (result.ok) {
-      showToast(
-        "Si ce compte existe, un email de réinitialisation a été envoyé. Il se situe probablement dans vos spams.",
-        "warning",
-      );
+      showToast(t("login.resetSent"), "warning");
     } else {
       showApiErrorToast(result.error);
     }
@@ -84,10 +83,11 @@ function LoginPage() {
         <img src={logo_img} alt="Plat de la Semaine" className="auth-logo" />
       </div>
 
-      <h1 className="auth-title">Connexion</h1>
+      <h1 className="auth-title">{t("login.title")}</h1>
 
       <p className="auth-switch">
-        Vous souhaitez créer un compte ? <Link to="/register">S'inscrire</Link>
+        {t("login.noAccount")}{" "}
+        <Link to="/register">{t("login.registerLink")}</Link>
       </p>
 
       <form className="dish-form" onSubmit={handleLogin}>
@@ -95,7 +95,7 @@ function LoginPage() {
           <input
             type="email"
             className="modern-input"
-            placeholder="Email"
+            placeholder={t("login.email")}
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -105,7 +105,9 @@ function LoginPage() {
 
         <div className="input-group">
           <PasswordInput
-            placeholder="Mot de passe"
+            placeholder={t("login.password")}
+            showLabel={t("common.showPassword")}
+            hideLabel={t("common.hidePassword")}
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -118,21 +120,21 @@ function LoginPage() {
               onClick={handleForgotPassword}
               disabled={forgotLoading}
             >
-              {forgotLoading ? "Envoi en cours…" : "Mot de passe oublié ?"}
+              {forgotLoading ? t("login.sending") : t("login.forgotPassword")}
             </button>
           </div>
         </div>
 
         <div className="auth-actions">
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? "Connexion..." : "Se connecter"}
+            {loading ? t("login.signingIn") : t("login.submit")}
           </button>
           <button
             type="button"
             className="auth-link-btn"
             onClick={() => navigate("/")}
           >
-            Continuer sans compte
+            {t("login.continueWithoutAccount")}
           </button>
         </div>
       </form>

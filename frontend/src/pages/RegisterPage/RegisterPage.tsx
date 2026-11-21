@@ -7,6 +7,7 @@ import { MAX_USERNAME_LENGTH } from "../../types";
 import type { components } from "../../schema";
 import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
+import { useTranslation } from "../../i18n";
 import logo_img from "../../../assets/logo.png";
 import "../../styles/auth.css";
 
@@ -22,6 +23,7 @@ function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const showApiErrorToast = useApiErrorToast();
+  const { t } = useTranslation();
 
   const passwordsMatch = password === confirmPassword;
   const showMismatch = confirmPassword.length > 0 && !passwordsMatch;
@@ -68,10 +70,11 @@ function RegisterPage() {
         <img src={logo_img} alt="Plat de la Semaine" className="auth-logo" />
       </div>
 
-      <h1 className="auth-title">Inscription</h1>
+      <h1 className="auth-title">{t("register.title")}</h1>
 
       <p className="auth-switch">
-        Vous avez déjà un compte ? <Link to="/login">Se connecter</Link>
+        {t("register.haveAccount")}{" "}
+        <Link to="/login">{t("register.loginLink")}</Link>
       </p>
 
       <form className="dish-form" onSubmit={handleRegister}>
@@ -79,7 +82,7 @@ function RegisterPage() {
           <input
             type="text"
             className="modern-input"
-            placeholder="Nom d'utilisateur"
+            placeholder={t("register.username")}
             autoComplete="nickname"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -93,7 +96,7 @@ function RegisterPage() {
           <input
             type="email"
             className="modern-input"
-            placeholder="Email"
+            placeholder={t("register.email")}
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -103,7 +106,9 @@ function RegisterPage() {
 
         <div className="input-group">
           <PasswordInput
-            placeholder="Mot de passe"
+            placeholder={t("register.password")}
+            showLabel={t("common.showPassword")}
+            hideLabel={t("common.hidePassword")}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -114,10 +119,10 @@ function RegisterPage() {
 
         <div className="input-group">
           <PasswordInput
-            placeholder="Confirmer le mot de passe"
+            placeholder={t("register.confirmPassword")}
+            showLabel={t("common.showPasswordConfirmation")}
+            hideLabel={t("common.hidePasswordConfirmation")}
             autoComplete="new-password"
-            showLabel="Afficher la confirmation du mot de passe"
-            hideLabel="Masquer la confirmation du mot de passe"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -125,7 +130,7 @@ function RegisterPage() {
           />
           {showMismatch && (
             <span className="input-feedback">
-              Les mots de passe ne correspondent pas.
+              {t("register.passwordMismatch")}
             </span>
           )}
         </div>
@@ -136,14 +141,14 @@ function RegisterPage() {
             className="btn btn-primary"
             disabled={loading || passwordTooShort || !passwordsMatch}
           >
-            {loading ? "Inscription..." : "S'inscrire"}
+            {loading ? t("register.submitting") : t("register.submit")}
           </button>
           <button
             type="button"
             className="auth-link-btn"
             onClick={() => navigate("/")}
           >
-            Continuer sans compte
+            {t("login.continueWithoutAccount")}
           </button>
         </div>
       </form>

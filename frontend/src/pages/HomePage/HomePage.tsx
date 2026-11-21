@@ -4,6 +4,7 @@ import "./HomePage.css";
 import { useSyncStatus } from "../../hooks/useSyncStatus";
 import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
 import { useWarmupPing } from "../../hooks/useWarmupPing";
+import { useTranslation, type MessageKey } from "../../i18n";
 
 import logo_img from "../../../assets/logo.png";
 import book_img from "../../../assets/book.webp";
@@ -14,7 +15,7 @@ import textbox_img from "../../../assets/textbox.webp";
 
 type MainMenuItem = {
   id: number;
-  text: string;
+  labelKey: MessageKey;
   icon: string;
   route: string;
   iconClassName?: string;
@@ -23,14 +24,19 @@ type MainMenuItem = {
 const mainMenuItems: MainMenuItem[] = [
   {
     id: 1,
-    text: "Choisir les plats",
+    labelKey: "home.menu.choose",
     icon: book_img,
     route: "/choose",
     iconClassName: "card-icon--book",
   },
-  { id: 2, text: "Ajouter un plat", icon: add_img, route: "/add" },
-  { id: 3, text: "Modifier un plat", icon: pencil_img, route: "/edit" },
-  { id: 4, text: "Paramètres", icon: gear_img, route: "/settings" },
+  { id: 2, labelKey: "home.menu.add", icon: add_img, route: "/add" },
+  { id: 3, labelKey: "home.menu.edit", icon: pencil_img, route: "/edit" },
+  {
+    id: 4,
+    labelKey: "home.menu.settings",
+    icon: gear_img,
+    route: "/settings",
+  },
 ];
 
 function HomePage() {
@@ -38,6 +44,7 @@ function HomePage() {
   const username = localStorage.getItem("user_username");
   const isLoggedIn = useIsLoggedIn();
   const syncDisplay = useSyncStatus();
+  const { t } = useTranslation();
 
   useWarmupPing(!isLoggedIn);
 
@@ -48,7 +55,9 @@ function HomePage() {
       <div className="account-card">
         <div className="account-info">
           <span className="account-title">
-            {isLoggedIn ? `Bonjour, ${username} !` : "Mode Invité"}
+            {isLoggedIn
+              ? t("home.greeting", { username: username ?? "" })
+              : t("home.guestMode")}
           </span>
           <span
             className={
@@ -56,41 +65,42 @@ function HomePage() {
               (syncDisplay.isError ? " account-subtitle--error" : "")
             }
           >
-            {isLoggedIn
-              ? syncDisplay.text
-              : "Connectez-vous pour sauvegarder vos plats"}
+            {isLoggedIn ? syncDisplay.text : t("home.guestHint")}
           </span>
         </div>
         <button
           className="account-btn"
           onClick={() => navigate(isLoggedIn ? "/settings" : "/login")}
         >
-          {isLoggedIn ? "Mon compte" : "Se connecter"}
+          {isLoggedIn ? t("home.account") : t("home.signIn")}
         </button>
       </div>
 
       <main className="menu-grid">
-        {mainMenuItems.map((item) => (
-          <button
-            key={item.id}
-            className="menu-card-wrapper"
-            onClick={() => navigate(item.route)}
-          >
-            <img
-              src={item.icon}
-              alt={item.text}
-              className={
-                "card-icon" +
-                (item.iconClassName ? " " + item.iconClassName : "")
-              }
-            />
+        {mainMenuItems.map((item) => {
+          const label = t(item.labelKey);
+          return (
+            <button
+              key={item.id}
+              className="menu-card-wrapper"
+              onClick={() => navigate(item.route)}
+            >
+              <img
+                src={item.icon}
+                alt={label}
+                className={
+                  "card-icon" +
+                  (item.iconClassName ? " " + item.iconClassName : "")
+                }
+              />
 
-            <div className="card-textbox-container">
-              <img src={textbox_img} alt="" className="textbox-bg" />
-              <span className="card-text">{item.text}</span>
-            </div>
-          </button>
-        ))}
+              <div className="card-textbox-container">
+                <img src={textbox_img} alt="" className="textbox-bg" />
+                <span className="card-text">{label}</span>
+              </div>
+            </button>
+          );
+        })}
       </main>
     </div>
   );
