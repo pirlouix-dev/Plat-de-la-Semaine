@@ -1,0 +1,75 @@
+name: Deploy backend to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore plat-de-la-semaine-back.slnx
+
+      - name: Build
+        run: dotnet build plat-de-la-semaine-back.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: >-
+          dotnet test tests/PlatDeLaSemaineBack.Tests/PlatDeLaSemaineBack.Tests.csproj
+          --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        run: >-
+          dotnet publish plat-de-la-semaine-back.csproj
+          --configuration Release --no-build --output ${{ runner.temp }}/myapp
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{ runner.temp }}/myapp
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: PDLS
+          slot-name: Production
+          package: .
