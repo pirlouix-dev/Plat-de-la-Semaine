@@ -342,7 +342,55 @@ public class DishServiceTests
     }
 
     [Fact]
-    public async Task ImportDishes_AllValid_PersistsAllAndCreatesSingleBackup()
+    public async Task ApplyDishBatch_MixedOperations_AppliesAllInOrderWithSingleBackup()
+    {
+        // Arrange
+        var userId = "user1";
+        var updated = new Dish { Id = "u1", UserId = userId, Name = "Old", Description = "Keep", Course = 0, Seasons = [0] };
+        var deleted = new Dish { Id = "d1", UserId = userId, Name = "Gone", Course = 1, Seasons = [1] };
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish> { updated, deleted });
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci => ci.Arg<Dish>());
+        _firestore.GetDishByIdAsync(userId, "u1").Returns(updated);
+        _firestore.GetDishByIdAsync(userId, "d1").Returns(deleted);
+
+        var operations = new List<DishBatchOperation>
+        {
+            new() { Op = "create", Id = "c1", Name = "New", Course = 2, Seasons = [2] },
+            new() { Op = "update", Id = "u1", Name = "Renamed" },
+            new() { Op = "delete", Id = "d1" }
+        };
+
+        // Act
+        var result = await _service.ApplyDishBatchAsync(userId, operations);
+
+        // Assert
+        Assert.Equal(1, result.Created);
+        Assert.Equal(1, result.Updated);
+        Assert.Equal(1, result.Deleted);
+        Assert.Equal(0, result.Failed);
+        Assert.Equal(3, result.Results.Count);
+
+        Assert.Equal("created", result.Results[0].Status);
+        Assert.Equal("c1", result.Results[0].Id);
+        Assert.Equal("create", result.Results[0].Op);
+
+        Assert.Equal("updated", result.Results[1].Status);
+        Assert.Equal("Renamed", result.Results[1].Data!.Name);
+        // Partial merge leaves untouched fields alone.
+        Assert.Equal("Keep", result.Results[1].Data!.Description);
+
+        Assert.Equal("deleted", result.Results[2].Status);
+        Assert.True(deleted.IsDeleted);
+
+        await _firestore.Received(1).InsertBackupAsync(Arg.Any<Backup>());
+        await _firestore.Received(1).InsertDishAsync(Arg.Is<Dish>(dish => dish.Id == "c1"));
+        await _firestore.Received(2).UpdateDishAsync(Arg.Any<Dish>());
+    }
+
+    [Fact]
+    public async Task ApplyDishBatch_CreateWithoutId_PersistsServerGeneratedId()
     {
         // Arrange
         var userId = "user1";
@@ -350,156 +398,200 @@ public class DishServiceTests
         _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
         _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
 
-        var items = new List<DishImportItem>
+        string? idAtInsert = "unset";
+        _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci =>
         {
-            new() { Name = "Pizza", Course = 1, Seasons = [0, 1] },
-            new() { Name = "Salad", Description = "Green", Course = 0, Seasons = [2] }
+            // Firestore assigns the generated id to the document it was given.
+            idAtInsert = ci.Arg<Dish>().Id;
+            ci.Arg<Dish>().Id = "generated";
+            return ci.Arg<Dish>();
+        });
+
+        var operations = new List<DishBatchOperation>
+        {
+            new() { Op = "create", Name = "Pizza", Course = 1, Seasons = [0] }
         };
 
         // Act
-        var result = await _service.ImportDishesAsync(userId, items);
+        var result = await _service.ApplyDishBatchAsync(userId, operations);
 
         // Assert
-        Assert.Equal(2, result.Imported);
+        Assert.Null(idAtInsert);
+        Assert.Equal("generated", result.Results[0].Id);
+        Assert.Equal("generated", result.Results[0].Data!.Id);
+    }
+
+    [Fact]
+    public async Task ApplyDishBatch_CreateThenUpdateSameId_AppliesInRequestOrder()
+    {
+        // Arrange: the create lands before the update lookup, so the latter
+        // finds the dish written by the same batch.
+        var userId = "user1";
+        var created = new Dish { Id = "x", UserId = userId, Name = "First", Course = 1, Seasons = [0] };
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci => ci.Arg<Dish>());
+        _firestore.GetDishByIdAsync(userId, "x").Returns(created);
+
+        var operations = new List<DishBatchOperation>
+        {
+            new() { Op = "create", Id = "x", Name = "First", Course = 1, Seasons = [0] },
+            new() { Op = "update", Id = "x", Name = "Second" }
+        };
+
+        // Act
+        var result = await _service.ApplyDishBatchAsync(userId, operations);
+
+        // Assert
         Assert.Equal(0, result.Failed);
-        Assert.Empty(result.Errors);
-        await _firestore.Received(2).InsertDishAsync(Arg.Any<Dish>());
+        Received.InOrder(() =>
+        {
+            _firestore.InsertDishAsync(Arg.Is<Dish>(dish => dish.Id == "x"));
+            _firestore.GetDishByIdAsync(userId, "x");
+        });
+    }
+
+    [Fact]
+    public async Task ApplyDishBatch_InvalidOperations_AreReportedAndDoNotBlockValidOnes()
+    {
+        // Arrange
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.InsertDishAsync(Arg.Any<Dish>()).Returns(ci => ci.Arg<Dish>());
+
+        var operations = new List<DishBatchOperation>
+        {
+            new() { Op = "create", Name = "Valid", Course = 1, Seasons = [0] },
+            new() { Op = "create", Name = "Bad course", Course = 5, Seasons = [0] },
+            new() { Op = "create", Name = "No seasons", Course = 1 },
+            new() { Op = "update", Name = "No id" },
+            new() { Op = "delete" },
+            new() { Op = "upsert", Id = "whatever" }
+        };
+
+        // Act
+        var result = await _service.ApplyDishBatchAsync(userId, operations);
+
+        // Assert
+        Assert.Equal(1, result.Created);
+        Assert.Equal(5, result.Failed);
+        Assert.All(result.Results.Skip(1), item => Assert.Equal("failed", item.Status));
+        Assert.All(result.Results.Skip(1), item => Assert.Equal("VALIDATION_ERROR", item.Code));
+
+        Assert.Contains(result.Results[1].Errors!, error => error.Field == "Course");
+        Assert.Contains(result.Results[2].Errors!, error => error.Field == "Seasons");
+        Assert.Contains(result.Results[3].Errors!, error => error.Field == "Id");
+        Assert.Contains(result.Results[4].Errors!, error => error.Field == "Id");
+        Assert.Contains(result.Results[5].Errors!, error => error.Field == "Op");
+
+        await _firestore.Received(1).InsertDishAsync(Arg.Any<Dish>());
         await _firestore.Received(1).InsertBackupAsync(Arg.Any<Backup>());
     }
 
     [Fact]
-    public async Task ImportDishes_PartialFailure_PersistsValidAndReportsInvalid()
+    public async Task ApplyDishBatch_MissingTarget_ReportsNotFoundWithoutWriting()
     {
-        // Arrange
+        // Arrange: both ids resolve to null, as for a dish owned by another user.
         var userId = "user1";
-        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
-        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
-        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.GetDishByIdAsync(userId, Arg.Any<string>()).ReturnsNull();
 
-        var items = new List<DishImportItem>
+        var operations = new List<DishBatchOperation>
         {
-            new() { Name = "Valid 1", Course = 1, Seasons = [0] },
-            new() { Name = "Invalid", Course = 5, Seasons = [0] },
-            new() { Name = "Valid 2", Course = 2, Seasons = [1] }
+            new() { Op = "update", Id = "missing", Name = "Nope" },
+            new() { Op = "delete", Id = "also-missing" }
         };
 
         // Act
-        var result = await _service.ImportDishesAsync(userId, items);
+        var result = await _service.ApplyDishBatchAsync(userId, operations);
 
         // Assert
-        Assert.Equal(2, result.Imported);
-        Assert.Equal(1, result.Failed);
-        var error = Assert.Single(result.Errors);
-        Assert.Equal(1, error.Index);
-        Assert.Equal("Invalid", error.Name);
-        Assert.Contains(error.Errors, e => e.Field == "Course");
-        await _firestore.Received(2).InsertDishAsync(Arg.Any<Dish>());
-    }
-
-    [Fact]
-    public async Task ImportDishes_MissingRequiredFields_ReportsErrors()
-    {
-        // Arrange
-        var userId = "user1";
-        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
-        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
-        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
-
-        var items = new List<DishImportItem>
-        {
-            new() { Course = 1, Seasons = [0] },
-            new() { Name = "No Course", Seasons = [0] },
-            new() { Name = "No Seasons", Course = 1 }
-        };
-
-        // Act
-        var result = await _service.ImportDishesAsync(userId, items);
-
-        // Assert
-        Assert.Equal(0, result.Imported);
-        Assert.Equal(3, result.Failed);
-        Assert.Contains(result.Errors, e => e.Errors.Any(x => x.Field == "Name"));
-        Assert.Contains(result.Errors, e => e.Errors.Any(x => x.Field == "Course"));
-        Assert.Contains(result.Errors, e => e.Errors.Any(x => x.Field == "Seasons"));
-        await _firestore.DidNotReceive().InsertDishAsync(Arg.Any<Dish>());
-    }
-
-    [Fact]
-    public async Task ImportDishes_InsertFails_ReportsItemAndContinues()
-    {
-        // Arrange
-        var userId = "user1";
-        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
-        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
-        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
-        _firestore.InsertDishAsync(Arg.Is<Dish>(d => d.Name == "Broken"))
-            .Returns(Task.FromException<Dish>(new InvalidOperationException("write failed")));
-
-        var items = new List<DishImportItem>
-        {
-            new() { Name = "Broken", Course = 1, Seasons = [0] },
-            new() { Name = "Fine", Course = 1, Seasons = [0] }
-        };
-
-        // Act
-        var result = await _service.ImportDishesAsync(userId, items);
-
-        // Assert
-        Assert.Equal(1, result.Imported);
-        Assert.Equal(1, result.Failed);
-        Assert.Equal(0, Assert.Single(result.Errors).Index);
-    }
-
-    [Fact]
-    public async Task ImportDishes_EmptyList_ReturnsZeroAndNoBackup()
-    {
-        // Arrange
-        var items = new List<DishImportItem>();
-
-        // Act
-        var result = await _service.ImportDishesAsync("user1", items);
-
-        // Assert
-        Assert.Equal(0, result.Imported);
-        Assert.Equal(0, result.Failed);
-        Assert.Empty(result.Errors);
+        Assert.Equal(0, result.Created + result.Updated + result.Deleted);
+        Assert.Equal(2, result.Failed);
+        Assert.All(result.Results, item => Assert.Equal("NOT_FOUND", item.Code));
         await _firestore.DidNotReceive().InsertBackupAsync(Arg.Any<Backup>());
+        await _firestore.DidNotReceive().UpdateDishAsync(Arg.Any<Dish>());
         await _firestore.DidNotReceive().InsertDishAsync(Arg.Any<Dish>());
     }
 
     [Fact]
-    public async Task ImportDishes_ExceedsMaxSize_ThrowsArgumentException()
+    public async Task ApplyDishBatch_WriteFailure_IsReportedAndOtherOperationsContinue()
     {
         // Arrange
-        var items = Enumerable.Range(0, 501)
-            .Select(_ => new DishImportItem { Name = "Dish", Course = 1, Seasons = [0] })
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.InsertDishAsync(Arg.Is<Dish>(dish => dish.Name == "Broken"))
+            .Returns(Task.FromException<Dish>(new InvalidOperationException("write failed")));
+        _firestore.InsertDishAsync(Arg.Is<Dish>(dish => dish.Name == "Fine"))
+            .Returns(ci => ci.Arg<Dish>());
+
+        var operations = new List<DishBatchOperation>
+        {
+            new() { Op = "create", Name = "Broken", Course = 1, Seasons = [0] },
+            new() { Op = "create", Name = "Fine", Course = 1, Seasons = [0] }
+        };
+
+        // Act
+        var result = await _service.ApplyDishBatchAsync(userId, operations);
+
+        // Assert
+        Assert.Equal(1, result.Created);
+        Assert.Equal(1, result.Failed);
+        Assert.Equal("INTERNAL_ERROR", result.Results[0].Code);
+        Assert.DoesNotContain("write failed", result.Results[0].Message);
+        Assert.Equal(1, result.Results[1].Index);
+        await _firestore.Received(1).InsertBackupAsync(Arg.Any<Backup>());
+    }
+
+    [Fact]
+    public async Task ApplyDishBatch_FirestoreUnavailable_AbortsWholeRequest()
+    {
+        // Arrange
+        var userId = "user1";
+        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
+        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
+        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
+        _firestore.InsertDishAsync(Arg.Any<Dish>())
+            .Returns(Task.FromException<Dish>(new FirestoreUnavailableException()));
+
+        var operations = new List<DishBatchOperation>
+        {
+            new() { Op = "create", Name = "Pizza", Course = 1, Seasons = [0] }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => _service.ApplyDishBatchAsync(userId, operations));
+    }
+
+    [Fact]
+    public async Task ApplyDishBatch_EmptyBatch_ReturnsZeroCountsAndNoBackup()
+    {
+        // Act
+        var result = await _service.ApplyDishBatchAsync("user1", new List<DishBatchOperation>());
+
+        // Assert
+        Assert.Equal(0, result.Created + result.Updated + result.Deleted + result.Failed);
+        Assert.Empty(result.Results);
+        await _firestore.DidNotReceive().InsertBackupAsync(Arg.Any<Backup>());
+    }
+
+    [Fact]
+    public async Task ApplyDishBatch_ExceedsMaxSize_ThrowsArgumentException()
+    {
+        // Arrange
+        var operations = Enumerable.Range(0, 501)
+            .Select(_ => new DishBatchOperation { Op = "create", Name = "Dish", Course = 1, Seasons = [0] })
             .ToList();
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(
-            () => _service.ImportDishesAsync("user1", items));
+            () => _service.ApplyDishBatchAsync("user1", operations));
         await _firestore.DidNotReceive().InsertBackupAsync(Arg.Any<Backup>());
-    }
-
-    [Fact]
-    public async Task ImportDishes_UsesServerGeneratedId()
-    {
-        // Arrange
-        var userId = "user1";
-        _firestore.GetDishesByUserIdAsync(userId, null).Returns(new List<Dish>());
-        _firestore.GetUserByIdAsync(userId).Returns(new User { Id = userId, BackupIds = [] });
-        _firestore.InsertBackupAsync(Arg.Any<Backup>()).Returns(ci => ci.Arg<Backup>());
-
-        var items = new List<DishImportItem>
-        {
-            new() { Name = "No Id", Course = 1, Seasons = [0] }
-        };
-
-        // Act
-        await _service.ImportDishesAsync(userId, items);
-
-        // Assert
-        await _firestore.Received(1).InsertDishAsync(Arg.Is<Dish>(d => d.Id == null && d.UserId == userId));
     }
 
     [Fact]

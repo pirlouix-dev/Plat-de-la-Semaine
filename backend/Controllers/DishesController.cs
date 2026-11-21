@@ -53,18 +53,18 @@ public class DishesController : BaseController
     }
 
     /// <summary>
-    /// Bulk-import dishes from a JSON array, skipping invalid entries.
+    /// Apply a batch of dish create, update, and delete operations, in order.
     /// </summary>
-    [HttpPost("import")]
-    [EndpointSummary("Bulk-import dishes from a JSON array")]
-    [ProducesResponseType(typeof(DishImportResponse), StatusCodes.Status200OK)]
+    [HttpPost("batch")]
+    [EndpointSummary("Apply a batch of dish create, update, and delete operations")]
+    [ProducesResponseType(typeof(DishBatchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorDetail), StatusCodes.Status503ServiceUnavailable)]
-    public async Task<IActionResult> Import([FromBody] List<DishImportItem> items)
+    public async Task<IActionResult> Batch([FromBody] DishBatchPayload payload)
     {
         var userId = await GetUserIdAsync();
-        var response = await _dishService.ImportDishesAsync(userId, items);
+        var response = await _dishService.ApplyDishBatchAsync(userId, payload.Operations);
         return Ok(response);
     }
 
