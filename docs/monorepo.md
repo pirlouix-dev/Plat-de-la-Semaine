@@ -38,10 +38,19 @@ Historical backend pull requests and releases remain in the archived
 ## Release ordering
 
 The backend must be running before the frontend that depends on it reaches
-users:
+users. Merging to `main` triggers both the Azure backend deployment and the
+Vercel frontend deployment, so the backend is pre-deployed from `develop`
+before the merge:
 
-1. Merge the release pull request only after the backend has been built and
-   deployed from the pull request head, and the running API is verified.
-2. Merging the pull request triggers the frontend deployment on Vercel.
-3. Tag the `main` merge commit and publish one GitHub Release.
-4. Update the version in Firestore.
+1. Wait for the release pull request CI to be green.
+2. Dispatch `deploy-backend.yml` on `develop` and wait for it to succeed, then
+   verify the running API's release contract.
+3. Merge the release pull request. Vercel deploys the frontend and the backend
+   workflow deploys the same `main` tree again.
+4. Wait for `main` CI, the backend deployment and the Vercel production
+   deployment to succeed.
+5. Tag the `main` merge commit and publish one GitHub Release.
+6. Update the version in Firestore.
+
+The pre-merge backend dispatch is what preserves the backend-first ordering; do
+not merge a release that changes the contract before it succeeds.
