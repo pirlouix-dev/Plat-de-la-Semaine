@@ -10,7 +10,7 @@ public class DishService : IDishService
 {
     private readonly IFirestoreService _firestore;
     private const int MaxBackups = 5;
-    private const int MaxImportSize = 500;
+    private const int MaxBatchSize = 500;
 
     public DishService(IFirestoreService firestore)
     {
@@ -63,10 +63,7 @@ public class DishService : IDishService
 
         await CreateBackupAsync(userId);
 
-        if (payload.Name != null) existing.Name = payload.Name;
-        if (payload.Description != null) existing.Description = payload.Description;
-        if (payload.Course != null) existing.Course = payload.Course.Value;
-        if (payload.Seasons != null) existing.Seasons = payload.Seasons;
+        MergeDishUpdate(existing, payload);
         existing.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _firestore.UpdateDishAsync(existing);
@@ -91,96 +88,255 @@ public class DishService : IDishService
     }
 
     /// <inheritdoc />
-    public async Task<DishImportResponse> ImportDishesAsync(string userId, List<DishImportItem> items)
+    public async Task<DishBatchResponse> ApplyDishBatchAsync(string userId, List<DishBatchOperation> operations)
     {
-        if (items.Count > MaxImportSize)
-            throw new ArgumentException($"A maximum of {MaxImportSize} dishes can be imported at once.");
+        if (operations.Count > MaxBatchSize)
+            throw new ArgumentException($"A maximum of {MaxBatchSize} operations can be applied at once.");
 
-        if (items.Count == 0)
-            return new DishImportResponse { Imported = 0, Failed = 0, Errors = [] };
+        var results = new List<DishBatchOperationResult>(operations.Count);
 
-        await CreateBackupAsync(userId);
+        // One timestamp for the batch so a sync push shares a single UpdatedAt:
+        // the client then pulls every write with a single `since` boundary.
+        var appliedAt = DateTimeOffset.UtcNow;
+        var backedUp = false;
 
-        var imported = 0;
-        var errors = new List<DishImportError>();
-
-        for (var index = 0; index < items.Count; index++)
+        async Task EnsureBackupAsync()
         {
-            var item = items[index];
-            var validationResults = ValidateImportItem(item);
+            if (backedUp) return;
+            await CreateBackupAsync(userId);
+            backedUp = true;
+        }
 
-            if (validationResults.Count > 0)
+        for (var index = 0; index < operations.Count; index++)
+        {
+            var operation = operations[index];
+
+            var validationErrors = ValidateBatchOperation(operation);
+            if (validationErrors.Count > 0)
             {
-                errors.Add(new DishImportError
-                {
-                    Index = index,
-                    Name = item.Name,
-                    Errors = validationResults
-                });
+                results.Add(Failed(
+                    index,
+                    operation,
+                    ApiErrorCodes.ValidationError,
+                    "The operation is invalid.",
+                    validationErrors));
                 continue;
             }
 
             try
             {
-                await _firestore.InsertDishAsync(new Dish
-                {
-                    UserId = userId,
-                    Name = item.Name!,
-                    Description = item.Description ?? string.Empty,
-                    Course = item.Course!.Value,
-                    Seasons = item.Seasons!,
-                    UpdatedAt = DateTimeOffset.UtcNow
-                });
-
-                imported++;
+                results.Add(await ApplyBatchOperationAsync(userId, index, operation, appliedAt, EnsureBackupAsync));
             }
-            catch (Exception ex)
+            catch (FirestoreUnavailableException)
             {
-                errors.Add(new DishImportError
-                {
-                    Index = index,
-                    Name = item.Name,
-                    Errors = [new ApiFieldError { Message = ex.Message }]
-                });
+                // A dependency outage is not an operation-level failure: fail the
+                // whole request so the client retries the batch.
+                throw;
+            }
+            catch (Exception)
+            {
+                // Do not echo the raw exception: it may carry driver internals.
+                results.Add(Failed(
+                    index,
+                    operation,
+                    ApiErrorCodes.InternalError,
+                    "The operation could not be completed."));
             }
         }
 
-        return new DishImportResponse
+        return new DishBatchResponse
         {
-            Imported = imported,
-            Failed = errors.Count,
-            Errors = errors
+            Created = results.Count(result => result.Status == DishBatchStatus.Created),
+            Updated = results.Count(result => result.Status == DishBatchStatus.Updated),
+            Deleted = results.Count(result => result.Status == DishBatchStatus.Deleted),
+            Failed = results.Count(result => result.Status == DishBatchStatus.Failed),
+            Results = results
         };
     }
 
     /// <summary>
-    /// Validates a single import item, reusing the create-dish rules.
+    /// Applies one validated operation. The backup is taken lazily, right before
+    /// the first write, so a batch that writes nothing leaves no snapshot.
     /// </summary>
-    private static List<ApiFieldError> ValidateImportItem(DishImportItem item)
+    private async Task<DishBatchOperationResult> ApplyBatchOperationAsync(
+        string userId,
+        int index,
+        DishBatchOperation operation,
+        DateTimeOffset appliedAt,
+        Func<Task> ensureBackup)
+    {
+        if (operation.Op == BatchOperationKinds.Create)
+        {
+            await ensureBackup();
+
+            var created = await _firestore.InsertDishAsync(new Dish
+            {
+                // A blank id is treated as absent: `InsertDishAsync` then asks
+                // Firestore for one.
+                Id = string.IsNullOrWhiteSpace(operation.Id) ? null : operation.Id,
+                UserId = userId,
+                Name = operation.Name!,
+                Description = operation.Description ?? string.Empty,
+                Course = operation.Course!.Value,
+                Seasons = operation.Seasons!,
+                UpdatedAt = appliedAt
+            });
+
+            return Succeeded(index, operation, DishBatchStatus.Created, created);
+        }
+
+        var existing = await _firestore.GetDishByIdAsync(userId, operation.Id!);
+        if (existing is null)
+        {
+            return Failed(index, operation, ApiErrorCodes.NotFound, "The requested resource was not found.");
+        }
+
+        await ensureBackup();
+
+        if (operation.Op == BatchOperationKinds.Update)
+        {
+            MergeDishUpdate(existing, ToUpdatePayload(operation));
+        }
+        else
+        {
+            existing.IsDeleted = true;
+        }
+
+        existing.UpdatedAt = appliedAt;
+        await _firestore.UpdateDishAsync(existing);
+
+        return Succeeded(index, operation, operation.Op == BatchOperationKinds.Update
+            ? DishBatchStatus.Updated
+            : DishBatchStatus.Deleted, existing);
+    }
+
+    /// <summary>
+    /// Validates a single batch operation, reusing the create and update rules.
+    /// </summary>
+    private static List<ApiFieldError> ValidateBatchOperation(DishBatchOperation operation)
+    {
+        switch (operation.Op)
+        {
+            case BatchOperationKinds.Create:
+                return ValidateCreateOperation(operation);
+
+            case BatchOperationKinds.Update:
+            case BatchOperationKinds.Delete:
+                if (string.IsNullOrWhiteSpace(operation.Id))
+                {
+                    return [new ApiFieldError
+                    {
+                        Field = nameof(operation.Id),
+                        Message = $"Id is required for a {operation.Op}."
+                    }];
+                }
+
+                return operation.Op == BatchOperationKinds.Update
+                    ? ValidateUpdateOperation(operation)
+                    : [];
+
+            default:
+                return [new ApiFieldError
+                {
+                    Field = nameof(operation.Op),
+                    Message = $"Op must be \"{BatchOperationKinds.Create}\", \"{BatchOperationKinds.Update}\", or \"{BatchOperationKinds.Delete}\"."
+                }];
+        }
+    }
+
+    private static List<ApiFieldError> ValidateCreateOperation(DishBatchOperation operation)
     {
         var payload = new CreateDishPayload
         {
-            Name = item.Name ?? string.Empty,
-            Description = item.Description ?? string.Empty,
-            Course = item.Course ?? 0,
-            Seasons = item.Seasons ?? Array.Empty<int>()
+            Name = operation.Name ?? string.Empty,
+            Description = operation.Description ?? string.Empty,
+            Course = operation.Course ?? 0,
+            Seasons = operation.Seasons ?? Array.Empty<int>()
         };
 
         var results = new List<ValidationResult>();
         Validator.TryValidateObject(payload, new ValidationContext(payload), results, validateAllProperties: true);
 
-        if (item.Course is null)
-        {
-            results.Add(new ValidationResult("Course is required.", [nameof(item.Course)]));
-        }
+        // A missing course deserializes to null and defaults to 0, which the
+        // range check accepts, so it has to be reported explicitly.
+        if (operation.Course is null)
+            results.Add(new ValidationResult("Course is required.", [nameof(operation.Course)]));
 
-        return results
+        return ToFieldErrors(results);
+    }
+
+    private static List<ApiFieldError> ValidateUpdateOperation(DishBatchOperation operation)
+    {
+        var payload = ToUpdatePayload(operation);
+
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(payload, new ValidationContext(payload), results, validateAllProperties: true);
+
+        return ToFieldErrors(results);
+    }
+
+    private static UpdateDishPayload ToUpdatePayload(DishBatchOperation operation) => new()
+    {
+        Name = operation.Name,
+        Description = operation.Description,
+        Course = operation.Course,
+        Seasons = operation.Seasons
+    };
+
+    /// <summary>
+    /// Applies the non-null fields of a partial update to a dish.
+    /// </summary>
+    private static void MergeDishUpdate(Dish dish, UpdateDishPayload payload)
+    {
+        if (payload.Name != null) dish.Name = payload.Name;
+        if (payload.Description != null) dish.Description = payload.Description;
+        if (payload.Course != null) dish.Course = payload.Course.Value;
+        if (payload.Seasons != null) dish.Seasons = payload.Seasons;
+    }
+
+    private static List<ApiFieldError> ToFieldErrors(List<ValidationResult> results)
+        => results
             .Select(result => new ApiFieldError
             {
                 Field = result.MemberNames.FirstOrDefault() ?? string.Empty,
                 Message = result.ErrorMessage ?? "Invalid value."
             })
             .ToList();
+
+    private static DishBatchOperationResult Succeeded(
+        int index,
+        DishBatchOperation operation,
+        string status,
+        Dish dish) => new()
+        {
+            Index = index,
+            Op = operation.Op,
+            Status = status,
+            Id = dish.Id,
+            Data = dish
+        };
+
+    private static DishBatchOperationResult Failed(
+        int index,
+        DishBatchOperation operation,
+        string code,
+        string message,
+        List<ApiFieldError>? errors = null) => new()
+        {
+            Index = index,
+            Op = operation.Op,
+            Status = DishBatchStatus.Failed,
+            Id = operation.Id,
+            Code = code,
+            Message = message,
+            Errors = errors
+        };
+
+    private static class BatchOperationKinds
+    {
+        public const string Create = "create";
+        public const string Update = "update";
+        public const string Delete = "delete";
     }
 
     /// <summary>
