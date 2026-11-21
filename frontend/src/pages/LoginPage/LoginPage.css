@@ -1,0 +1,21 @@
+.forgot-password-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.forgot-password-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #a0a5b1;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.forgot-password-link:hover {
+  color: #ffffff;
+}

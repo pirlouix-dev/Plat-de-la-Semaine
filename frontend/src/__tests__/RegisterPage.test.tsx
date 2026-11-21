@@ -1,0 +1,444 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { ToastProvider } from "../components/Toast";
+import RegisterPage from "../pages/RegisterPage/RegisterPage";
+import { MAX_USERNAME_LENGTH } from "../types";
+import { createTranslator } from "../i18n";
+
+const t = createTranslator("en");
+
+function mockFetchSuccess(body: unknown) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(body),
+    }),
+  );
+}
+
+function mockFetchError(status: number, body: { code: string; message: string }) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status,
+      json: vi.fn().mockResolvedValue(body),
+    }),
+  );
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <ToastProvider>
+        <RegisterPage />
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe("RegisterPage", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({}),
+      }),
+    );
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("caps the username input at MAX_USERNAME_LENGTH", () => {
+    renderPage();
+    expect(screen.getByPlaceholderText(t("register.username"))).toHaveAttribute(
+      "maxLength",
+      String(MAX_USERNAME_LENGTH),
+    );
+  });
+
+  it("shows the character counter only when the username nears the limit", () => {
+    renderPage();
+    const usernameInput = screen.getByPlaceholderText(t("register.username"));
+
+    expect(screen.queryByText(/^\d+\/100$/)).toBeNull();
+
+    fireEvent.change(usernameInput, { target: { value: "a".repeat(80) } });
+    expect(screen.getByText("80/100")).toBeTruthy();
+
+    fireEvent.change(usernameInput, { target: { value: "a".repeat(50) } });
+    expect(screen.queryByText(/^\d+\/100$/)).toBeNull();
+  });
+
+  it("calls /api/auth/register with username, email, password on submit", async () => {
+    mockFetchSuccess({
+      idToken: "token-123",
+      refreshToken: "refresh-abc",
+      expiresIn: "3600",
+      userId: "user-42",
+      username: "testuser",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.username")), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.email")), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText(t("register.submit")));
+
+    const fetchMock = vi.mocked(fetch);
+    const registerCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/auth/register"),
+    );
+    expect(registerCall).toBeTruthy();
+
+    const [url, options] = registerCall as [string, RequestInit];
+    expect(url).toContain("/api/auth/register");
+    expect(options.body).toBe(
+      JSON.stringify({
+        username: "testuser",
+        email: "test@example.com",
+        password: "password123",
+      }),
+    );
+  });
+
+  it("disables submit and does not register when the passwords do not match", () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({}),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.username")), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.email")), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password124" },
+    });
+
+    const submit = screen.getByText(t("register.submit"));
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(submit);
+
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        String(url).includes("/api/auth/register"),
+      ),
+    ).toBe(false);
+    expect(
+      screen.getByText(t("register.passwordMismatch")),
+    ).toBeTruthy();
+  });
+
+  it("enables submit once the passwords match", () => {
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password124" },
+    });
+
+    expect(screen.getByText(t("register.submit"))).toBeDisabled();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password123" },
+    });
+
+    expect(screen.queryByText(t("register.passwordMismatch"))).toBeNull();
+    expect(screen.getByText(t("register.submit"))).toBeEnabled();
+  });
+
+  it("disables submit until the password reaches the minimum length", () => {
+    renderPage();
+
+    const passwordInput = screen.getByPlaceholderText(t("register.password"));
+    const confirmInput = screen.getByPlaceholderText(t("register.confirmPassword"));
+
+    fireEvent.change(passwordInput, { target: { value: "abc" } });
+    fireEvent.change(confirmInput, { target: { value: "abc" } });
+
+    expect(screen.getByText(t("register.submit"))).toBeDisabled();
+
+    fireEvent.change(passwordInput, { target: { value: "abcdef" } });
+    fireEvent.change(confirmInput, { target: { value: "abcdef" } });
+
+    expect(screen.getByText(t("register.submit"))).toBeEnabled();
+  });
+
+  it("stores auth tokens after successful registration", async () => {
+    mockFetchSuccess({
+      idToken: "token-123",
+      refreshToken: "refresh-abc",
+      expiresIn: "3600",
+      userId: "user-42",
+      username: "testuser",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.username")), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.email")), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText(t("register.submit")));
+
+    await vi.waitFor(() => {
+      expect(localStorage.getItem("auth_token")).toBe("token-123");
+      expect(localStorage.getItem("refresh_token")).toBe("refresh-abc");
+      expect(localStorage.getItem("user_id")).toBe("user-42");
+      expect(localStorage.getItem("user_username")).toBe("testuser");
+      const tokenExpiry = localStorage.getItem("token_expiry");
+      expect(tokenExpiry).toBeTruthy();
+      expect(Number(tokenExpiry)).toBeGreaterThan(Date.now());
+    });
+  });
+
+  it("shows a French error toast when the email is already used", async () => {
+    mockFetchError(400, {
+      code: "EMAIL_EXISTS",
+      message: "An account already exists for this email address.",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.username")), {
+      target: { value: "existinguser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.email")), {
+      target: { value: "taken@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText(t("register.submit")));
+
+    const toast = await screen.findByText(t("errors.emailExists"));
+    expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("EMAIL_EXISTS")).toBeNull();
+    expect(
+      screen.queryByText("An account already exists for this email address."),
+    ).toBeNull();
+    expect(document.querySelector(".auth-error")).toBeNull();
+  });
+
+  it("shows a generic localised message for an unknown registration code", async () => {
+    mockFetchError(400, {
+      code: "SOMETHING_NEW",
+      message: "SOMETHING_NEW",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.username")), {
+      target: { value: "existinguser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.email")), {
+      target: { value: "taken@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText(t("register.submit")));
+
+    const toast = await screen.findByText(t("errors.generic"));
+    expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("SOMETHING_NEW")).toBeNull();
+  });
+
+  it("shows the warm-up message instead of the raw timeout error on register", async () => {
+    mockFetchError(408, {
+      code: "TIMEOUT",
+      message: "Request timed out",
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.username")), {
+      target: { value: "testuser" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.email")), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText(t("register.submit")));
+
+    const toast = await screen.findByText(t("errors.serverWarmup"));
+    expect(toast.className).toContain("toast-error");
+    expect(screen.queryByText("Request timed out")).toBeNull();
+  });
+
+  it("disables submit button and shows loading text while registering", () => {
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.username")), {
+      target: { value: "user" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.email")), {
+      target: { value: "a@b.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(t("register.confirmPassword")), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByText(t("register.submit")));
+
+    expect(screen.getByText(t("register.submitting"))).toBeDisabled();
+  });
+
+  it("links to the login page with a single switch affordance", () => {
+    renderPage();
+
+    const switchLink = screen.getByRole("link", { name: t("register.loginLink") });
+    expect(switchLink).toHaveAttribute("href", "/login");
+    expect(
+      screen.queryByRole("button", { name: t("register.loginLink") }),
+    ).toBeNull();
+  });
+
+  it("uses new-password autocomplete on both password fields", () => {
+    renderPage();
+
+    expect(screen.getByPlaceholderText(t("register.password"))).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
+    expect(
+      screen.getByPlaceholderText(t("register.confirmPassword")),
+    ).toHaveAttribute("autocomplete", "new-password");
+  });
+
+  it("keeps the account identifier on the email field for password managers", () => {
+    renderPage();
+
+    // "username" would make browsers fill the saved email here instead of in
+    // the Email field; this field is only a display name.
+    expect(screen.getByPlaceholderText(t("register.username"))).toHaveAttribute(
+      "autocomplete",
+      "nickname",
+    );
+    expect(screen.getByPlaceholderText(t("register.email"))).toHaveAttribute(
+      "autocomplete",
+      "email",
+    );
+  });
+
+  it("reveals each password field independently", () => {
+    renderPage();
+
+    const passwordInput = screen.getByPlaceholderText(t("register.password"));
+    const confirmInput = screen.getByPlaceholderText(t("register.confirmPassword"));
+    expect(passwordInput).toHaveAttribute("type", "password");
+    expect(confirmInput).toHaveAttribute("type", "password");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("common.showPassword") }),
+    );
+
+    expect(screen.getByPlaceholderText(t("register.password"))).toHaveAttribute(
+      "type",
+      "text",
+    );
+    expect(
+      screen.getByPlaceholderText(t("register.confirmPassword")),
+    ).toHaveAttribute("type", "password");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: t("common.showPasswordConfirmation"),
+      }),
+    );
+
+    expect(
+      screen.getByPlaceholderText(t("register.confirmPassword")),
+    ).toHaveAttribute("type", "text");
+  });
+
+  it("hides a revealed password again and keeps its value", () => {
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(t("register.password")), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("common.showPassword") }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: t("common.hidePassword") }),
+    );
+
+    const passwordInput = screen.getByPlaceholderText(t("register.password"));
+    expect(passwordInput).toHaveAttribute("type", "password");
+    expect(passwordInput).toHaveValue("password123");
+  });
+  it("pings the backend on mount to warm it up", async () => {
+    renderPage();
+
+    await vi.waitFor(() => {
+      const fetchMock = vi.mocked(fetch);
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).includes("/api/ping")),
+      ).toBe(true);
+    });
+  });
+});

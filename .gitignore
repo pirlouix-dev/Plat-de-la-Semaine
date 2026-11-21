@@ -1,29 +1,44 @@
-# MacOS
+# macOS
 .DS_Store
 
-# Build output
-/dist/
-/tmp/
-/coverage/
+# Node
+node_modules/
+dist/
+coverage/
+tmp/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Node modules
-/node_modules/
+# .NET (backend)
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.nupkg
+*.snupkg
+*.binlog
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResult.xml
+nunit-*.xml
 
 # Environment files
 .env
 .env.*
 .env.*.*
 
-# TypeScript cache
-*.tsbuildinfo
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Python virtual environments
+venv/
 
 # Agent config
 AGENTS.md
 
-# Generated API spec
-openapi.yml
+# Generated service account credentials
+firebase-credentials.json
+
+# Others
+~$*
+*~
+CodeCoverage/

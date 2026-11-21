@@ -1,84 +1,137 @@
-# Plat de la Semaine — Frontend
+# Plat de la Semaine
 
-Offline-first PWA for managing weekly meal plans. Built with React 19, RxDB, and Vite.
+Try it at **[platdelasemaine.vercel.app](https://platdelasemaine.vercel.app)**.
 
-## Features
+Deciding what to cook every week is a chore. Plat de la Semaine ("Dish of the
+Week") turns it into a small, pleasant ritual: you build your own repertoire of
+dishes, then review them one card at a time — accepting the ones that appeal to
+you right now and refusing the rest — until a menu for the current season takes
+shape.
 
-- **Dish management** — Add, edit, and organize dishes by course (starter/main/dessert) and season
-- **Offline-first** — Local RxDB/IndexedDB database with background sync to a .NET backend
-- **Auto-sync** — Push pending changes and pull remote updates on connectivity & visibility changes
-- **Resilient API client** — Timeouts, combined abort signals, and `ApiResult<T>` discriminated unions
-- **Dish planning** — Pick dishes for the week by accepting/rejecting cards from an in-season deck, with undo, a course-by-course recap, and sessions persisted across visits
-- **Authentication** — Register, log in/out, with tokens stored locally and transparent refresh on expiry
-- **Backup & restore** — Cloud backup/restore via REST API
+The app is available in English and French, works offline, and installs to the
+home screen on phones and desktops.
 
-## Tech Stack
+## What it does
 
-| Layer | |
-|---|---|
-| **Framework** | React 19 |
-| **Build** | Vite 8 + TypeScript 6 |
-| **Database** | RxDB 17 (IndexedDB) + RxJS 7 |
-| **Routing** | react-router-dom v7 |
-| **Testing** | Vitest 4 + Testing Library |
-| **API** | REST (fetch), OpenAPI types via `openapi-typescript` |
-| **Linting** | ESLint 10 (flat config) |
+- **Keep your own dish book** — Add each dish with its name, a description
+  (ingredients, preparation tips), its course (starter, main or dessert) and the
+  seasons it suits. Edit or delete them whenever you like.
+- **Choose the week's menu** — "Choose dishes" deals a card for a dish that is
+  in season. Accept or refuse it, undo a choice, and watch the starter, main
+  and dessert counters fill up. Validate when you are happy with the list.
+- **Review and rework** — The recap groups your selection by course. Go back to
+  adjust it, or reset everything and deal a fresh deck.
+- **Never lose your work** — Your dish book and the menu you are working on are
+  saved on the device. With an account they also sync to the cloud, so you can
+  start on your phone and finish on your computer. If the menu was changed on
+  another device, the app asks which version to keep.
+- **Works offline** — Dishes and selections stay available without a connection
+  and sync back as soon as you are online again.
+- **Pick up where you left off** — An unfinished menu, and even a half-filled
+  add-dish form, survive a reload or a closed tab.
+- **Guest mode or account** — Try the app without signing up; create an account
+  to sync across devices. From Settings you can import/export your dishes as a
+  file, restore a cloud backup, and send feedback or a bug report.
 
-## Getting Started
+## Development
 
-**Prerequisites:** Node 22 (see `.nvmrc`)
+The app is a monorepo: a React frontend and an ASP.NET Core backend.
+
+## Languages
+
+The app ships with English and French. On first visit it follows the browser
+language when it is one of the supported locales and falls back to English
+otherwise. The choice is stored per device and can be changed at any time under
+**Settings → Language**; it applies without reloading the page.
+
+All user-facing copy lives in `frontend/src/i18n/locales/`. To add a language:
+
+1. Create `frontend/src/i18n/locales/xx.ts` typed as
+   `Record<MessageKey, MessageValue>`.
+2. Register it in `frontend/src/i18n/translate.ts` and add it to `LOCALES` in
+   `frontend/src/i18n/types.ts`.
+3. Add its native name to `LOCALE_OPTIONS`.
+
+No component changes are needed. The PWA manifest can only declare one language
+for the installed app, so it stays English regardless of the in-app choice.
+
+## Layout
+
+| Path | Stack | Description |
+|---|---|---|
+| `frontend/` | React 19, TypeScript, Vite 8, RxDB 17 | Offline-first PWA |
+| `backend/` | ASP.NET Core (.NET 10), Firebase/Firestore | REST API |
+| `openapi.yml` | OpenAPI 3.1 | Backend contract snapshot, generated from the backend |
+| `docs/` | Markdown | Development and repository conventions |
+
+## Prerequisites
+
+- Node 22 (see `frontend/.nvmrc`)
+- .NET 10 SDK
+- A Firebase project with Firestore enabled, for the backend
+
+## Getting started
+
+The backend reads its configuration from `backend/.env` (see
+`backend/.env.example`). The frontend uses `frontend/.env` when it needs an
+explicit API URL; in development it proxies `/api` to `http://localhost:5126`,
+so leave `VITE_SERVER_URL` empty.
+
+Run the backend:
 
 ```sh
+cd backend
+cp .env.example .env   # first time only
+dotnet restore
+dotnet run
+```
+
+Run the frontend in another terminal:
+
+```sh
+cd frontend
 npm ci
 npm run dev
 ```
 
-The dev server starts at `http://localhost:5173` by default. In development, `/api` requests are proxied to the backend at `http://localhost:5126` (see `vite.config.ts`), so the app uses relative API URLs. Leave `VITE_SERVER_URL` empty in `.env` to use the proxy.
+The app is served at `http://localhost:5173`.
 
-To open the app from another device on the same network (e.g. a phone), run `npm run dev:host` and browse to `http://<your-computer-ip>:5173`. The proxy forwards API calls server-side, so no CORS setup or backend rebinding is needed.
+## Testing
 
-## Available Scripts
-
-| Script | Description |
-|---|---|
-| `npm run dev` | Start dev server |
-| `npm run dev:host` | Start dev server, reachable from other devices on the LAN |
-| `npm run build` | Type-check + production build |
-| `npm test` | Run tests (Vitest) |
-| `npm run lint` | Lint all source files |
-| `npm run preview` | Preview production build |
-| `npm run gen:api-types` | Regenerate `src/schema.d.ts` from `openapi.yml` |
-
-## Architecture
-
-```
-src/
-├── main.tsx                  # Entry point (BrowserRouter)
-├── App.tsx                   # Routes + DatabaseProvider + sync init
-├── pages/                    # Route-level page components
-├── components/               # Shared UI components
-├── db/                       # RxDB database context, schemas, collections
-├── repositories/             # Data access layer
-├── services/                 # API client, sync engine, backup, settings
-├── hooks/                    # React hooks (useDishes, useSync)
-├── types/                    # TypeScript types & validation helpers
-└── __tests__/                # Test suite
+```sh
+cd frontend && npm test
+cd backend && dotnet test
 ```
 
-Data flows: **UI → hooks → repository → RxDB (local)** ↔ **sync service → REST API (remote)**.
+## API contract
 
-## CI
+`openapi.yml` at the repository root is the single source of truth for the REST
+contract. Regenerate it from the backend, then regenerate the TypeScript types:
 
-GitHub Actions runs lint, type-check, build, and tests on every push to `main` and on pull requests.
+```sh
+cd backend && ./generate-openapi.sh
+cd frontend && npm run gen:api-types
+```
 
-## Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `VITE_SERVER_URL` | `http://localhost:5126` | Backend API base URL. Empty in dev to use the Vite `/api` proxy. |
+Commit both `openapi.yml` and `frontend/src/schema.d.ts` when the contract
+changes.
 
 ## Deployment
 
-The app is deployed on Vercel as static files, but routing is entirely client-side (`BrowserRouter`). `vercel.json` therefore rewrites every unmatched path to `/index.html` so the router can resolve it. Real files (`/assets/*`, icons, the web manifest) are still served directly, since Vercel applies rewrites only after the filesystem check.
+- The frontend is deployed on Vercel. The Vercel project root directory is
+  `frontend/`; `frontend/vercel.json` rewrites unmatched paths to
+  `/index.html` for the client-side router.
+- The backend is deployed to Azure App Service automatically by
+  `.github/workflows/deploy-backend.yml` on every push to `main` (and manually
+  through `workflow_dispatch`), building and testing `backend/` first.
 
-Do not remove that rewrite: without it, opening or refreshing any sub-route (`/login`, `/register`, `/settings`, …) returns a 404.
+Backend releases must be live before the frontend reaches users.
+
+## Repository guides
+
+- `docs/development.md` — branching, API and error contract, testing, tooling
+- `docs/monorepo.md` — layout, imported history, tags and release conventions
+- `docs/issue-migration.md` — backend issue number mapping
+- `docs/azure-deploy.md` — Azure App Service deployment and OIDC setup
+- `frontend/README.md` — frontend details
+- `backend/README.md` — backend configuration and deployment details
