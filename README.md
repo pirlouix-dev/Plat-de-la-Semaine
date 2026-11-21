@@ -1,7 +1,41 @@
 # Plat de la Semaine
 
-Offline-first PWA for managing weekly meal plans, with a React frontend and an
-ASP.NET Core backend in a single repository.
+Try it at **[platdelasemaine.vercel.app](https://platdelasemaine.vercel.app)**.
+
+Deciding what to cook every week is a chore. Plat de la Semaine ("Dish of the
+Week") turns it into a small, pleasant ritual: you build your own repertoire of
+dishes, then review them one card at a time — accepting the ones that appeal to
+you right now and refusing the rest — until a menu for the current season takes
+shape.
+
+The app is in French, works offline, and installs to the home screen on phones
+and desktops.
+
+## What it does
+
+- **Keep your own dish book** — Add each dish with its name, a description
+  (ingredients, preparation tips), its course (starter, main or dessert) and the
+  seasons it suits. Edit or delete them whenever you like.
+- **Choose the week's menu** — "Choisir les plats" deals a card for a dish that
+  is in season. Accept or refuse it, undo a choice, and watch the starter, main
+  and dessert counters fill up. Validate when you are happy with the list.
+- **Review and rework** — The recap groups your selection by course. Go back to
+  adjust it, or reset everything and deal a fresh deck.
+- **Never lose your work** — Your dish book and the menu you are working on are
+  saved on the device. With an account they also sync to the cloud, so you can
+  start on your phone and finish on your computer. If the menu was changed on
+  another device, the app asks which version to keep.
+- **Works offline** — Dishes and selections stay available without a connection
+  and sync back as soon as you are online again.
+- **Pick up where you left off** — An unfinished menu, and even a half-filled
+  add-dish form, survive a reload or a closed tab.
+- **Guest mode or account** — Try the app without signing up; create an account
+  to sync across devices. From Settings you can import/export your dishes as a
+  file, restore a cloud backup, and send feedback or a bug report.
+
+## Development
+
+The app is a monorepo: a React frontend and an ASP.NET Core backend.
 
 ## Layout
 
