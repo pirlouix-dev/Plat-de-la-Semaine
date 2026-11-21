@@ -3,7 +3,9 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../components/Toast";
 import LoginPage from "../pages/LoginPage/LoginPage";
-import { SERVER_WARMUP_MESSAGE } from "../services/api";
+import { createTranslator } from "../i18n";
+
+const t = createTranslator("en");
 
 beforeEach(() => {
   localStorage.clear();
@@ -72,14 +74,14 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "user@example.com" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.password")), {
       target: { value: "correct-password" },
     });
 
-    fireEvent.click(screen.getByText("Se connecter"));
+    fireEvent.click(screen.getByRole("button", { name: t("login.submit") }));
 
     const fetchMock = vi.mocked(fetch);
     const loginCall = fetchMock.mock.calls.find(([url]) =>
@@ -102,13 +104,13 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "user@example.com" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.password")), {
       target: { value: "pwd" },
     });
-    fireEvent.click(screen.getByText("Se connecter"));
+    fireEvent.click(screen.getByRole("button", { name: t("login.submit") }));
 
     await vi.waitFor(() => {
       expect(localStorage.getItem("auth_token")).toBe("token-123");
@@ -129,25 +131,25 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "bad@example.com" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.password")), {
       target: { value: "wrong" },
     });
-    fireEvent.click(screen.getByText("Se connecter"));
+    fireEvent.click(screen.getByRole("button", { name: t("login.submit") }));
 
-    const toast = await screen.findByText("Email ou mot de passe incorrect.");
+    const toast = await screen.findByText(t("errors.invalidCredentials"));
     expect(toast.className).toContain("toast-error");
     expect(screen.queryByText("INVALID_CREDENTIALS")).toBeNull();
     expect(screen.queryByText("Email or password is incorrect.")).toBeNull();
     expect(document.querySelector(".auth-error")).toBeNull();
 
-    expect(screen.getByPlaceholderText("Mot de passe")).toHaveValue("");
-    expect(screen.getByPlaceholderText("Email")).toHaveValue("bad@example.com");
+    expect(screen.getByPlaceholderText(t("login.password"))).toHaveValue("");
+    expect(screen.getByPlaceholderText(t("login.email"))).toHaveValue("bad@example.com");
   });
 
-  it("shows a generic French message for an unknown auth code", async () => {
+  it("shows a generic localised message for an unknown auth code", async () => {
     mockFetchError(401, {
       code: "SOMETHING_NEW",
       message: "SOMETHING_NEW",
@@ -155,18 +157,18 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "user@example.com" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.password")), {
       target: { value: "pwd" },
     });
-    fireEvent.click(screen.getByText("Se connecter"));
+    fireEvent.click(screen.getByRole("button", { name: t("login.submit") }));
 
-    const toast = await screen.findByText("Une erreur est survenue.");
+    const toast = await screen.findByText(t("errors.generic"));
     expect(toast.className).toContain("toast-error");
     expect(screen.queryByText("SOMETHING_NEW")).toBeNull();
-    expect(screen.getByPlaceholderText("Mot de passe")).toHaveValue("pwd");
+    expect(screen.getByPlaceholderText(t("login.password"))).toHaveValue("pwd");
   });
 
   it("shows the warm-up message instead of the raw timeout error on login", async () => {
@@ -177,18 +179,18 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "user@example.com" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Mot de passe"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.password")), {
       target: { value: "pwd" },
     });
-    fireEvent.click(screen.getByText("Se connecter"));
+    fireEvent.click(screen.getByRole("button", { name: t("login.submit") }));
 
-    const toast = await screen.findByText(SERVER_WARMUP_MESSAGE);
+    const toast = await screen.findByText(t("errors.serverWarmup"));
     expect(toast.className).toContain("toast-error");
     expect(screen.queryByText("Request timed out")).toBeNull();
-    expect(screen.getByPlaceholderText("Mot de passe")).toHaveValue("pwd");
+    expect(screen.getByPlaceholderText(t("login.password"))).toHaveValue("pwd");
   });
 
   it("shows the warm-up toast when forgot-password times out", async () => {
@@ -199,15 +201,15 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "user@example.com" },
     });
 
     fireEvent.click(
-      screen.getByRole("button", { name: /mot de passe oublié/i }),
+      screen.getByRole("button", { name: t("login.forgotPassword") }),
     );
 
-    const toast = await screen.findByText(SERVER_WARMUP_MESSAGE);
+    const toast = await screen.findByText(t("errors.serverWarmup"));
     expect(toast.className).toContain("toast-error");
   });
 
@@ -216,12 +218,12 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "user@example.com" },
     });
 
     fireEvent.click(
-      screen.getByRole("button", { name: /mot de passe oublié/i }),
+      screen.getByRole("button", { name: t("login.forgotPassword") }),
     );
 
     const fetchMock = vi.mocked(fetch);
@@ -234,9 +236,7 @@ describe("LoginPage", () => {
     expect(url).toContain("/api/auth/forgot-password");
     expect(options.body).toBe(JSON.stringify({ email: "user@example.com" }));
 
-    const toast = await screen.findByText(
-      /un email de réinitialisation a été envoyé/,
-    );
+    const toast = await screen.findByText(t("login.resetSent"));
     expect(toast.className).toContain("toast-warning");
   });
 
@@ -254,15 +254,15 @@ describe("LoginPage", () => {
 
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "user@example.com" },
     });
 
     fireEvent.click(
-      screen.getByRole("button", { name: /mot de passe oublié/i }),
+      screen.getByRole("button", { name: t("login.forgotPassword") }),
     );
 
-    const button = screen.getByRole("button", { name: /envoi en cours/i });
+    const button = screen.getByRole("button", { name: t("login.sending") });
     expect(button).toBeDisabled();
 
     resolveFetch({
@@ -273,7 +273,7 @@ describe("LoginPage", () => {
 
     await vi.waitFor(() => {
       expect(
-        screen.getByRole("button", { name: /mot de passe oublié/i }),
+        screen.getByRole("button", { name: t("login.forgotPassword") }),
       ).not.toBeDisabled();
     });
   });
@@ -282,10 +282,10 @@ describe("LoginPage", () => {
     renderLogin();
 
     fireEvent.click(
-      screen.getByRole("button", { name: /mot de passe oublié/i }),
+      screen.getByRole("button", { name: t("login.forgotPassword") }),
     );
 
-    const toast = screen.getByText("Veuillez entrer une adresse email valide.");
+    const toast = screen.getByText(t("login.invalidEmail"));
     expect(toast.className).toContain("toast-error");
     expect(document.querySelector(".auth-error")).toBeNull();
   });
@@ -293,50 +293,50 @@ describe("LoginPage", () => {
   it("shows a validation toast for invalid email on forgot password", () => {
     renderLogin();
 
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
+    fireEvent.change(screen.getByPlaceholderText(t("login.email")), {
       target: { value: "not-an-email" },
     });
 
     fireEvent.click(
-      screen.getByRole("button", { name: /mot de passe oublié/i }),
+      screen.getByRole("button", { name: t("login.forgotPassword") }),
     );
 
-    const toast = screen.getByText("Veuillez entrer une adresse email valide.");
+    const toast = screen.getByText(t("login.invalidEmail"));
     expect(toast.className).toContain("toast-error");
   });
 
   it("links to the register page with a single switch affordance", () => {
     renderLogin();
 
-    const switchLink = screen.getByRole("link", { name: "S'inscrire" });
+    const switchLink = screen.getByRole("link", { name: t("login.registerLink") });
     expect(switchLink).toHaveAttribute("href", "/register");
     expect(
-      screen.queryByRole("button", { name: /créer un compte/i }),
+      screen.queryByRole("button", { name: t("login.noAccount") }),
     ).toBeNull();
   });
 
   it("toggles the password visibility without submitting the form", () => {
     renderLogin();
 
-    const passwordInput = screen.getByPlaceholderText("Mot de passe");
+    const passwordInput = screen.getByPlaceholderText(t("login.password"));
     expect(passwordInput).toHaveAttribute("type", "password");
     expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
 
     fireEvent.change(passwordInput, { target: { value: "secret-password" } });
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Afficher le mot de passe" }),
+      screen.getByRole("button", { name: t("common.showPassword") }),
     );
 
-    const revealedInput = screen.getByPlaceholderText("Mot de passe");
+    const revealedInput = screen.getByPlaceholderText(t("login.password"));
     expect(revealedInput).toHaveAttribute("type", "text");
     expect(revealedInput).toHaveValue("secret-password");
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Masquer le mot de passe" }),
+      screen.getByRole("button", { name: t("common.hidePassword") }),
     );
 
-    expect(screen.getByPlaceholderText("Mot de passe")).toHaveAttribute(
+    expect(screen.getByPlaceholderText(t("login.password"))).toHaveAttribute(
       "type",
       "password",
     );

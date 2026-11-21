@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_LOCALE } from '../i18n';
 
 // The first paint background must be inlined in index.html (see #95): if it
 // only lives in index.css, Firefox paints a white canvas while the bundle
@@ -45,6 +46,10 @@ describe('index.html', () => {
       expect(inlineStyle).toBeLessThan(firstModuleScript);
     }
   });
+
+  it('declares the fallback locale as the document language', () => {
+    expect(html).toContain(`<html lang="${DEFAULT_LOCALE}">`);
+  });
 });
 
 describe('app background colour', () => {
@@ -62,5 +67,11 @@ describe('app background colour', () => {
   it('is used by the PWA splash screen background', () => {
     const manifest = JSON.parse(read('public/manifest.webmanifest'));
     expect(manifest.background_color).toBe(APP_BACKGROUND);
+  });
+
+  it('declares the fallback locale for the installed app', () => {
+    // A manifest can only carry one language; the in-app choice cannot change it.
+    const manifest = JSON.parse(read('public/manifest.webmanifest'));
+    expect(manifest.lang).toBe(DEFAULT_LOCALE);
   });
 });

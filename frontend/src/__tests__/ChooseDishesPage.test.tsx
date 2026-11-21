@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ChooseDishesPage from "../pages/ChooseDishesPage/ChooseDishesPage";
+import { createTranslator } from "../i18n";
+
+const t = createTranslator("en");
 import type { DishDocType } from "../db/schemas/dishes";
 import {
   _resetMenuStorageState,
@@ -111,14 +114,14 @@ describe("ChooseDishesPage queue construction", () => {
     const proposedNames: string[] = [];
     while (getCurrentDishName()) {
       proposedNames.push(getCurrentDishName());
-      fireEvent.click(screen.getByText("✕ Refuser"));
+      fireEvent.click(screen.getByText(t("choose.reject")));
       advance(220);
     }
 
     const pass = ["Colin d'Alaska & riz", "Salade tomates & mozzarella"];
     expect(proposedNames).toEqual([...pass, ...pass, ...pass]);
     expect(
-      screen.getByText(/Tous les plats ont été passés en revue/),
+      screen.getByText(t("choose.reviewComplete")),
     ).toBeDefined();
   });
 
@@ -127,7 +130,7 @@ describe("ChooseDishesPage queue construction", () => {
     renderPage();
 
     expect(
-      screen.getByText(/Aucun plat de saison pour le moment/),
+      screen.getByText(t("choose.noneInSeason")),
     ).toBeDefined();
   });
 
@@ -135,8 +138,8 @@ describe("ChooseDishesPage queue construction", () => {
     mockDishes = [];
     renderPage();
 
-    expect(screen.getByText("Aucun plat disponible.")).toBeDefined();
-    expect(screen.getByText("Ajouter un plat")).toBeDefined();
+    expect(screen.getByText(t("choose.empty"))).toBeDefined();
+    expect(screen.getByText(t("choose.addDish"))).toBeDefined();
   });
 });
 
@@ -144,7 +147,7 @@ describe("ChooseDishesPage sync resilience", () => {
   it("fills the queue when dishes sync in after an empty load", () => {
     mockDishes = [];
     const view = renderPage();
-    expect(screen.getByText("Aucun plat disponible.")).toBeDefined();
+    expect(screen.getByText(t("choose.empty"))).toBeDefined();
 
     mockDishes = [SUMMER_DISH_A, ALL_SEASONS_DISH];
     view.rerender(
@@ -153,7 +156,7 @@ describe("ChooseDishesPage sync resilience", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByText("Aucun plat disponible.")).toBeNull();
+    expect(screen.queryByText(t("choose.empty"))).toBeNull();
     expect(getCurrentDishName()).not.toBe("");
   });
 });
@@ -188,35 +191,35 @@ describe("ChooseDishesPage description see more", () => {
     setElementGeometry(60, 120);
     renderLongDish();
 
-    expect(screen.getByText("Voir plus")).toBeTruthy();
+    expect(screen.getByText(t("common.seeMore"))).toBeTruthy();
   });
 
   it("hides the toggle when a long description still fits the clamp", () => {
     setElementGeometry(60, 60);
     renderLongDish();
 
-    expect(screen.queryByText("Voir plus")).toBeNull();
+    expect(screen.queryByText(t("common.seeMore"))).toBeNull();
   });
 
   it("toggles only the clicked card when identical accepted dishes are shown", () => {
     setElementGeometry(60, 120);
     renderLongDish();
 
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
 
     const selectedSection = document.querySelector(
       ".selected-dishes-section",
     ) as HTMLElement;
-    const seeMoreButtons = within(selectedSection).getAllByText("Voir plus");
+    const seeMoreButtons = within(selectedSection).getAllByText(t("common.seeMore"));
     expect(seeMoreButtons).toHaveLength(2);
 
     fireEvent.click(seeMoreButtons[0]);
 
-    expect(within(selectedSection).getAllByText("Voir moins")).toHaveLength(1);
-    expect(within(selectedSection).getAllByText("Voir plus")).toHaveLength(1);
+    expect(within(selectedSection).getAllByText(t("common.seeLess"))).toHaveLength(1);
+    expect(within(selectedSection).getAllByText(t("common.seeMore"))).toHaveLength(1);
   });
 });
 
@@ -224,7 +227,7 @@ describe("ChooseDishesPage persistence", () => {
   it("persists dish ids, not dish objects", () => {
     renderPage();
 
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
@@ -247,9 +250,9 @@ describe("ChooseDishesPage persistence", () => {
   it("snapshots and marks a pending save when validating", () => {
     renderPage();
 
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
-    fireEvent.click(screen.getByText(/Valider/));
+    fireEvent.click(screen.getByText(t("choose.validate", { count: 1 })));
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.mode).toBe("recap");
@@ -264,10 +267,10 @@ describe("ChooseDishesPage persistence", () => {
   it("marks a pending empty save when clearing", () => {
     renderPage();
 
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
-    fireEvent.click(screen.getByLabelText("Réinitialiser les plats"));
-    fireEvent.click(screen.getByText("Oui, réinitialiser"));
+    fireEvent.click(screen.getByLabelText(t("choose.resetAria")));
+    fireEvent.click(screen.getByText(t("choose.resetYes")));
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.selectedIds).toEqual([]);
@@ -279,7 +282,7 @@ describe("ChooseDishesPage persistence", () => {
     localStorage.setItem("user_id", "u1");
     renderPage();
 
-    fireEvent.click(screen.getByText("✕ Refuser"));
+    fireEvent.click(screen.getByText(t("choose.reject")));
     advance(220);
 
     act(() => {
@@ -290,19 +293,24 @@ describe("ChooseDishesPage persistence", () => {
     });
 
     expect(
-      screen.getByText("Un menu a été enregistré sur un autre appareil."),
+      screen.getByText(t("choose.conflict.title")),
     ).toBeDefined();
     expect(
       screen.getByText(
-        /La version distante du .*2026.*\d{2}:\d{2}.*contient 1 plat\./,
+        new RegExp(
+          t("choose.conflict.remoteDishesOn", {
+            date: ".*2026.*\\d{2}:\\d{2}.*",
+            count: 1,
+          }),
+        ),
       ),
     ).toBeDefined();
 
-    fireEvent.click(screen.getByText("Charger le menu distant"));
+    fireEvent.click(screen.getByText(t("choose.conflict.load")));
 
-    expect(screen.getByText("Plats sauvegardés")).toBeDefined();
+    expect(screen.getByText(t("choose.title.saved"))).toBeDefined();
     expect(screen.getByText("Salade tomates & mozzarella")).toBeDefined();
-    expect(screen.queryByText(/Un menu a été enregistré/)).toBeNull();
+    expect(screen.queryByText(t("choose.conflict.title"))).toBeNull();
   });
 
   it("restores a session from saved ids", () => {
@@ -369,7 +377,7 @@ describe("ChooseDishesPage persistence", () => {
     });
     renderPage();
 
-    expect(screen.getByText("Plats sélectionnés (1)")).toBeDefined();
+    expect(screen.getByText(t("choose.selectedTitle", { count: 1 }))).toBeDefined();
     expect(getCurrentDishName()).not.toBe("");
   });
 
@@ -399,10 +407,10 @@ describe("ChooseDishesPage persistence", () => {
   it("rebuilds the queue from the database on reset", () => {
     renderPage();
 
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
-    fireEvent.click(screen.getByLabelText("Réinitialiser les plats"));
-    fireEvent.click(screen.getByText("Oui, réinitialiser"));
+    fireEvent.click(screen.getByLabelText(t("choose.resetAria")));
+    fireEvent.click(screen.getByText(t("choose.resetYes")));
 
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.queueIds).toEqual([
@@ -424,22 +432,22 @@ describe("ChooseDishesPage multiple passes", () => {
     renderPage();
 
     const firstName = getCurrentDishName();
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
 
     while (getCurrentDishName() !== firstName) {
-      fireEvent.click(screen.getByText("✕ Refuser"));
+      fireEvent.click(screen.getByText(t("choose.reject")));
       advance(220);
     }
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
 
-    expect(screen.getByText("Plats sélectionnés (2)")).toBeDefined();
+    expect(screen.getByText(t("choose.selectedTitle", { count: 2 }))).toBeDefined();
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(saved.selectedIds).toHaveLength(2);
 
-    fireEvent.click(screen.getByText("Annuler"));
-    expect(screen.getByText("Plats sélectionnés (1)")).toBeDefined();
+    fireEvent.click(screen.getByText(t("common.undo")));
+    expect(screen.getByText(t("choose.selectedTitle", { count: 1 }))).toBeDefined();
     expect(getCurrentDishName()).toBe(firstName);
     const savedAfterUndo = JSON.parse(
       localStorage.getItem(STORAGE_KEY) ?? "{}",
@@ -453,28 +461,28 @@ describe("ChooseDishesPage undo", () => {
     renderPage();
 
     const firstName = getCurrentDishName();
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
 
     expect(getCurrentDishName()).not.toBe(firstName);
-    expect(screen.getByText("Plats sélectionnés (1)")).toBeDefined();
+    expect(screen.getByText(t("choose.selectedTitle", { count: 1 }))).toBeDefined();
 
-    fireEvent.click(screen.getByText("Annuler"));
+    fireEvent.click(screen.getByText(t("common.undo")));
 
     expect(getCurrentDishName()).toBe(firstName);
-    expect(screen.getByText("Plats sélectionnés (0)")).toBeDefined();
+    expect(screen.getByText(t("choose.selectedTitle", { count: 0 }))).toBeDefined();
   });
 
   it("restores a rejected dish as the proposed card", () => {
     renderPage();
 
     const firstName = getCurrentDishName();
-    fireEvent.click(screen.getByText("✕ Refuser"));
+    fireEvent.click(screen.getByText(t("choose.reject")));
     advance(220);
 
     expect(getCurrentDishName()).not.toBe(firstName);
 
-    fireEvent.click(screen.getByText("Annuler"));
+    fireEvent.click(screen.getByText(t("common.undo")));
 
     expect(getCurrentDishName()).toBe(firstName);
   });
@@ -483,16 +491,16 @@ describe("ChooseDishesPage undo", () => {
     renderPage();
 
     const firstName = getCurrentDishName();
-    fireEvent.click(screen.getByText("✓ Accepter"));
+    fireEvent.click(screen.getByText(t("choose.accept")));
     advance(220);
-    fireEvent.click(screen.getByText("Annuler"));
+    fireEvent.click(screen.getByText(t("common.undo")));
 
-    fireEvent.click(screen.getByText("✕ Refuser"));
+    fireEvent.click(screen.getByText(t("choose.reject")));
     advance(100);
     expect(getCurrentDishName()).toBe(firstName);
 
     advance(120);
-    fireEvent.click(screen.getByText("✕ Refuser"));
+    fireEvent.click(screen.getByText(t("choose.reject")));
     advance(220);
     expect(getCurrentDishName()).not.toBe(firstName);
   });
@@ -508,7 +516,7 @@ describe("ChooseDishesPage undo", () => {
 
     expect(getCurrentDishName()).toBe("Salade tomates & mozzarella");
 
-    fireEvent.click(screen.getByText("Annuler"));
+    fireEvent.click(screen.getByText(t("common.undo")));
 
     expect(getCurrentDishName()).toBe("Salade tomates & mozzarella");
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");

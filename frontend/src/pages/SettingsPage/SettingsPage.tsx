@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   BackArrowIcon,
   BugIcon,
+  GlobeIcon,
   InfoIcon,
   RefreshIcon,
   UserIcon,
@@ -49,23 +50,30 @@ import { useApiErrorToast } from "../../hooks/useApiErrorToast";
 import { useIsLoggedIn } from "../../hooks/useIsLoggedIn";
 import { useSyncState } from "../../hooks/useSyncStatus";
 import { MAX_FEEDBACK_LENGTH, MAX_USERNAME_LENGTH } from "../../types/dish";
-import type { BackupSummary } from "../../types";
+import {
+  LOCALE_OPTIONS,
+  useTranslation,
+  type Locale,
+  type MessageKey,
+} from "../../i18n";
+import type { ApiErrorDetail, BackupSummary } from "../../types";
 import type { VersionInfo } from "../../services/settingsService";
 import "./SettingsPage.css";
 
-type SettingsTab = "account" | "data" | "bugs" | "info";
+type SettingsTab = "language" | "account" | "data" | "bugs" | "info";
 
 // Must match the CSS media query in SettingsPage.css
 const MOBILE_LAYOUT_QUERY = "(max-width: 649px)";
 
 const TAB_CONFIG: Record<
   SettingsTab,
-  { title: string; Icon: ComponentType<{ size?: number }> }
+  { titleKey: MessageKey; Icon: ComponentType<{ size?: number }> }
 > = {
-  account: { title: "Mon compte", Icon: UserIcon },
-  data: { title: "Données & Plats", Icon: RefreshIcon },
-  bugs: { title: "Signaler un bug", Icon: BugIcon },
-  info: { title: "À propos", Icon: InfoIcon },
+  language: { titleKey: "settings.tab.language", Icon: GlobeIcon },
+  account: { titleKey: "settings.tab.account", Icon: UserIcon },
+  data: { titleKey: "settings.tab.data", Icon: RefreshIcon },
+  bugs: { titleKey: "settings.tab.bugs", Icon: BugIcon },
+  info: { titleKey: "settings.tab.info", Icon: InfoIcon },
 };
 
 const SETTINGS_TABS = Object.keys(TAB_CONFIG) as SettingsTab[];
@@ -77,63 +85,21 @@ function parseTabHash(hash: string): SettingsTab | null {
     : null;
 }
 
-function formatBackupDate(isoDate: string): {
-  dateLabel: string;
-  timeLabel: string;
-} {
-  const d = new Date(isoDate);
-  const now = new Date();
-  const isToday =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
-
-  const timeLabel = d.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  if (isToday) {
-    return { dateLabel: "Aujourd'hui", timeLabel };
-  }
-
-  const dateLabel = d.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-  return { dateLabel, timeLabel };
-}
-
-function formatLastSync(isoDate: string | null): string {
-  if (!isoDate) return "Jamais";
-  const d = new Date(isoDate);
-  const date = d.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-  const time = d.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return `${date} à ${time}`;
-}
-
 function LoginPrompt() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   return (
     <div className="settings-panel">
       <section className="settings-section-card">
         <p className="section-description-login">
-          Connectez-vous pour accéder à cette section.
+          {t("settings.loginPrompt")}
         </p>
         <div className="form-actions">
           <button
             className="btn btn-primary"
             onClick={() => navigate("/login")}
           >
-            Se connecter
+            {t("settings.signIn")}
           </button>
         </div>
       </section>
@@ -148,10 +114,39 @@ export function SettingsPage() {
   const { showToast } = useToast();
   const showApiErrorToast = useApiErrorToast();
   const isLoggedIn = useIsLoggedIn();
+  const { t, locale, setLocale, formatDate, formatTime } = useTranslation();
 
   const isMobileLayout = window.matchMedia(MOBILE_LAYOUT_QUERY).matches;
   const activeTab: SettingsTab | null =
     parseTabHash(location.hash) ?? (isMobileLayout ? null : "account");
+
+  const formatBackupDate = (
+    isoDate: string,
+  ): { dateLabel: string; timeLabel: string } => {
+    const d = new Date(isoDate);
+    const now = new Date();
+    const isToday =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+
+    const timeLabel = formatTime(d);
+
+    if (isToday) {
+      return { dateLabel: t("common.today"), timeLabel };
+    }
+
+    return { dateLabel: formatDate(d), timeLabel };
+  };
+
+  const formatLastSync = (isoDate: string | null): string => {
+    if (!isoDate) return t("common.never");
+    const d = new Date(isoDate);
+    return t("common.at", {
+      date: formatDate(d),
+      time: formatTime(d),
+    });
+  };
 
   const [username, setUsername] = useState(
     () => localStorage.getItem("user_username") ?? "",
@@ -171,7 +166,7 @@ export function SettingsPage() {
     const result = await updateUsername(trimmed);
     if (result.ok) {
       localStorage.setItem("user_username", trimmed);
-      showToast("Nom d'utilisateur mis à jour", "success");
+      showToast(t("settings.account.usernameUpdated"), "success");
     } else {
       showApiErrorToast(result.error);
     }
@@ -182,10 +177,7 @@ export function SettingsPage() {
     setResettingPassword(true);
     const result = await resetPassword();
     if (result.ok) {
-      showToast(
-        "Email de réinitialisation envoyé. Il se situe probablement dans vos spams.",
-        "warning",
-      );
+      showToast(t("settings.account.resetEmailSent"), "warning");
     } else {
       showApiErrorToast(result.error);
     }
@@ -227,18 +219,18 @@ export function SettingsPage() {
       try {
         text = await file.text();
       } catch {
-        showToast("Impossible de lire le fichier.", "error");
+        showToast(t("settings.data.importReadError"), "error");
         return;
       }
 
       const parsed = parseDishImportJson(text);
       if (!parsed.ok) {
-        showToast(parsed.error, "error");
+        showToast(t(parsed.error), "error");
         return;
       }
 
       if (parsed.items.length === 0) {
-        showToast("Aucun plat valide dans le fichier.", "error");
+        showToast(t("settings.data.importEmpty"), "error");
         return;
       }
 
@@ -254,10 +246,14 @@ export function SettingsPage() {
         const rejected = parsed.errors.length;
         const parts =
           flush === null
-            ? [`${saved} plat(s) enregistré(s) localement`]
-            : [`${saved} plat(s) importé(s)`];
-        if (rejected > 0) parts.push(`${rejected} en échec`);
-        if (flush?.failed) parts.push("synchronisation incomplète");
+            ? [t("settings.data.importSaved", { count: saved })]
+            : [t("settings.data.importImported", { count: saved })];
+        if (rejected > 0) {
+          parts.push(t("settings.data.importFailed", { count: rejected }));
+        }
+        if (flush?.failed) {
+          parts.push(t("settings.data.importSyncIncomplete"));
+        }
 
         // A failed flush is not an import failure: the dishes are stored and
         // the next sync retries them, so it only warns.
@@ -265,7 +261,7 @@ export function SettingsPage() {
           rejected > 0 ? "error" : flush?.failed ? "warning" : "success";
         showToast(parts.join(", "), type);
       } catch {
-        showToast("Erreur lors de l'import", "error");
+        showToast(t("settings.data.importError"), "error");
       }
     } finally {
       setImporting(false);
@@ -280,14 +276,17 @@ export function SettingsPage() {
       const dishes = await getAllDishes(db);
       const exportable = dishes.filter((dish) => !dish.isDeleted);
       if (exportable.length === 0) {
-        showToast("Aucun plat à exporter.", "error");
+        showToast(t("settings.data.exportEmpty"), "error");
         return;
       }
 
       downloadJsonFile(buildExportFilename(), serializeDishExport(dishes));
-      showToast(`${exportable.length} plat(s) exporté(s)`, "success");
+      showToast(
+        t("settings.data.exported", { count: exportable.length }),
+        "success",
+      );
     } catch {
-      showToast("Erreur lors de l'export", "error");
+      showToast(t("settings.data.exportError"), "error");
     } finally {
       setExporting(false);
     }
@@ -297,7 +296,9 @@ export function SettingsPage() {
 
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [backupsLoading, setBackupsLoading] = useState(false);
-  const [backupsError, setBackupsError] = useState<string | null>(null);
+  const [backupsError, setBackupsError] = useState<ApiErrorDetail | null>(
+    null,
+  );
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const fetchBackups = useCallback(async () => {
@@ -307,7 +308,7 @@ export function SettingsPage() {
     if (result.ok) {
       setBackups(result.data);
     } else {
-      setBackupsError(getApiErrorMessage(result.error));
+      setBackupsError(result.error);
     }
     setBackupsLoading(false);
   }, []);
@@ -316,7 +317,7 @@ export function SettingsPage() {
     setRestoringId(backupId);
     const result = await restoreBackup(backupId);
     if (result.ok) {
-      showToast("Sauvegarde restaurée avec succès", "success");
+      showToast(t("settings.data.restoreSuccess"), "success");
       await fetchBackups();
     } else {
       showApiErrorToast(result.error);
@@ -335,7 +336,7 @@ export function SettingsPage() {
       appVersion: versionInfo?.latestVersion ?? "unknown",
     });
     if (result.ok) {
-      showToast("Rapport envoyé, merci !", "success");
+      showToast(t("settings.bugs.success"), "success");
       setBugDescription("");
     } else {
       showApiErrorToast(result.error);
@@ -351,10 +352,7 @@ export function SettingsPage() {
 
   const handleRefreshFromServer = async () => {
     if (!db) {
-      showToast(
-        "Base de données indisponible. Réessayez dans un instant.",
-        "error",
-      );
+      showToast(t("settings.data.databaseUnavailable"), "error");
       return;
     }
 
@@ -363,20 +361,17 @@ export function SettingsPage() {
       const ok = await refreshFromServer(db);
       if (ok) {
         setLastSyncAt(await getLastSyncAt(db));
-        showToast("Plats rafraîchis depuis le serveur", "success");
+        showToast(t("settings.data.refreshSuccess"), "success");
       } else {
         showToast(
           navigator.onLine
-            ? "Le rafraîchissement des plats a échoué. Réessayez plus tard."
-            : "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+            ? t("settings.data.refreshFailed")
+            : t("settings.data.refreshOffline"),
           "error",
         );
       }
     } catch {
-      showToast(
-        "Le rafraîchissement des plats a échoué. Réessayez plus tard.",
-        "error",
-      );
+      showToast(t("settings.data.refreshFailed"), "error");
     } finally {
       setRefreshing(false);
     }
@@ -405,7 +400,7 @@ export function SettingsPage() {
       if (result.ok) {
         setBackups(result.data);
       } else {
-        setBackupsError(getApiErrorMessage(result.error));
+        setBackupsError(result.error);
       }
       setBackupsLoading(false);
     };
@@ -460,11 +455,15 @@ export function SettingsPage() {
       className={`settings-container ${activeTab ? "has-active-tab" : "is-summary"}`}
     >
       <header className="form-header">
-        <button className="back-btn" onClick={handleBack} aria-label="Retour">
+        <button
+          className="back-btn"
+          onClick={handleBack}
+          aria-label={t("common.back")}
+        >
           <BackArrowIcon size={20} />
         </button>
         <h1 className="page-title">
-          {activeTab ? TAB_CONFIG[activeTab].title : "Paramètres"}
+          {activeTab ? t(TAB_CONFIG[activeTab].titleKey) : t("settings.title")}
         </h1>
         <div className="header-spacer" />
       </header>
@@ -474,7 +473,8 @@ export function SettingsPage() {
           <div className="sidebar-card nav-card">
             <nav className="settings-nav-list">
               {SETTINGS_TABS.map((tabKey) => {
-                const { title, Icon } = TAB_CONFIG[tabKey];
+                const { titleKey, Icon } = TAB_CONFIG[tabKey];
+                const title = t(titleKey);
                 return (
                   <button
                     key={tabKey}
@@ -494,14 +494,46 @@ export function SettingsPage() {
         </aside>
 
         <main className="settings-main-content">
+          {currentTab === "language" && (
+            <div className="settings-panel">
+              <section className="settings-section-card">
+                <h2 className="section-title">
+                  {t("settings.language.title")}
+                </h2>
+                <p className="section-description">
+                  {t("settings.language.description")}
+                </p>
+                <div className="form-group">
+                  <label htmlFor="language-select" className="input-label">
+                    {t("settings.language.label")}
+                  </label>
+                  <select
+                    id="language-select"
+                    className="settings-input"
+                    value={locale}
+                    onChange={(e) => setLocale(e.target.value as Locale)}
+                  >
+                    {LOCALE_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </section>
+            </div>
+          )}
+
           {currentTab === "account" &&
             (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
-                  <h2 className="section-title">Profil utilisateur</h2>
+                  <h2 className="section-title">
+                    {t("settings.account.profile")}
+                  </h2>
                   <div className="form-group">
                     <label htmlFor="username-input" className="input-label">
-                      Nom d'utilisateur
+                      {t("settings.account.username")}
                     </label>
                     <div className="input-group char-counter-field">
                       <input
@@ -528,16 +560,20 @@ export function SettingsPage() {
                         }
                         onClick={handleUsernameSave}
                       >
-                        {usernameSaving ? "Enregistrement…" : "Enregistrer"}
+                        {usernameSaving
+                          ? t("common.saving")
+                          : t("common.save")}
                       </button>
                     </div>
                   </div>
                 </section>
 
                 <section className="settings-section-card">
-                  <h2 className="section-title">Sécurité</h2>
+                  <h2 className="section-title">
+                    {t("settings.account.security")}
+                  </h2>
                   <button className="btn btn-primary" onClick={handleLogout}>
-                    Se déconnecter
+                    {t("settings.account.signOut")}
                   </button>
                   <button
                     className="btn btn-revert stacked-btn"
@@ -545,23 +581,24 @@ export function SettingsPage() {
                     onClick={handleResetPassword}
                   >
                     {resettingPassword
-                      ? "Envoi en cours…"
-                      : "Réinitialiser le mot de passe"}
+                      ? t("settings.account.resetPasswordSending")
+                      : t("settings.account.resetPassword")}
                   </button>
                 </section>
 
                 <section className="settings-section-card danger-zone">
-                  <h2 className="section-title danger-title">Zone de danger</h2>
+                  <h2 className="section-title danger-title">
+                    {t("settings.account.dangerZone")}
+                  </h2>
                   <p className="section-description">
-                    Cette action est irréversible. Toutes vos données seront
-                    supprimées.
+                    {t("settings.account.deleteWarning")}
                   </p>
                   <div className="danger-actions">
                     <button
                       className="btn btn-danger"
                       onClick={() => setShowDeleteModal(true)}
                     >
-                      Supprimer le compte
+                      {t("settings.account.deleteAccount")}
                     </button>
                   </div>
                 </section>
@@ -575,13 +612,14 @@ export function SettingsPage() {
                       className="modal-card"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <h3 className="modal-title">Supprimer le compte ?</h3>
+                      <h3 className="modal-title">
+                        {t("settings.account.deleteTitle")}
+                      </h3>
                       <p className="modal-text">
-                        Voulez-vous vraiment supprimer votre compte et toutes
-                        vos données ?
+                        {t("settings.account.deleteConfirm")}
                       </p>
                       <p className="modal-text">
-                        Cette action est irréversible.
+                        {t("settings.account.deleteIrreversible")}
                       </p>
                       <div className="modal-actions">
                         <button
@@ -589,14 +627,16 @@ export function SettingsPage() {
                           onClick={() => setShowDeleteModal(false)}
                           disabled={deleting}
                         >
-                          Annuler
+                          {t("common.cancel")}
                         </button>
                         <button
                           className="btn btn-danger"
                           onClick={handleDeleteAccount}
                           disabled={deleting}
                         >
-                          {deleting ? "Suppression…" : "Supprimer"}
+                          {deleting
+                            ? t("common.deleting")
+                            : t("common.delete")}
                         </button>
                       </div>
                     </div>
@@ -611,13 +651,16 @@ export function SettingsPage() {
             (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
-                  <h2 className="section-title">Synchronisation</h2>
+                  <h2 className="section-title">
+                    {t("settings.data.syncTitle")}
+                  </h2>
                   <p className="section-description">
-                    Recharge tous vos plats depuis le serveur si vous pensez
-                    qu'ils ne sont plus à jour.
+                    {t("settings.data.syncDescription")}
                   </p>
                   <p className="section-description">
-                    Dernière synchronisation : {formatLastSync(lastSyncAt)}
+                    {t("settings.data.lastSync", {
+                      value: formatLastSync(lastSyncAt),
+                    })}
                   </p>
                   <button
                     className="btn btn-primary"
@@ -625,21 +668,22 @@ export function SettingsPage() {
                     disabled={syncBusy}
                     title={
                       !refreshing && syncState.phase === "syncing"
-                        ? "Synchronisation en cours…"
+                        ? t("settings.data.syncing")
                         : undefined
                     }
                   >
                     {refreshing
-                      ? "Rafraîchissement…"
-                      : "Rafraîchir les plats depuis le serveur"}
+                      ? t("settings.data.refreshing")
+                      : t("settings.data.refresh")}
                   </button>
                 </section>
 
                 <section className="settings-section-card">
-                  <h2 className="section-title">Importer / Exporter des plats</h2>
+                  <h2 className="section-title">
+                    {t("settings.data.importExport")}
+                  </h2>
                   <p className="section-description">
-                    Importez plusieurs plats d'un coup depuis un fichier JSON, ou
-                    exportez tous vos plats dans un fichier JSON.
+                    {t("settings.data.importExportDescription")}
                   </p>
                   <input
                     ref={importInputRef}
@@ -658,27 +702,32 @@ export function SettingsPage() {
                     disabled={importing}
                   >
                     {importing
-                      ? "Importer depuis un fichier JSON…"
-                      : "Importer depuis un fichier JSON"}
+                      ? t("settings.data.importing")
+                      : t("settings.data.import")}
                   </button>
                   <button
                     className="btn btn-primary stacked-btn"
                     onClick={handleExport}
                     disabled={exporting}
                   >
-                    {exporting ? "Export en cours…" : "Exporter dans un fichier JSON"}
+                    {exporting
+                      ? t("settings.data.exporting")
+                      : t("settings.data.export")}
                   </button>
                 </section>
 
                 <section className="settings-section-card">
-                  <h2 className="section-title">Restauration des données</h2>
+                  <h2 className="section-title">
+                    {t("settings.data.backupTitle")}
+                  </h2>
                   <p className="section-description">
-                    Sélectionnez une sauvegarde dans l'historique pour restaurer
-                    l'état de vos plats.
+                    {t("settings.data.backupDescription")}
                   </p>
 
                   {backupsLoading && (
-                    <p className="section-description">Chargement…</p>
+                    <p className="section-description">
+                      {t("settings.data.backupsLoading")}
+                    </p>
                   )}
 
                   {backupsError && (
@@ -686,13 +735,13 @@ export function SettingsPage() {
                       className="section-description"
                       style={{ color: "#ef4444" }}
                     >
-                      {backupsError}
+                      {getApiErrorMessage(backupsError)}
                     </p>
                   )}
 
                   {!backupsLoading && backups.length === 0 && (
                     <p className="section-description">
-                      Aucune sauvegarde disponible.
+                      {t("settings.data.backupsEmpty")}
                     </p>
                   )}
 
@@ -719,12 +768,17 @@ export function SettingsPage() {
                               <div className="backup-time-info">
                                 <span className="backup-date">{dateLabel}</span>
                                 <span className="backup-time">
-                                  à {timeLabel}
+                                  {t("settings.data.atTime", {
+                                    time: timeLabel,
+                                  })}
                                 </span>
                               </div>
                               <div className="backup-meta-chips">
                                 <span className="meta-chip">
-                                  🍽️ {backup.dishCount} plats
+                                  🍽️{" "}
+                                  {t("settings.data.backupDishes", {
+                                    count: backup.dishCount,
+                                  })}
                                 </span>
                               </div>
                             </div>
@@ -732,7 +786,7 @@ export function SettingsPage() {
                             <div className="backup-action">
                               {isCurrent ? (
                                 <span className="status-pill active-pill">
-                                  ● Version active
+                                  {t("settings.data.activeVersion")}
                                 </span>
                               ) : (
                                 <button
@@ -740,7 +794,9 @@ export function SettingsPage() {
                                   disabled={isRestoring}
                                   onClick={() => handleRestore(backup.id)}
                                 >
-                                  {isRestoring ? "Restauration…" : "Restaurer"}
+                                  {isRestoring
+                                    ? t("settings.data.restoring")
+                                    : t("settings.data.restore")}
                                 </button>
                               )}
                             </div>
@@ -759,20 +815,21 @@ export function SettingsPage() {
             (isLoggedIn ? (
               <div className="settings-panel">
                 <section className="settings-section-card">
-                  <h2 className="section-title">Signaler un bug</h2>
+                  <h2 className="section-title">
+                    {t("settings.bugs.title")}
+                  </h2>
                   <p className="section-description">
-                    Décrivez le problème rencontré pour nous aider à le résoudre
-                    :
+                    {t("settings.bugs.description")}
                   </p>
                   <ul className="bug-guidelines-list">
-                    <li>Ce que vous faisiez juste avant l'incident</li>
-                    <li>Si le comportement est systématique ou occasionnel</li>
+                    <li>{t("settings.bugs.guidelineBefore")}</li>
+                    <li>{t("settings.bugs.guidelineFrequency")}</li>
                   </ul>
 
                   <div className="input-group char-counter-field">
                     <textarea
                       className="settings-textarea"
-                      placeholder="Lorsque j'accepte plusieurs plats très rapidement..."
+                      placeholder={t("settings.bugs.placeholder")}
                       rows={5}
                       maxLength={MAX_FEEDBACK_LENGTH}
                       value={bugDescription}
@@ -790,7 +847,9 @@ export function SettingsPage() {
                       disabled={!bugDescription.trim() || bugSubmitting}
                       onClick={handleBugSubmit}
                     >
-                      {bugSubmitting ? "Envoi…" : "Envoyer le rapport"}
+                      {bugSubmitting
+                        ? t("settings.bugs.sending")
+                        : t("settings.bugs.submit")}
                     </button>
                   </div>
                 </section>
@@ -802,18 +861,20 @@ export function SettingsPage() {
           {currentTab === "info" && (
             <div className="settings-panel">
               <section className="settings-section-card">
-                <h2 className="section-title">
-                  Informations sur l'application
-                </h2>
+                <h2 className="section-title">{t("settings.info.title")}</h2>
                 <div className="info-list">
                   <div className="info-row">
-                    <span className="info-label">Version de l'application</span>
+                    <span className="info-label">
+                      {t("settings.info.version")}
+                    </span>
                     <span className="info-value">
                       {versionInfo?.latestVersion ?? "…"}
                     </span>
                   </div>
                   <div className="info-row">
-                    <span className="info-label">Dernière synchronisation</span>
+                    <span className="info-label">
+                      {t("settings.info.lastSync")}
+                    </span>
                     <span className="info-value">
                       {formatLastSync(lastSyncAt)}
                     </span>

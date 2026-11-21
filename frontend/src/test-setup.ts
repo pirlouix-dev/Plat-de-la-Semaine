@@ -1,8 +1,16 @@
 import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom';
+import { beforeEach } from 'vitest';
 import { setBaseUrl } from './services/api';
+import { __resetI18nForTests } from './i18n';
 
 setBaseUrl('http://localhost:5126');
+
+beforeEach(() => {
+  // jsdom reports an English browser locale, so pin the default explicitly to
+  // keep tests independent from the machine running them.
+  __resetI18nForTests('en');
+});
 
 const memoryStorage = new Map<string, string>();
 

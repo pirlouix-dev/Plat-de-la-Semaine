@@ -1,8 +1,8 @@
 {
   "name": "Plat de la Semaine",
   "short_name": "Plat de la Semaine",
-  "description": "Planificateur de repas de la semaine : gérez vos plats, composez vos menus et synchronisez vos données.",
-  "lang": "fr",
+  "description": "Weekly meal planner: manage your dishes, build your menus and sync your data.",
+  "lang": "en",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

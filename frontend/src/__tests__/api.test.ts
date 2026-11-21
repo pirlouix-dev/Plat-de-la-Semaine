@@ -11,10 +11,13 @@ import {
   AUTH_CHANGED_EVENT,
   getApiErrorMessage,
   getApiErrorToastDuration,
-  SERVER_WARMUP_MESSAGE,
   SERVER_WARMUP_TOAST_DURATION_MS,
 } from "../services/api";
 import type { ApiResult } from "../services/api";
+import { createTranslator, setLocale } from "../i18n";
+
+const t = createTranslator("en");
+const fr = createTranslator("fr");
 
 // ── Mock setup ───────────────────────────────────────────────────────────────
 
@@ -344,34 +347,25 @@ describe("Error handling edge cases", () => {
 describe("getApiErrorMessage", () => {
   it("returns the warm-up message for a TIMEOUT error", () => {
     expect(
-      getApiErrorMessage({ code: "TIMEOUT", message: "Request timed out" })
-    ).toBe(SERVER_WARMUP_MESSAGE);
+      getApiErrorMessage({ code: "TIMEOUT", message: "Request timed out" }),
+    ).toBe(t("errors.serverWarmup"));
   });
 
   it.each([
-    ["EMAIL_EXISTS", "Un compte existe déjà avec cette adresse email."],
-    ["INVALID_CREDENTIALS", "Email ou mot de passe incorrect."],
-    ["USER_DISABLED", "Ce compte est désactivé."],
-    ["TOO_MANY_ATTEMPTS", "Trop de tentatives. Veuillez réessayer plus tard."],
-    [
-      "VALIDATION_ERROR",
-      "Certaines informations sont invalides. Vérifiez votre saisie.",
-    ],
-    ["NOT_FOUND", "L'élément demandé est introuvable."],
-    [
-      "SERVICE_UNAVAILABLE",
-      "Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.",
-    ],
-    [
-      "RATE_LIMITED",
-      "Trop de signalements envoyés. Veuillez réessayer plus tard.",
-    ],
-    [
-      "NETWORK_ERROR",
-      "Impossible de contacter le serveur. Vérifiez votre connexion Internet.",
-    ],
-  ])("maps %s to French copy", (code, expected) => {
-    expect(getApiErrorMessage({ code, message: "diagnostic" })).toBe(expected);
+    ["EMAIL_EXISTS", "errors.emailExists"],
+    ["INVALID_EMAIL", "errors.invalidEmail"],
+    ["INVALID_CREDENTIALS", "errors.invalidCredentials"],
+    ["USER_DISABLED", "errors.userDisabled"],
+    ["TOO_MANY_ATTEMPTS", "errors.tooManyAttempts"],
+    ["VALIDATION_ERROR", "errors.validation"],
+    ["NOT_FOUND", "errors.notFound"],
+    ["SERVICE_UNAVAILABLE", "errors.serviceUnavailable"],
+    ["RATE_LIMITED", "errors.reportRateLimited"],
+    ["NETWORK_ERROR", "errors.network"],
+  ])("maps %s to its localised copy", (code, key) => {
+    expect(getApiErrorMessage({ code, message: "diagnostic" })).toBe(
+      t(key as Parameters<typeof t>[0]),
+    );
   });
 
   it("ignores the backend diagnostic message", () => {
@@ -379,23 +373,40 @@ describe("getApiErrorMessage", () => {
       getApiErrorMessage({
         code: "VALIDATION_ERROR",
         message: "Name must not exceed 200 characters.",
-      })
-    ).toBe("Certaines informations sont invalides. Vérifiez votre saisie.");
+      }),
+    ).toBe(t("errors.validation"));
   });
 
-  it("maps HTTP status codes to French copy", () => {
+  it("maps HTTP status codes to localised copy", () => {
     expect(getApiErrorMessage({ code: "HTTP_500", message: "HTTP 500" })).toBe(
-      "Le serveur a rencontré une erreur. Veuillez réessayer plus tard."
+      t("errors.server"),
     );
     expect(getApiErrorMessage({ code: "HTTP_404", message: "HTTP 404" })).toBe(
-      "L'élément demandé est introuvable."
+      t("errors.notFound"),
+    );
+    expect(getApiErrorMessage({ code: "HTTP_403", message: "HTTP 403" })).toBe(
+      t("errors.forbidden"),
+    );
+    expect(getApiErrorMessage({ code: "HTTP_429", message: "HTTP 429" })).toBe(
+      t("errors.rateLimited"),
     );
   });
 
-  it("falls back to a generic French message for unknown codes", () => {
+  it("falls back to a generic message for unknown codes", () => {
     expect(
-      getApiErrorMessage({ code: "SOMETHING_NEW", message: "SOMETHING_NEW" })
-    ).toBe("Une erreur est survenue.");
+      getApiErrorMessage({ code: "SOMETHING_NEW", message: "SOMETHING_NEW" }),
+    ).toBe(t("errors.generic"));
+  });
+
+  it("uses the active locale", () => {
+    setLocale("fr");
+
+    expect(
+      getApiErrorMessage({ code: "INVALID_CREDENTIALS", message: "bad" }),
+    ).toBe(fr("errors.invalidCredentials"));
+    expect(
+      getApiErrorMessage({ code: "INVALID_CREDENTIALS", message: "bad" }),
+    ).not.toBe(t("errors.invalidCredentials"));
   });
 });
 

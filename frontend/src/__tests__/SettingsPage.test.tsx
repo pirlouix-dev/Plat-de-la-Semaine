@@ -116,6 +116,10 @@ vi.mock("../hooks/useSyncStatus", () => ({
 }));
 
 import SettingsPage from "../pages/SettingsPage/SettingsPage";
+import { createTranslator } from "../i18n";
+
+const t = createTranslator("en");
+const fr = createTranslator("fr");
 
 function renderSettingsPage(entry = "/settings") {
   return render(
@@ -197,17 +201,17 @@ describe("SettingsPage", () => {
 
   it("navigates to home when back is pressed on desktop", () => {
     renderSettingsPage();
-    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+    fireEvent.click(screen.getByRole("button", { name: t("common.back") }));
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
   it("returns to summary first on mobile then navigates home", () => {
     mockMatchMedia(true);
     renderSettingsPage();
-    fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
-    expect(screen.getByRole("heading", { name: "Paramètres" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
+    fireEvent.click(screen.getByRole("button", { name: t("common.back") }));
+    expect(screen.getByRole("heading", { name: t("settings.title") })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t("common.back") }));
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
@@ -215,7 +219,7 @@ describe("SettingsPage", () => {
     it("pushes the active tab into the URL hash on mobile", () => {
       mockMatchMedia(true);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       expect(screen.getByTestId("hash")).toHaveTextContent("#data");
     });
@@ -223,9 +227,9 @@ describe("SettingsPage", () => {
     it("returns to the summary on browser back from a mobile subpage", async () => {
       mockMatchMedia(true);
       const { router } = renderSettingsWithHistory();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
       expect(
-        screen.getByRole("heading", { name: "Données & Plats" }),
+        screen.getByRole("heading", { name: t("settings.tab.data") }),
       ).toBeTruthy();
 
       await act(async () => {
@@ -233,7 +237,7 @@ describe("SettingsPage", () => {
       });
 
       expect(
-        screen.getByRole("heading", { name: "Paramètres" }),
+        screen.getByRole("heading", { name: t("settings.title") }),
       ).toBeTruthy();
       expect(screen.getByTestId("hash")).toHaveTextContent("");
     });
@@ -242,10 +246,10 @@ describe("SettingsPage", () => {
       mockMatchMedia(true);
       renderSettingsPage("/settings#data");
 
-      fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+      fireEvent.click(screen.getByRole("button", { name: t("common.back") }));
 
       expect(
-        screen.getByRole("heading", { name: "Paramètres" }),
+        screen.getByRole("heading", { name: t("settings.title") }),
       ).toBeTruthy();
       expect(screen.getByTestId("hash")).toHaveTextContent("");
       expect(screen.queryByTestId("location")).toBeNull();
@@ -254,10 +258,10 @@ describe("SettingsPage", () => {
     it("leaves settings on desktop back even after switching tabs", () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
       expect(screen.getByTestId("hash")).toHaveTextContent("#data");
 
-      fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+      fireEvent.click(screen.getByRole("button", { name: t("common.back") }));
 
       expect(screen.getByTestId("location")).toHaveTextContent("/");
     });
@@ -265,7 +269,7 @@ describe("SettingsPage", () => {
 
   it("calls clearAuth and navigates to / on logout", () => {
     renderSettingsPage();
-    fireEvent.click(screen.getByRole("button", { name: /se déconnecter/i }));
+    fireEvent.click(screen.getByRole("button", { name: t("settings.account.signOut") }));
     expect(mockClearAuth).toHaveBeenCalled();
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
@@ -276,14 +280,14 @@ describe("SettingsPage", () => {
         mockMatchMedia(false);
         const rendered = renderSettingsPage();
         fireEvent.click(
-          screen.getByRole("button", { name: /données & plats/i }),
+          screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }),
         );
         return rendered;
       }
 
       function refreshButton() {
         return screen.getByRole("button", {
-          name: /rafraîchir les plats depuis le serveur/i,
+          name: t("settings.data.refresh"),
         });
       }
 
@@ -295,7 +299,7 @@ describe("SettingsPage", () => {
         await waitFor(() => {
           expect(mockRefreshFromServer).toHaveBeenCalledWith({});
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Plats rafraîchis depuis le serveur",
+            t("settings.data.refreshSuccess"),
             "success",
           );
         });
@@ -313,7 +317,7 @@ describe("SettingsPage", () => {
         fireEvent.click(refreshButton());
 
         expect(
-          screen.getByRole("button", { name: /rafraîchissement…/i }),
+          screen.getByRole("button", { name: t("settings.data.refreshing") }),
         ).toBeDisabled();
 
         await act(async () => {
@@ -344,7 +348,9 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(
-            screen.getByText(/Dernière synchronisation : Jamais/),
+            screen.getByText(
+              t("settings.data.lastSync", { value: t("common.never") }),
+            ),
           ).toBeTruthy();
         });
 
@@ -353,11 +359,22 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(
-            screen.queryByText(/Dernière synchronisation : Jamais/),
+            screen.queryByText(
+              t("settings.data.lastSync", { value: t("common.never") }),
+            ),
           ).toBeNull();
         });
         expect(
-          screen.getByText(/Dernière synchronisation : .+ à \d{2}:\d{2}/),
+          screen.getByText(
+            new RegExp(
+              t("settings.data.lastSync", {
+                value: t("common.at", {
+                  date: ".+",
+                  time: "\\d{2}:\\d{2}",
+                }),
+              }),
+            ),
+          ),
         ).toBeTruthy();
       });
 
@@ -369,12 +386,12 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Le rafraîchissement des plats a échoué. Réessayez plus tard.",
+            t("settings.data.refreshFailed"),
             "error",
           );
         });
         expect(mockShowToast).not.toHaveBeenCalledWith(
-          "Plats rafraîchis depuis le serveur",
+          t("settings.data.refreshSuccess"),
           "success",
         );
       });
@@ -388,7 +405,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Vous êtes hors ligne. Réessayez une fois reconnecté.",
+            t("settings.data.refreshOffline"),
             "error",
           );
         });
@@ -398,7 +415,7 @@ describe("SettingsPage", () => {
     it("fetches backups when switching to the data tab", async () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
       await waitFor(() => {
         expect(mockGetBackups).toHaveBeenCalledTimes(1);
       });
@@ -414,7 +431,7 @@ describe("SettingsPage", () => {
       });
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
         expect(screen.getByText(/16/)).toBeTruthy();
@@ -432,11 +449,11 @@ describe("SettingsPage", () => {
       });
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText("● Version active")).toBeTruthy();
-        expect(screen.getAllByText("Restaurer")).toHaveLength(1);
+        expect(screen.getByText(t("settings.data.activeVersion"))).toBeTruthy();
+        expect(screen.getAllByText(t("settings.data.restore"))).toHaveLength(1);
       });
     });
 
@@ -450,18 +467,18 @@ describe("SettingsPage", () => {
       });
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText("Restaurer")).toBeTruthy();
+        expect(screen.getByText(t("settings.data.restore"))).toBeTruthy();
       });
 
-      fireEvent.click(screen.getByText("Restaurer"));
+      fireEvent.click(screen.getByText(t("settings.data.restore")));
 
       await waitFor(() => {
         expect(mockRestoreBackup).toHaveBeenCalledWith("b2");
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Sauvegarde restaurée avec succès",
+          t("settings.data.restoreSuccess"),
           "success",
         );
         expect(mockGetBackups).toHaveBeenCalledTimes(2);
@@ -482,17 +499,17 @@ describe("SettingsPage", () => {
       });
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText("Restaurer")).toBeTruthy();
+        expect(screen.getByText(t("settings.data.restore"))).toBeTruthy();
       });
 
-      fireEvent.click(screen.getByText("Restaurer"));
+      fireEvent.click(screen.getByText(t("settings.data.restore")));
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
-          "L'élément demandé est introuvable.",
+          t("errors.notFound"),
           "error",
         );
       });
@@ -505,10 +522,10 @@ describe("SettingsPage", () => {
       });
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText("Une erreur est survenue.")).toBeTruthy();
+        expect(screen.getByText(t("errors.generic"))).toBeTruthy();
         expect(screen.queryByText("Internal server error")).toBeNull();
       });
     });
@@ -516,10 +533,10 @@ describe("SettingsPage", () => {
     it("shows empty state when no backups exist", async () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText("Aucune sauvegarde disponible.")).toBeTruthy();
+        expect(screen.getByText(t("settings.data.backupsEmpty"))).toBeTruthy();
       });
     });
 
@@ -528,7 +545,7 @@ describe("SettingsPage", () => {
         mockMatchMedia(false);
         const rendered = renderSettingsPage();
         fireEvent.click(
-          screen.getByRole("button", { name: /données & plats/i }),
+          screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }),
         );
         return rendered;
       }
@@ -553,7 +570,7 @@ describe("SettingsPage", () => {
         const clickSpy = vi.spyOn(input, "click");
 
         fireEvent.click(
-          screen.getByRole("button", { name: /importer depuis un fichier json/i }),
+          screen.getByRole("button", { name: t("settings.data.import") }),
         );
 
         expect(clickSpy).toHaveBeenCalled();
@@ -578,7 +595,7 @@ describe("SettingsPage", () => {
           expect(mockInsertManyDishes).toHaveBeenCalled();
           expect(mockFlushPendingDishes).toHaveBeenCalled();
           expect(mockShowToast).toHaveBeenCalledWith(
-            "1 plat(s) importé(s)",
+            t("settings.data.importImported", { count: 1 }),
             "success",
           );
         });
@@ -598,7 +615,7 @@ describe("SettingsPage", () => {
         );
 
         expect(
-          screen.getByRole("button", { name: /importer depuis un fichier json…/i }),
+          screen.getByRole("button", { name: t("settings.data.importing") }),
         ).toBeDisabled();
 
         await act(async () => {
@@ -607,7 +624,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(
-            screen.getByRole("button", { name: /importer depuis un fichier json$/i }),
+            screen.getByRole("button", { name: new RegExp(`^${t("settings.data.import")}$`, "i") }),
           ).toBeEnabled();
         });
       });
@@ -618,7 +635,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Le fichier n'est pas un JSON valide.",
+            t("import.invalidJson"),
             "error",
           );
         });
@@ -637,7 +654,7 @@ describe("SettingsPage", () => {
         await waitFor(() => {
           expect(mockInsertManyDishes).toHaveBeenCalled();
           expect(mockShowToast).toHaveBeenCalledWith(
-            "1 plat(s) enregistré(s) localement",
+            t("settings.data.importSaved", { count: 1 }),
             "success",
           );
         });
@@ -658,7 +675,7 @@ describe("SettingsPage", () => {
             { name: "Ok", description: "", course: 1, seasons: [0] },
           ]);
           expect(mockShowToast).toHaveBeenCalledWith(
-            "1 plat(s) importé(s), 1 en échec",
+            `${t("settings.data.importImported", { count: 1 })}, ${t("settings.data.importFailed", { count: 1 })}`,
             "error",
           );
         });
@@ -674,7 +691,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "1 plat(s) importé(s), synchronisation incomplète",
+            `${t("settings.data.importImported", { count: 1 })}, ${t("settings.data.importSyncIncomplete")}`,
             "warning",
           );
         });
@@ -701,7 +718,7 @@ describe("SettingsPage", () => {
         mockMatchMedia(false);
         const rendered = renderSettingsPage();
         fireEvent.click(
-          screen.getByRole("button", { name: /données & plats/i }),
+          screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }),
         );
         return rendered;
       }
@@ -739,12 +756,12 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+          screen.getByRole("button", { name: t("settings.data.export") }),
         );
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "2 plat(s) exporté(s)",
+            t("settings.data.exported", { count: 2 }),
             "success",
           );
         });
@@ -768,12 +785,12 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+          screen.getByRole("button", { name: t("settings.data.export") }),
         );
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "1 plat(s) exporté(s)",
+            t("settings.data.exported", { count: 1 }),
             "success",
           );
         });
@@ -786,12 +803,12 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+          screen.getByRole("button", { name: t("settings.data.export") }),
         );
 
         await waitFor(() => {
           expect(mockShowToast).toHaveBeenCalledWith(
-            "Aucun plat à exporter.",
+            t("settings.data.exportEmpty"),
             "error",
           );
         });
@@ -810,11 +827,11 @@ describe("SettingsPage", () => {
         renderDataTab();
 
         fireEvent.click(
-          screen.getByRole("button", { name: /exporter dans un fichier json/i }),
+          screen.getByRole("button", { name: t("settings.data.export") }),
         );
 
         expect(
-          screen.getByRole("button", { name: /export en cours…/i }),
+          screen.getByRole("button", { name: t("settings.data.exporting") }),
         ).toBeDisabled();
 
         await act(async () => {
@@ -823,7 +840,7 @@ describe("SettingsPage", () => {
 
         await waitFor(() => {
           expect(
-            screen.getByRole("button", { name: /^exporter dans un fichier json$/i }),
+            screen.getByRole("button", { name: new RegExp(`^${t("settings.data.export")}$`, "i") }),
           ).toBeEnabled();
         });
       });
@@ -834,20 +851,20 @@ describe("SettingsPage", () => {
     it("submits feedback with message and app version", async () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /signaler un bug/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.bugs"), "i") }));
 
-      const textarea = screen.getByPlaceholderText(/lorsque j'accepte/i);
+      const textarea = screen.getByPlaceholderText(t("settings.bugs.placeholder"));
       fireEvent.change(textarea, {
         target: { value: "Bug: crash on accept" },
       });
-      fireEvent.click(screen.getByRole("button", { name: /envoyer le rapport/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("settings.bugs.submit") }));
 
       await waitFor(() => {
         expect(mockSubmitFeedback).toHaveBeenCalledWith({
           message: "Bug: crash on accept",
           appVersion: expect.any(String),
         });
-        expect(mockShowToast).toHaveBeenCalledWith("Rapport envoyé, merci !", "success");
+        expect(mockShowToast).toHaveBeenCalledWith(t("settings.bugs.success"), "success");
       });
     });
 
@@ -858,15 +875,15 @@ describe("SettingsPage", () => {
       });
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /signaler un bug/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.bugs"), "i") }));
 
-      const textarea = screen.getByPlaceholderText(/lorsque j'accepte/i);
+      const textarea = screen.getByPlaceholderText(t("settings.bugs.placeholder"));
       fireEvent.change(textarea, { target: { value: "test" } });
-      fireEvent.click(screen.getByRole("button", { name: /envoyer le rapport/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("settings.bugs.submit") }));
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Trop de signalements envoyés. Veuillez réessayer plus tard.",
+          t("errors.reportRateLimited"),
           "error",
         );
       });
@@ -886,7 +903,7 @@ describe("SettingsPage", () => {
         expect(mockGetVersionInfo).toHaveBeenCalled();
       });
 
-      fireEvent.click(screen.getByRole("button", { name: /à propos/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.info"), "i") }));
 
       await waitFor(() => {
         expect(mockGetLastSyncAt).toHaveBeenCalled();
@@ -900,7 +917,7 @@ describe("SettingsPage", () => {
       });
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /à propos/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.info"), "i") }));
 
       await waitFor(() => {
         expect(screen.getByText("2.0.0")).toBeTruthy();
@@ -910,10 +927,10 @@ describe("SettingsPage", () => {
     it("shows Jamais when no sync has occurred", async () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /à propos/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.info"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText("Jamais")).toBeTruthy();
+        expect(screen.getByText(t("common.never"))).toBeTruthy();
       });
     });
   });
@@ -924,14 +941,14 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      const input = screen.getByLabelText(/nom d'utilisateur/i);
+      const input = screen.getByLabelText(t("settings.account.username"));
       fireEvent.change(input, { target: { value: "nouveau_nom" } });
-      fireEvent.click(screen.getByRole("button", { name: /enregistrer/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("common.save") }));
 
       await waitFor(() => {
         expect(mockUpdateUsername).toHaveBeenCalledWith("nouveau_nom");
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Nom d'utilisateur mis à jour",
+          t("settings.account.usernameUpdated"),
           "success",
         );
       });
@@ -949,13 +966,13 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      const input = screen.getByLabelText(/nom d'utilisateur/i);
+      const input = screen.getByLabelText(t("settings.account.username"));
       fireEvent.change(input, { target: { value: "pris" } });
-      fireEvent.click(screen.getByRole("button", { name: /enregistrer/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("common.save") }));
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Certaines informations sont invalides. Vérifiez votre saisie.",
+          t("errors.validation"),
           "error",
         );
       });
@@ -965,7 +982,7 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      const saveBtn = screen.getByRole("button", { name: /enregistrer/i });
+      const saveBtn = screen.getByRole("button", { name: t("common.save") });
       expect(saveBtn).toBeDisabled();
     });
 
@@ -974,13 +991,13 @@ describe("SettingsPage", () => {
       renderSettingsPage();
 
       fireEvent.click(
-        screen.getByRole("button", { name: /réinitialiser le mot de passe/i }),
+        screen.getByRole("button", { name: t("settings.account.resetPassword") }),
       );
 
       await waitFor(() => {
         expect(mockResetPassword).toHaveBeenCalled();
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Email de réinitialisation envoyé. Il se situe probablement dans vos spams.",
+          t("settings.account.resetEmailSent"),
           "warning",
         );
       });
@@ -998,12 +1015,12 @@ describe("SettingsPage", () => {
       renderSettingsPage();
 
       fireEvent.click(
-        screen.getByRole("button", { name: /réinitialiser le mot de passe/i }),
+        screen.getByRole("button", { name: t("settings.account.resetPassword") }),
       );
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Le serveur a rencontré une erreur. Veuillez réessayer plus tard.",
+          t("errors.server"),
           "error",
         );
       });
@@ -1013,9 +1030,9 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      fireEvent.click(screen.getByRole("button", { name: /supprimer le compte/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("settings.account.deleteAccount") }));
       expect(
-        screen.getByText(/voulez-vous vraiment supprimer votre compte/i),
+        screen.getByText(t("settings.account.deleteConfirm")),
       ).toBeTruthy();
     });
 
@@ -1023,8 +1040,8 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      fireEvent.click(screen.getByRole("button", { name: /supprimer le compte/i }));
-      fireEvent.click(screen.getByRole("button", { name: /annuler/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("settings.account.deleteAccount") }));
+      fireEvent.click(screen.getByRole("button", { name: t("common.cancel") }));
 
       expect(mockDeleteAccount).not.toHaveBeenCalled();
     });
@@ -1033,9 +1050,9 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      fireEvent.click(screen.getByRole("button", { name: /supprimer le compte/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("settings.account.deleteAccount") }));
       fireEvent.click(
-        screen.getByRole("button", { name: /^supprimer$/i }),
+        screen.getByRole("button", { name: t("common.delete") }),
       );
 
       await waitFor(() => {
@@ -1056,14 +1073,14 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      fireEvent.click(screen.getByRole("button", { name: /supprimer le compte/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("settings.account.deleteAccount") }));
       fireEvent.click(
-        screen.getByRole("button", { name: /^supprimer$/i }),
+        screen.getByRole("button", { name: t("common.delete") }),
       );
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
-          "Votre session a expiré. Veuillez vous reconnecter.",
+          t("errors.sessionExpired"),
           "error",
         );
       });
@@ -1079,46 +1096,102 @@ describe("SettingsPage", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      expect(screen.getByText(/connectez-vous pour accéder/i)).toBeTruthy();
-      expect(screen.getByRole("button", { name: /se connecter/i })).toBeTruthy();
-      expect(screen.queryByText(/nom d'utilisateur/i)).toBeNull();
+      expect(screen.getByText(t("settings.loginPrompt"))).toBeTruthy();
+      expect(screen.getByRole("button", { name: t("settings.signIn") })).toBeTruthy();
+      expect(screen.queryByText(t("settings.account.username"))).toBeNull();
     });
 
     it("navigates to /login when login button is clicked", () => {
       mockMatchMedia(false);
       renderSettingsPage();
 
-      fireEvent.click(screen.getByRole("button", { name: /se connecter/i }));
+      fireEvent.click(screen.getByRole("button", { name: t("settings.signIn") }));
       expect(screen.getByTestId("login-page")).toBeTruthy();
     });
 
     it("shows login prompt on the Data tab", () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /données & plats/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
-      expect(screen.getByText(/connectez-vous pour accéder/i)).toBeTruthy();
+      expect(screen.getByText(t("settings.loginPrompt"))).toBeTruthy();
       expect(mockGetBackups).not.toHaveBeenCalled();
     });
 
     it("shows login prompt on the Bugs tab", () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /signaler un bug/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.bugs"), "i") }));
 
-      expect(screen.getByText(/connectez-vous pour accéder/i)).toBeTruthy();
-      expect(screen.queryByPlaceholderText(/lorsque j'accepte/i)).toBeNull();
+      expect(screen.getByText(t("settings.loginPrompt"))).toBeTruthy();
+      expect(screen.queryByPlaceholderText(t("settings.bugs.placeholder"))).toBeNull();
     });
 
     it("shows Jamais for last sync on the Info tab", async () => {
       mockMatchMedia(false);
       renderSettingsPage();
-      fireEvent.click(screen.getByRole("button", { name: /à propos/i }));
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.info"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText("Jamais")).toBeTruthy();
+        expect(screen.getByText(t("common.never"))).toBeTruthy();
       });
       expect(mockGetLastSyncAt).not.toHaveBeenCalled();
     });
   });
+  describe("language selection", () => {
+    it("is available to guests and applies without a reload", () => {
+      mockMatchMedia(false);
+      mockIsLoggedIn.mockReturnValue(false);
+      renderSettingsPage();
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: new RegExp(t("settings.tab.language"), "i"),
+        }),
+      );
+
+      expect(screen.queryByText(t("settings.loginPrompt"))).toBeNull();
+
+      fireEvent.change(screen.getByLabelText(t("settings.language.label")), {
+        target: { value: "fr" },
+      });
+
+      expect(
+        screen.getByRole("heading", {
+          level: 2,
+          name: fr("settings.language.title"),
+        }),
+      ).toBeTruthy();
+      expect(document.documentElement.lang).toBe("fr");
+      expect(localStorage.getItem("ui_language")).toBe("fr");
+    });
+
+    it("persists the choice across reloads", () => {
+      mockMatchMedia(false);
+      const first = renderSettingsPage();
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: new RegExp(t("settings.tab.language"), "i"),
+        }),
+      );
+      fireEvent.change(screen.getByLabelText(t("settings.language.label")), {
+        target: { value: "fr" },
+      });
+
+      first.unmount();
+      renderSettingsPage();
+
+      expect(
+        screen.getByRole("heading", { name: fr("settings.tab.account") }),
+      ).toBeTruthy();
+      expect(document.documentElement.lang).toBe("fr");
+      expect(
+        screen.getByRole("button", {
+          name: new RegExp(fr("settings.tab.language"), "i"),
+        }),
+      ).toBeTruthy();
+    });
+  });
+
 });

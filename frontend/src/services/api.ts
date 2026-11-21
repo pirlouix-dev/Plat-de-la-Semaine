@@ -14,6 +14,9 @@
  */
 
 import type { components } from "../schema";
+import { getLocale } from "../i18n/localeStore";
+import { translate } from "../i18n/translate";
+import type { MessageKey } from "../i18n/types";
 import type { ApiErrorDetail, ApiFieldError } from "../types";
 
 // ── Mutable config (overridable for tests) ────────────────────────────────────
@@ -99,84 +102,72 @@ export const API_ERROR_CODES = {
   UNAUTHORIZED: "UNAUTHORIZED",
 } as const;
 
-export const SERVER_WARMUP_MESSAGE =
-  "Le serveur est en cours de démarrage et sera disponible dans quelques secondes. Veuillez réessayer.";
-
-export const GENERIC_ERROR_MESSAGE = "Une erreur est survenue.";
-const NETWORK_ERROR_MESSAGE =
-  "Impossible de contacter le serveur. Vérifiez votre connexion Internet.";
-const SERVER_ERROR_MESSAGE =
-  "Le serveur a rencontré une erreur. Veuillez réessayer plus tard.";
-const SESSION_EXPIRED_MESSAGE =
-  "Votre session a expiré. Veuillez vous reconnecter.";
-
 /**
- * Backend error codes mapped to French UI copy. The backend `message` is an
+ * Backend error codes mapped to UI copy keys. The backend `message` is an
  * English diagnostic and is never shown to users; unknown codes fall back to
- * the generic message.
+ * the generic message. Translation happens against the active locale.
  *
  * Keep these codes in sync with the backend `ApiErrorCodes` class.
  */
-const ERROR_MESSAGES: Record<string, string> = {
+const ERROR_MESSAGE_KEYS: Record<string, MessageKey> = {
   // Auth
-  EMAIL_EXISTS: "Un compte existe déjà avec cette adresse email.",
-  INVALID_EMAIL: "L'adresse email est invalide.",
-  INVALID_CREDENTIALS: "Email ou mot de passe incorrect.",
-  USER_DISABLED: "Ce compte est désactivé.",
-  TOO_MANY_ATTEMPTS: "Trop de tentatives. Veuillez réessayer plus tard.",
-  INVALID_REFRESH_TOKEN: SESSION_EXPIRED_MESSAGE,
-  AUTH_FAILED: "L'authentification a échoué. Veuillez réessayer.",
-  UNAUTHORIZED: SESSION_EXPIRED_MESSAGE,
+  EMAIL_EXISTS: "errors.emailExists",
+  INVALID_EMAIL: "errors.invalidEmail",
+  INVALID_CREDENTIALS: "errors.invalidCredentials",
+  USER_DISABLED: "errors.userDisabled",
+  TOO_MANY_ATTEMPTS: "errors.tooManyAttempts",
+  INVALID_REFRESH_TOKEN: "errors.sessionExpired",
+  AUTH_FAILED: "errors.authFailed",
+  UNAUTHORIZED: "errors.sessionExpired",
 
   // General API
-  VALIDATION_ERROR:
-    "Certaines informations sont invalides. Vérifiez votre saisie.",
-  NOT_FOUND: "L'élément demandé est introuvable.",
-  BAD_REQUEST: "La demande n'a pas pu être traitée.",
-  INVALID_OPERATION: "L'opération n'a pas pu être effectuée.",
-  SERVICE_UNAVAILABLE:
-    "Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.",
-  MENU_VERSION_CONFLICT:
-    "Le menu a été modifié sur un autre appareil. Il a été actualisé.",
-  INTERNAL_ERROR: SERVER_ERROR_MESSAGE,
-  UNKNOWN_ERROR: SERVER_ERROR_MESSAGE,
+  VALIDATION_ERROR: "errors.validation",
+  NOT_FOUND: "errors.notFound",
+  BAD_REQUEST: "errors.badRequest",
+  INVALID_OPERATION: "errors.invalidOperation",
+  SERVICE_UNAVAILABLE: "errors.serviceUnavailable",
+  MENU_VERSION_CONFLICT: "errors.menuVersionConflict",
+  INTERNAL_ERROR: "errors.server",
+  UNKNOWN_ERROR: "errors.server",
 
   // Feedback
-  VERSION_MISMATCH:
-    "Mettez à jour l'application pour envoyer un signalement.",
-  RATE_LIMITED: "Trop de signalements envoyés. Veuillez réessayer plus tard.",
-  WEBHOOK_NOT_CONFIGURED:
-    "Le signalement n'a pas pu être envoyé. Veuillez réessayer plus tard.",
-  WEBHOOK_FAILED:
-    "Le signalement n'a pas pu être envoyé. Veuillez réessayer plus tard.",
+  VERSION_MISMATCH: "errors.versionMismatch",
+  RATE_LIMITED: "errors.reportRateLimited",
+  WEBHOOK_NOT_CONFIGURED: "errors.reportFailed",
+  WEBHOOK_FAILED: "errors.reportFailed",
 
   // Transport
-  NETWORK_ERROR: NETWORK_ERROR_MESSAGE,
-  MISSING_CONFIG: "Le service est indisponible. Veuillez réessayer plus tard.",
+  NETWORK_ERROR: "errors.network",
+  MISSING_CONFIG: "errors.missingConfig",
 };
 
-function getHttpStatusMessage(code: string): string | undefined {
+function getHttpStatusMessageKey(code: string): MessageKey | undefined {
   const match = /^HTTP_(\d{3})$/.exec(code);
   if (!match) return undefined;
 
   const status = Number(match[1]);
-  if (status === 401) return SESSION_EXPIRED_MESSAGE;
-  if (status === 403)
-    return "Vous n'avez pas l'autorisation d'effectuer cette action.";
-  if (status === 404) return ERROR_MESSAGES.NOT_FOUND;
-  if (status === 429)
-    return "Trop de requêtes. Veuillez réessayer plus tard.";
-  if (status >= 500) return SERVER_ERROR_MESSAGE;
+  if (status === 401) return "errors.sessionExpired";
+  if (status === 403) return "errors.forbidden";
+  if (status === 404) return "errors.notFound";
+  if (status === 429) return "errors.rateLimited";
+  if (status >= 500) return "errors.server";
   return undefined;
 }
 
 export function getApiErrorMessage(
   error: ApiErrorDetail,
-  fallback = GENERIC_ERROR_MESSAGE,
+  fallbackKey: MessageKey = "errors.generic",
 ): string {
-  if (error.code === API_ERROR_CODES.TIMEOUT) return SERVER_WARMUP_MESSAGE;
+  const locale = getLocale();
+  if (error.code === API_ERROR_CODES.TIMEOUT) {
+    return translate(locale, "errors.serverWarmup");
+  }
 
-  return ERROR_MESSAGES[error.code] ?? getHttpStatusMessage(error.code) ?? fallback;
+  const key =
+    ERROR_MESSAGE_KEYS[error.code] ??
+    getHttpStatusMessageKey(error.code) ??
+    fallbackKey;
+  return translate(locale, key);
 }
 
 export const SERVER_WARMUP_TOAST_DURATION_MS = 6000;

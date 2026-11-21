@@ -3,7 +3,7 @@
  */
 
 import type { components } from "../schema";
-import type { ApiFieldError } from "./api";
+import type { InterpolationParams, MessageKey } from "../i18n/types";
 
 export const Course = {
   Starter: 0,
@@ -20,23 +20,23 @@ export const Season = {
 } as const;
 export type Season = (typeof Season)[keyof typeof Season];
 
-export const COURSE_LABELS: Record<
-  (typeof Course)[keyof typeof Course],
-  string
-> = {
-  [Course.Starter]: "Entrée",
-  [Course.Main]: "Plat",
-  [Course.Dessert]: "Dessert",
+export const COURSE_LABEL_KEYS: Record<Course, MessageKey> = {
+  [Course.Starter]: "course.starter",
+  [Course.Main]: "course.main",
+  [Course.Dessert]: "course.dessert",
 };
 
-export const SEASON_LABELS: Record<
-  (typeof Season)[keyof typeof Season],
-  string
-> = {
-  [Season.Spring]: "Printemps",
-  [Season.Summer]: "Été",
-  [Season.Autumn]: "Automne",
-  [Season.Winter]: "Hiver",
+export const COURSE_PLURAL_LABEL_KEYS: Record<Course, MessageKey> = {
+  [Course.Starter]: "course.starter.plural",
+  [Course.Main]: "course.main.plural",
+  [Course.Dessert]: "course.dessert.plural",
+};
+
+export const SEASON_LABEL_KEYS: Record<Season, MessageKey> = {
+  [Season.Spring]: "season.spring",
+  [Season.Summer]: "season.summer",
+  [Season.Autumn]: "season.autumn",
+  [Season.Winter]: "season.winter",
 };
 
 export const ALL_SEASONS: Season[] = [
@@ -77,6 +77,24 @@ export type DishBatchResponse = components["schemas"]["DishBatchResponse"];
 /** Outcome the batch endpoint reports for one operation. */
 export type DishBatchStatus = "created" | "updated" | "deleted" | "failed";
 
+/** Why one import entry was rejected, kept language-neutral for the UI layer. */
+export type ImportIssueCode =
+  | "notObject"
+  | "nameRequired"
+  | "nameTooLong"
+  | "descriptionType"
+  | "descriptionTooLong"
+  | "invalidCourse"
+  | "seasonsRequired"
+  | "invalidSeasons";
+
+export interface DishImportIssue {
+  field: string;
+  code: ImportIssueCode;
+  params?: InterpolationParams;
+  rejectedValue?: unknown;
+}
+
 /**
  * Client-side report for one rejected import entry. Importing is a local-first
  * operation now, so this is no longer derived from the API schema.
@@ -84,7 +102,7 @@ export type DishBatchStatus = "created" | "updated" | "deleted" | "failed";
 export interface DishImportError {
   index: number;
   name: string | null;
-  errors: ApiFieldError[];
+  errors: DishImportIssue[];
 }
 
 /**

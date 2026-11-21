@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import EditDishPage from "../pages/EditDishPage/EditDishPage";
+import { createTranslator } from "../i18n";
+
+const t = createTranslator("en");
 import type { DishDocType } from "../db/schemas/dishes";
 import {
   installElementGeometryMock,
@@ -93,29 +96,33 @@ describe("EditDishPage", () => {
 
     it("displays a badge for each dish course", () => {
       renderPage();
-      const badges = screen.getAllByText(/Plat/, {
+      const badges = screen.getAllByText(new RegExp(t("course.main")), {
         selector: ".dish-card-course-badge",
       });
       expect(badges).toHaveLength(2);
       expect(
-        screen.getByText(/Entrée/, { selector: ".dish-card-course-badge" }),
+        screen.getByText(new RegExp(t("course.starter")), {
+          selector: ".dish-card-course-badge",
+        }),
       ).toBeTruthy();
       expect(
-        screen.getByText(/Dessert/, { selector: ".dish-card-course-badge" }),
+        screen.getByText(new RegExp(t("course.dessert")), {
+          selector: ".dish-card-course-badge",
+        }),
       ).toBeTruthy();
     });
 
     it("shows 'Toutes saisons' badge when dish has all 4 seasons", () => {
       renderPage();
-      const badges = screen.getAllByText("🗓️ Toutes saisons");
+      const badges = screen.getAllByText(new RegExp(t("common.allSeasons")));
       expect(badges.length).toBe(2);
     });
 
     it("shows individual season badges when not all seasons", () => {
       renderPage();
-      const automne = screen.getAllByText(/Automne/);
+      const automne = screen.getAllByText(new RegExp(t("season.autumn")));
       expect(automne.length).toBeGreaterThanOrEqual(2);
-      const hiver = screen.getAllByText(/Hiver/);
+      const hiver = screen.getAllByText(new RegExp(t("season.winter")));
       expect(hiver.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -125,12 +132,12 @@ describe("EditDishPage", () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
 
-      expect(screen.getByText("Édition : Colin d'Alaska & riz")).toBeTruthy();
+      expect(screen.getByText(t("edit.detailTitle", { name: "Colin d'Alaska & riz" }))).toBeTruthy();
       expect(
-        (screen.getByPlaceholderText("Nom du plat") as HTMLInputElement).value,
+        (screen.getByPlaceholderText(t("add.name")) as HTMLInputElement).value,
       ).toBe("Colin d'Alaska & riz");
       expect(
-        (screen.getByPlaceholderText(/Description/) as HTMLTextAreaElement)
+        (screen.getByPlaceholderText(t("add.description")) as HTMLTextAreaElement)
           .value,
       ).toBe("Colin d'Alaska, riz à la vapeur");
     });
@@ -139,24 +146,24 @@ describe("EditDishPage", () => {
       renderPage();
       fireEvent.click(screen.getByText("Falafels & semoule"));
 
-      const starterBtn = screen.getByText("Entrée").closest(".course-option");
+      const starterBtn = screen.getByText(t("course.starter")).closest(".course-option");
       expect(starterBtn?.className).toContain("active");
     });
 
     it("deselects a dish when back button is clicked", () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
-      expect(screen.getByText("Édition : Colin d'Alaska & riz")).toBeTruthy();
+      expect(screen.getByText(t("edit.detailTitle", { name: "Colin d'Alaska & riz" }))).toBeTruthy();
 
-      fireEvent.click(screen.getByLabelText("Retour à la liste"));
-      expect(screen.getByText("Aucun plat sélectionné")).toBeTruthy();
+      fireEvent.click(screen.getByLabelText(t("edit.backToList")));
+      expect(screen.getByText(t("edit.noSelectionTitle"))).toBeTruthy();
     });
   });
 
   describe("search and filters", () => {
     it("filters dishes by name search", () => {
       renderPage();
-      fireEvent.change(screen.getByPlaceholderText(/Rechercher/), {
+      fireEvent.change(screen.getByPlaceholderText(t("edit.search")), {
         target: { value: "Falafels" },
       });
       expect(screen.getByText("Falafels & semoule")).toBeTruthy();
@@ -165,11 +172,12 @@ describe("EditDishPage", () => {
 
     it("filters dishes by course", () => {
       renderPage();
-      fireEvent.click(screen.getByTitle("Afficher/masquer les filtres"));
+      fireEvent.click(screen.getByTitle(t("edit.toggleFilters")));
 
-      const filterChips = screen.getAllByText(/Entrée/, {
-        selector: ".filter-chip",
-      });
+      const filterChips = screen.getAllByText(
+        new RegExp(t("course.starter")),
+        { selector: ".filter-chip" },
+      );
       fireEvent.click(filterChips[0]);
 
       expect(screen.getByText("Falafels & semoule")).toBeTruthy();
@@ -178,9 +186,9 @@ describe("EditDishPage", () => {
 
     it("filters dishes by season", () => {
       renderPage();
-      fireEvent.click(screen.getByTitle("Afficher/masquer les filtres"));
+      fireEvent.click(screen.getByTitle(t("edit.toggleFilters")));
 
-      const filterChips = screen.getAllByText(/Hiver/, {
+      const filterChips = screen.getAllByText(new RegExp(t("season.winter")), {
         selector: ".filter-chip",
       });
       fireEvent.click(filterChips[0]);
@@ -191,11 +199,11 @@ describe("EditDishPage", () => {
 
     it("shows empty state when no dishes match", () => {
       renderPage();
-      fireEvent.change(screen.getByPlaceholderText(/Rechercher/), {
+      fireEvent.change(screen.getByPlaceholderText(t("edit.search")), {
         target: { value: "xyznonexistent" },
       });
       expect(
-        screen.getByText("Aucun plat ne correspond à vos critères."),
+        screen.getByText(t("edit.noResults")),
       ).toBeTruthy();
     });
   });
@@ -225,7 +233,7 @@ describe("EditDishPage", () => {
       setElementGeometry(40, 80);
       renderSingleDish("Description courte");
 
-      expect(screen.getByText("Voir plus")).toBeTruthy();
+      expect(screen.getByText(t("common.seeMore"))).toBeTruthy();
       expect(screen.queryByText("Voir moins")).toBeNull();
     });
 
@@ -233,27 +241,30 @@ describe("EditDishPage", () => {
       setElementGeometry(40, 40);
       renderSingleDish(longDescription);
 
-      expect(screen.queryByText("Voir plus")).toBeNull();
+      expect(screen.queryByText(t("common.seeMore"))).toBeNull();
     });
 
     it("toggles between Voir plus and Voir moins", () => {
       setElementGeometry(40, 80);
       renderSingleDish(longDescription);
 
-      fireEvent.click(screen.getByText("Voir plus"));
-      expect(screen.getByText("Voir moins")).toBeTruthy();
+      fireEvent.click(screen.getByText(t("common.seeMore")));
+      expect(screen.getByText(t("common.seeLess"))).toBeTruthy();
 
-      fireEvent.click(screen.getByText("Voir moins"));
-      expect(screen.getByText("Voir plus")).toBeTruthy();
+      fireEvent.click(screen.getByText(t("common.seeLess")));
+      expect(screen.getByText(t("common.seeMore"))).toBeTruthy();
     });
 
     it("does not select the dish when toggling expansion", () => {
       setElementGeometry(40, 80);
       renderSingleDish(longDescription);
 
-      fireEvent.click(screen.getByText("Voir plus"));
+      fireEvent.click(screen.getByText(t("common.seeMore")));
 
-      expect(screen.queryByText(/Édition :/)).toBeNull();
+      const detailPrefix = t("edit.detailTitle", { name: "" }).trim();
+      expect(
+        screen.queryByText((content) => content.startsWith(detailPrefix)),
+      ).toBeNull();
     });
   });
 
@@ -262,12 +273,12 @@ describe("EditDishPage", () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
 
-      fireEvent.change(screen.getByPlaceholderText("Nom du plat"), {
+      fireEvent.change(screen.getByPlaceholderText(t("add.name")), {
         target: { value: "Colin mis à jour" },
       });
 
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sauvegarder"));
+        fireEvent.submit(screen.getByText(t("edit.save")));
       });
 
       expect(editDishMock).toHaveBeenCalledWith("d1", {
@@ -283,11 +294,11 @@ describe("EditDishPage", () => {
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
 
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sauvegarder"));
+        fireEvent.submit(screen.getByText(t("edit.save")));
       });
 
       expect(showToastMock).toHaveBeenCalledWith(
-        "Plat modifié avec succès",
+        t("edit.saveSuccess"),
         "success",
       );
     });
@@ -298,11 +309,11 @@ describe("EditDishPage", () => {
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
 
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sauvegarder"));
+        fireEvent.submit(screen.getByText(t("edit.save")));
       });
 
       expect(showToastMock).toHaveBeenCalledWith(
-        "Erreur lors de la sauvegarde",
+        t("edit.saveError"),
         "error",
       );
     });
@@ -311,11 +322,11 @@ describe("EditDishPage", () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
 
-      fireEvent.change(screen.getByPlaceholderText("Nom du plat"), {
+      fireEvent.change(screen.getByPlaceholderText(t("add.name")), {
         target: { value: "" },
       });
 
-      expect(screen.getByText("Sauvegarder").closest("button")).toBeDisabled();
+      expect(screen.getByText(t("edit.save")).closest("button")).toBeDisabled();
     });
   });
 
@@ -323,58 +334,62 @@ describe("EditDishPage", () => {
     it("opens delete modal when trash icon is clicked", () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
-      fireEvent.click(screen.getByTitle("Supprimer ce plat"));
+      fireEvent.click(screen.getByTitle(t("edit.deleteDish")));
 
-      expect(screen.getByText("Supprimer le plat ?")).toBeTruthy();
-      expect(screen.getByText(/Voulez-vous vraiment supprimer/)).toBeTruthy();
+      expect(screen.getByText(t("edit.deleteTitle"))).toBeTruthy();
+      expect(
+        screen.getByText(
+          t("edit.deleteConfirm", { name: "Colin d'Alaska & riz" }),
+        ),
+      ).toBeTruthy();
     });
 
     it("closes modal when cancel is clicked", () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
-      fireEvent.click(screen.getByTitle("Supprimer ce plat"));
-      fireEvent.click(screen.getByText("Annuler"));
+      fireEvent.click(screen.getByTitle(t("edit.deleteDish")));
+      fireEvent.click(screen.getByText(t("common.cancel")));
 
-      expect(screen.queryByText("Supprimer le plat ?")).toBeNull();
+      expect(screen.queryByText(t("edit.deleteTitle"))).toBeNull();
     });
 
     it("calls removeDish and shows success toast on confirm", async () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
-      fireEvent.click(screen.getByTitle("Supprimer ce plat"));
+      fireEvent.click(screen.getByTitle(t("edit.deleteDish")));
 
       await act(async () => {
-        fireEvent.click(screen.getByText("Supprimer"));
+        fireEvent.click(screen.getByText(t("common.delete")));
       });
 
       expect(removeDishMock).toHaveBeenCalledWith("d1");
-      expect(showToastMock).toHaveBeenCalledWith("Plat supprimé", "success");
+      expect(showToastMock).toHaveBeenCalledWith(t("edit.deleteSuccess"), "success");
     });
 
     it("deselects dish after successful delete", async () => {
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
-      fireEvent.click(screen.getByTitle("Supprimer ce plat"));
+      fireEvent.click(screen.getByTitle(t("edit.deleteDish")));
 
       await act(async () => {
-        fireEvent.click(screen.getByText("Supprimer"));
+        fireEvent.click(screen.getByText(t("common.delete")));
       });
 
-      expect(screen.getByText("Aucun plat sélectionné")).toBeTruthy();
+      expect(screen.getByText(t("edit.noSelectionTitle"))).toBeTruthy();
     });
 
     it("shows error toast when removeDish throws", async () => {
       removeDishMock.mockRejectedValue(new Error("fail"));
       renderPage();
       fireEvent.click(screen.getByText("Colin d'Alaska & riz"));
-      fireEvent.click(screen.getByTitle("Supprimer ce plat"));
+      fireEvent.click(screen.getByTitle(t("edit.deleteDish")));
 
       await act(async () => {
-        fireEvent.click(screen.getByText("Supprimer"));
+        fireEvent.click(screen.getByText(t("common.delete")));
       });
 
       expect(showToastMock).toHaveBeenCalledWith(
-        "Erreur lors de la suppression",
+        t("edit.deleteError"),
         "error",
       );
     });

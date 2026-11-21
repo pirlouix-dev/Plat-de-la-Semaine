@@ -9,9 +9,12 @@
  *
  * Course and seasons must be numeric enum values (0-2 and 0-3). Malformed JSON
  * or a non-array top level rejects the whole payload; individual invalid items
- * are reported in `errors` while valid items remain importable.
+ * are reported in `errors` while valid items remain importable. This module
+ * stays language-neutral: it reports message keys and parameters, and the UI
+ * resolves them against the active locale.
  */
 
+import type { MessageKey } from "../i18n";
 import {
   MAX_DESCRIPTION_LENGTH,
   MAX_NAME_LENGTH,
@@ -20,12 +23,12 @@ import {
 } from "../types/dish";
 import type {
   DishImportError,
+  DishImportIssue,
   ValidatedDishImportItem,
 } from "../types/dish";
-import type { ApiFieldError } from "../types/api";
 
 export type ParseDishImportResult =
-  | { ok: false; error: string }
+  | { ok: false; error: MessageKey }
   | {
       ok: true;
       total: number;
@@ -41,21 +44,22 @@ function validateItem(
   value: unknown,
   index: number,
 ): { item: ValidatedDishImportItem | null; error: DishImportError | null } {
-  const errors: ApiFieldError[] = [];
+  const errors: DishImportIssue[] = [];
   const rawName = isRecord(value) ? value.name : undefined;
   const name = typeof rawName === "string" ? rawName.trim() : null;
 
   if (!isRecord(value)) {
-    errors.push({ field: "item", message: "L'élément doit être un objet" });
+    errors.push({ field: "item", code: "notObject" });
     return { item: null, error: { index, name: null, errors } };
   }
 
   if (name === null || name === "") {
-    errors.push({ field: "name", message: "Le nom est requis" });
+    errors.push({ field: "name", code: "nameRequired" });
   } else if (name.length > MAX_NAME_LENGTH) {
     errors.push({
       field: "name",
-      message: `Le nom ne doit pas dépasser ${MAX_NAME_LENGTH} caractères`,
+      code: "nameTooLong",
+      params: { max: MAX_NAME_LENGTH },
     });
   }
 
@@ -64,16 +68,14 @@ function validateItem(
   if (rawDescription === undefined || rawDescription === null) {
     description = "";
   } else if (typeof rawDescription !== "string") {
-    errors.push({
-      field: "description",
-      message: "La description doit être une chaîne de caractères",
-    });
+    errors.push({ field: "description", code: "descriptionType" });
   } else {
     description = rawDescription;
     if (description.length > MAX_DESCRIPTION_LENGTH) {
       errors.push({
         field: "description",
-        message: `La description ne doit pas dépasser ${MAX_DESCRIPTION_LENGTH} caractères`,
+        code: "descriptionTooLong",
+        params: { max: MAX_DESCRIPTION_LENGTH },
       });
     }
   }
@@ -82,20 +84,21 @@ function validateItem(
   if (typeof rawCourse !== "number" || !isValidCourse(rawCourse)) {
     errors.push({
       field: "course",
-      message: "Le type de plat doit être 0 (entrée), 1 (plat) ou 2 (dessert)",
+      code: "invalidCourse",
+      rejectedValue: rawCourse,
     });
   }
 
   const rawSeasons = value.seasons;
   if (!Array.isArray(rawSeasons) || rawSeasons.length === 0) {
+    errors.push({ field: "seasons", code: "seasonsRequired" });
+  } else if (
+    !rawSeasons.every((s) => typeof s === "number" && isValidSeason(s))
+  ) {
     errors.push({
       field: "seasons",
-      message: "Au moins une saison est requise",
-    });
-  } else if (!rawSeasons.every((s) => typeof s === "number" && isValidSeason(s))) {
-    errors.push({
-      field: "seasons",
-      message: "Les saisons doivent être comprises entre 0 et 3",
+      code: "invalidSeasons",
+      rejectedValue: rawSeasons,
     });
   }
 
@@ -119,14 +122,11 @@ export function parseDishImportJson(raw: string): ParseDishImportResult {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { ok: false, error: "Le fichier n'est pas un JSON valide." };
+    return { ok: false, error: "import.invalidJson" };
   }
 
   if (!Array.isArray(parsed)) {
-    return {
-      ok: false,
-      error: "Le JSON doit contenir un tableau de plats.",
-    };
+    return { ok: false, error: "import.notArray" };
   }
 
   const items: ValidatedDishImportItem[] = [];

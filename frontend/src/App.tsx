@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { DatabaseProvider, useDatabase } from "./db/DatabaseContext";
 import { useSync } from "./hooks/useSync";
 import { ToastProvider } from "./components/Toast";
+import { useTranslation } from "./i18n";
 
 import "./App.css";
 import HomePage from "./pages/HomePage/HomePage";
@@ -14,12 +15,10 @@ import LoginPage from "./pages/LoginPage/LoginPage";
 import LogoutPage from "./pages/LogoutPage/LogoutPage";
 
 function DatabaseError() {
+  const { t } = useTranslation();
   return (
     <div className="app-container">
-      <p className="status-message status-error">
-        Impossible d'initialiser la base de données locale. Rechargez la page ou
-        contactez le support.
-      </p>
+      <p className="status-message status-error">{t("app.databaseError")}</p>
     </div>
   );
 }

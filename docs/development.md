@@ -36,7 +36,7 @@ Do not hand-edit either generated file.
 ### Error contract
 
 The backend returns a stable machine-readable `code` in every error envelope.
-The frontend is the only place that maps a `code` to user-facing French copy
+The frontend is the only place that maps a `code` to localised user-facing copy
 (`getApiErrorMessage` in `frontend/src/services/api.ts`). The backend `message`
 is an English diagnostic and must never be rendered in the UI.
 

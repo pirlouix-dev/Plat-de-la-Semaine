@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { useTranslation, type Translate } from "../i18n";
 import {
   getSyncState,
   subscribeSyncState,
@@ -14,26 +15,27 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
-export function formatAge(ageMs: number): string {
-  if (ageMs < MINUTE_MS) return "à l'instant";
+export function formatAge(ageMs: number, t: Translate): string {
+  if (ageMs < MINUTE_MS) return t("sync.age.now");
   const minutes = Math.floor(ageMs / MINUTE_MS);
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 60) return t("sync.age.minutes", { count: minutes });
   const hours = Math.floor(ageMs / HOUR_MS);
-  if (hours < 24) return `il y a ${hours} h`;
-  return `il y a ${Math.floor(ageMs / DAY_MS)} j`;
+  if (hours < 24) return t("sync.age.hours", { count: hours });
+  return t("sync.age.days", { count: Math.floor(ageMs / DAY_MS) });
 }
 
 /** Pure mapping from sync state to subtitle content. Exported for tests. */
-export function deriveSyncDisplay(state: SyncState, now: number): SyncDisplay {
+export function deriveSyncDisplay(
+  state: SyncState,
+  now: number,
+  t: Translate,
+): SyncDisplay {
   if (!state.online) {
-    return {
-      text: "Vous êtes hors ligne • synchronisation impossible",
-      isError: true,
-    };
+    return { text: t("sync.offline"), isError: true };
   }
 
   if (state.phase === "syncing") {
-    return { text: "Synchronisation en cours…", isError: false };
+    return { text: t("sync.syncing"), isError: false };
   }
 
   const hasError =
@@ -45,25 +47,22 @@ export function deriveSyncDisplay(state: SyncState, now: number): SyncDisplay {
   if (hasError) {
     if (state.retryCount > 0) {
       return {
-        text: `Échec de la synchronisation • Tentative n°${state.retryCount}`,
+        text: t("sync.failedRetry", { count: state.retryCount }),
         isError: true,
       };
     }
-    return {
-      text: "Échec de la synchronisation",
-      isError: true,
-    };
+    return { text: t("sync.failed"), isError: true };
   }
 
   if (state.lastSyncAt !== null) {
     const age = Math.max(0, now - new Date(state.lastSyncAt).getTime());
     return {
-      text: `Vos plats sont synchronisés • ${formatAge(age)}`,
+      text: t("sync.synced", { age: formatAge(age, t) }),
       isError: false,
     };
   }
 
-  return { text: "Synchronisation en attente…", isError: false };
+  return { text: t("sync.waiting"), isError: false };
 }
 
 function subscribeToClock(onChange: () => void): () => void {
@@ -78,8 +77,9 @@ function getClockTick(): number {
 export function useSyncStatus(): SyncDisplay {
   const state = useSyncExternalStore(subscribeSyncState, getSyncState);
   const tick = useSyncExternalStore(subscribeToClock, getClockTick);
+  const { t } = useTranslation();
 
-  return deriveSyncDisplay(state, tick * 1000);
+  return deriveSyncDisplay(state, tick * 1000, t);
 }
 
 /** Reactive raw sync state, for callers that need more than the display text. */

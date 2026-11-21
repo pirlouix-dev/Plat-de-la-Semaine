@@ -7,7 +7,7 @@ describe("parseDishImportJson", () => {
     const result = parseDishImportJson("{ not json");
     expect(result).toEqual({
       ok: false,
-      error: "Le fichier n'est pas un JSON valide.",
+      error: "import.invalidJson",
     });
   });
 
@@ -15,7 +15,7 @@ describe("parseDishImportJson", () => {
     const result = parseDishImportJson(JSON.stringify({ name: "X" }));
     expect(result).toEqual({
       ok: false,
-      error: "Le JSON doit contenir un tableau de plats.",
+      error: "import.notArray",
     });
   });
 
@@ -80,7 +80,7 @@ describe("parseDishImportJson", () => {
     expect(result.errors[0].index).toBe(0);
     expect(result.errors[0].errors).toContainEqual({
       field: "name",
-      message: "Le nom est requis",
+      code: "nameRequired",
     });
   });
 
@@ -91,7 +91,10 @@ describe("parseDishImportJson", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.items).toHaveLength(0);
-    expect(result.errors[0].errors[0].field).toBe("course");
+    expect(result.errors[0].errors[0]).toMatchObject({
+      field: "course",
+      code: "invalidCourse",
+    });
   });
 
   it("rejects out-of-range course and seasons", () => {
@@ -113,7 +116,10 @@ describe("parseDishImportJson", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.items).toHaveLength(0);
-    expect(result.errors[0].errors[0].field).toBe("seasons");
+    expect(result.errors[0].errors[0]).toMatchObject({
+      field: "seasons",
+      code: "seasonsRequired",
+    });
   });
 
   it("rejects a name longer than the allowed length", () => {
@@ -125,7 +131,11 @@ describe("parseDishImportJson", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.items).toHaveLength(0);
-    expect(result.errors[0].errors[0].field).toBe("name");
+    expect(result.errors[0].errors[0]).toMatchObject({
+      field: "name",
+      code: "nameTooLong",
+      params: { max: MAX_NAME_LENGTH },
+    });
   });
 
   it("reports a non-object item", () => {
@@ -133,6 +143,9 @@ describe("parseDishImportJson", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.items).toHaveLength(0);
-    expect(result.errors[0].errors[0].field).toBe("item");
+    expect(result.errors[0].errors[0]).toMatchObject({
+      field: "item",
+      code: "notObject",
+    });
   });
 });

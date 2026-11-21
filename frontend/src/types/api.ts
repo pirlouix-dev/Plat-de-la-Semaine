@@ -28,7 +28,7 @@ export interface ApiEmptyResponse {
 export interface ApiErrorDetail {
   /**
    * Stable machine-readable error code (e.g., "VALIDATION_ERROR", "NOT_FOUND").
-   * The UI maps this to user-facing French copy.
+   * The UI maps this to localised user-facing copy.
    */
   code: string;
   /**
