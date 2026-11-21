@@ -69,7 +69,9 @@ changes.
 - The frontend is deployed on Vercel. The Vercel project root directory is
   `frontend/`; `frontend/vercel.json` rewrites unmatched paths to
   `/index.html` for the client-side router.
-- The backend is deployed to Azure App Service from the `backend/` directory.
+- The backend is deployed to Azure App Service automatically by
+  `.github/workflows/deploy-backend.yml` on every push to `main` (and manually
+  through `workflow_dispatch`), building and testing `backend/` first.
 
 Backend releases must be live before the frontend reaches users.
 
