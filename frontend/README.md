@@ -2,6 +2,9 @@
 
 Offline-first PWA for managing weekly meal plans. Built with React 19, RxDB, and Vite.
 
+This is the `frontend/` package of the Plat de la Semaine monorepo. Run the
+commands below from this directory.
+
 ## Features
 
 - **Dish management** — Add, edit, and organize dishes by course (starter/main/dessert) and season
@@ -47,7 +50,7 @@ To open the app from another device on the same network (e.g. a phone), run `npm
 | `npm test` | Run tests (Vitest) |
 | `npm run lint` | Lint all source files |
 | `npm run preview` | Preview production build |
-| `npm run gen:api-types` | Regenerate `src/schema.d.ts` from `openapi.yml` |
+| `npm run gen:api-types` | Regenerate `src/schema.d.ts` from the root `openapi.yml` |
 
 ## Architecture
 
@@ -69,7 +72,9 @@ Data flows: **UI → hooks → repository → RxDB (local)** ↔ **sync service 
 
 ## CI
 
-GitHub Actions runs lint, type-check, build, and tests on every push to `main` and on pull requests.
+The repository workflow in `.github/workflows/ci.yml` runs lint, type-check,
+build, and tests for the frontend on every push to `main`/`develop` and on pull
+requests. The same workflow runs the backend build and tests.
 
 ## Environment Variables
 
@@ -79,6 +84,9 @@ GitHub Actions runs lint, type-check, build, and tests on every push to `main` a
 
 ## Deployment
 
-The app is deployed on Vercel as static files, but routing is entirely client-side (`BrowserRouter`). `vercel.json` therefore rewrites every unmatched path to `/index.html` so the router can resolve it. Real files (`/assets/*`, icons, the web manifest) are still served directly, since Vercel applies rewrites only after the filesystem check.
+The app is deployed on Vercel as static files, with the project root directory
+set to `frontend/`. Routing is entirely client-side (`BrowserRouter`).
+`vercel.json` therefore rewrites every unmatched path to `/index.html` so the
+router can resolve it. Real files (`/assets/*`, icons, the web manifest) are still served directly, since Vercel applies rewrites only after the filesystem check.
 
 Do not remove that rewrite: without it, opening or refreshing any sub-route (`/login`, `/register`, `/settings`, …) returns a 404.

@@ -1,0 +1,1494 @@
+openapi: 3.1.1
+info:
+  title: plat-de-la-semaine-back | v1
+  version: 1.0.0
+servers:
+- url: http://localhost:5199/
+paths:
+  /api/auth/register:
+    post:
+      tags:
+      - Auth
+      summary: Register a new account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/auth/login:
+    post:
+      tags:
+      - Auth
+      summary: Authenticate and return a JWT
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/auth/refresh:
+    post:
+      tags:
+      - Auth
+      summary: Refresh an expired token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/RefreshPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/RefreshPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/auth/forgot-password:
+    post:
+      tags:
+      - Auth
+      summary: Send a password reset email
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+  /api/auth/username:
+    put:
+      tags:
+      - Auth
+      summary: Update the authenticated user's username
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUsernamePayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUsernamePayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/UpdateUsernamePayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/auth/reset-password:
+    post:
+      tags:
+      - Auth
+      summary: Send a password reset email
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/auth/account:
+    delete:
+      tags:
+      - Auth
+      summary: Delete the authenticated user's account and all associated data
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/AccountDeletionResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountDeletionResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/AccountDeletionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/backups:
+    get:
+      tags:
+      - Backups
+      summary: Fetch all backups for the current user (max 5, newest first)
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/BackupListResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupListResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/BackupListResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/backups/restore/{backupId}:
+    post:
+      tags:
+      - Backups
+      summary: Restore the dish list from a specific backup
+      parameters:
+      - name: backupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/BackupRestoreResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupRestoreResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/BackupRestoreResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '404':
+          description: Not Found
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/dishes:
+    get:
+      tags:
+      - Dishes
+      summary: Fetch all dishes for the current user
+      parameters:
+      - name: since
+        in: query
+        schema:
+          type: string
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/DishListResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DishListResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/DishListResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+    post:
+      tags:
+      - Dishes
+      summary: Create a new dish
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDishPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/CreateDishPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/CreateDishPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/DishSingleResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DishSingleResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/DishSingleResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/dishes/batch:
+    post:
+      tags:
+      - Dishes
+      summary: Apply a batch of dish create, update, and delete operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DishBatchPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/DishBatchPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/DishBatchPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/DishBatchResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DishBatchResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/DishBatchResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/dishes/{id}:
+    put:
+      tags:
+      - Dishes
+      summary: Update an existing dish
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDishPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDishPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/UpdateDishPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/DishSingleResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DishSingleResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/DishSingleResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '404':
+          description: Not Found
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+    delete:
+      tags:
+      - Dishes
+      summary: Delete a dish
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '404':
+          description: Not Found
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/feedback:
+    post:
+      tags:
+      - Settings
+      summary: Submit a bug report or feedback message
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/FeedbackPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '429':
+          description: Too Many Requests
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/menu:
+    get:
+      tags:
+      - Menu
+      summary: Fetch the current user's saved menu
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+    put:
+      tags:
+      - Menu
+      summary: Save the current user's menu
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveMenuPayload'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/SaveMenuPayload'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/SaveMenuPayload'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '409':
+          description: Conflict
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+  /api/ping:
+    get:
+      tags:
+      - Health
+      summary: Ping the server to warm it up
+      responses:
+        '200':
+          description: OK
+  /api/version:
+    get:
+      tags:
+      - Settings
+      summary: Fetch the latest version information
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/VersionInfo'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionInfo'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/VersionInfo'
+        '400':
+          description: Bad Request
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorDetail'
+components:
+  schemas:
+    AccountDeletionResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    ApiErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type:
+          - 'null'
+          - array
+          items:
+            $ref: '#/components/schemas/ApiFieldError'
+    ApiFieldError:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+        rejectedValue: {}
+    AuthResponse:
+      required:
+      - idToken
+      - refreshToken
+      - expiresIn
+      - userId
+      - username
+      type: object
+      properties:
+        idToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+    BackupListResponse:
+      required:
+      - data
+      - total
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackupSummary'
+        total:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+    BackupRestoreResponse:
+      required:
+      - data
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/RestoreBackupResponse'
+    BackupSummary:
+      required:
+      - id
+      - createdAt
+      - dishCount
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        dishCount:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+    CreateDishPayload:
+      required:
+      - name
+      - course
+      - seasons
+      type: object
+      properties:
+        id:
+          type:
+          - 'null'
+          - string
+        name:
+          maxLength: 200
+          minLength: 0
+          type: string
+        description:
+          maxLength: 5000
+          minLength: 0
+          type: string
+        course:
+          maximum: 2
+          minimum: 0
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        seasons:
+          type: array
+          items:
+            pattern: ^-?(?:0|[1-9]\d*)$
+            type:
+            - integer
+            - string
+            format: int32
+    Dish:
+      required:
+      - id
+      - userId
+      type: object
+      properties:
+        id:
+          type:
+          - 'null'
+          - string
+        userId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        course:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        seasons:
+          type: array
+          items:
+            pattern: ^-?(?:0|[1-9]\d*)$
+            type:
+            - integer
+            - string
+            format: int32
+        updatedAt:
+          type: string
+          format: date-time
+        isDeleted:
+          type: boolean
+    DishBatchOperation:
+      type: object
+      properties:
+        op:
+          type:
+          - 'null'
+          - string
+        id:
+          type:
+          - 'null'
+          - string
+        name:
+          type:
+          - 'null'
+          - string
+        description:
+          type:
+          - 'null'
+          - string
+        course:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          format: int32
+        seasons:
+          type:
+          - 'null'
+          - array
+          items:
+            pattern: ^-?(?:0|[1-9]\d*)$
+            type:
+            - integer
+            - string
+            format: int32
+    DishBatchOperationResult:
+      required:
+      - index
+      - status
+      type: object
+      properties:
+        index:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        op:
+          type:
+          - 'null'
+          - string
+        status:
+          type: string
+        id:
+          type:
+          - 'null'
+          - string
+        data:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/Dish'
+        code:
+          type:
+          - 'null'
+          - string
+        message:
+          type:
+          - 'null'
+          - string
+        errors:
+          type:
+          - 'null'
+          - array
+          items:
+            $ref: '#/components/schemas/ApiFieldError'
+    DishBatchPayload:
+      required:
+      - operations
+      type: object
+      properties:
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishBatchOperation'
+    DishBatchResponse:
+      required:
+      - created
+      - updated
+      - deleted
+      - failed
+      - results
+      type: object
+      properties:
+        created:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        updated:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        deleted:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        failed:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishBatchOperationResult'
+    DishListResponse:
+      required:
+      - data
+      - total
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dish'
+        total:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+    DishSingleResponse:
+      required:
+      - data
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Dish'
+    FeedbackPayload:
+      required:
+      - message
+      - appVersion
+      type: object
+      properties:
+        message:
+          maxLength: 2000
+          minLength: 0
+          type: string
+        appVersion:
+          type: string
+    ForgotPasswordPayload:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+    LoginPayload:
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    Menu:
+      type: object
+      properties:
+        selectedDishIds:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type:
+          - 'null'
+          - string
+          format: date-time
+    MenuResponse:
+      required:
+      - data
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Menu'
+    RefreshPayload:
+      required:
+      - refreshToken
+      type: object
+      properties:
+        refreshToken:
+          type: string
+    RefreshResponse:
+      required:
+      - idToken
+      - refreshToken
+      - expiresIn
+      type: object
+      properties:
+        idToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: string
+    RegisterPayload:
+      required:
+      - email
+      - password
+      - username
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        username:
+          maxLength: 100
+          minLength: 1
+          type: string
+    RestoreBackupResponse:
+      required:
+      - backupId
+      - restoredCount
+      - safetyBackupCreatedAt
+      type: object
+      properties:
+        backupId:
+          type: string
+        restoredCount:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - integer
+          - string
+          format: int32
+        safetyBackupCreatedAt:
+          type: string
+          format: date-time
+    SaveMenuPayload:
+      required:
+      - selectedDishIds
+      - expectedUpdatedAt
+      type: object
+      properties:
+        selectedDishIds:
+          type: array
+          items:
+            type: string
+        expectedUpdatedAt:
+          type:
+          - 'null'
+          - string
+          format: date-time
+    UpdateDishPayload:
+      type: object
+      properties:
+        name:
+          maxLength: 200
+          minLength: 0
+          type:
+          - 'null'
+          - string
+        description:
+          maxLength: 5000
+          minLength: 0
+          type:
+          - 'null'
+          - string
+        course:
+          maximum: 2
+          minimum: 0
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+          - 'null'
+          - integer
+          - string
+          format: int32
+        seasons:
+          type:
+          - 'null'
+          - array
+          items:
+            pattern: ^-?(?:0|[1-9]\d*)$
+            type:
+            - integer
+            - string
+            format: int32
+    UpdateUsernamePayload:
+      required:
+      - username
+      type: object
+      properties:
+        username:
+          maxLength: 100
+          minLength: 1
+          type: string
+    VersionInfo:
+      required:
+      - latestVersion
+      type: object
+      properties:
+        latestVersion:
+          type: string
+tags:
+- name: Auth
+- name: Backups
+- name: Dishes
+- name: Settings
+- name: Menu
+- name: Health

@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "preview": "npm run build && vite preview",
-    "gen:api-types": "openapi-typescript ./openapi.yml -o ./src/schema.d.ts"
+    "gen:api-types": "openapi-typescript ../openapi.yml -o ./src/schema.d.ts"
   },
   "dependencies": {
     "js-sha256": "^0.12.0",

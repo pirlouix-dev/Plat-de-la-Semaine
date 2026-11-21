@@ -1,7 +1,9 @@
-# PDLS-webapp-back
+# Plat de la Semaine — Backend
 
-The backend for the React version of the "Plat de la Semaine" app. Built with
-ASP.NET Core (.NET 10) and backed by Firebase/Firestore.
+The backend package of the Plat de la Semaine monorepo. Built with ASP.NET Core
+(.NET 10) and backed by Firebase/Firestore.
+
+Run the commands below from the `backend/` directory.
 
 ## Prerequisites
 
@@ -25,7 +27,9 @@ ASP.NET Core (.NET 10) and backed by Firebase/Firestore.
 
 The API listens on `http://localhost:5126` in development. In the Development
 environment the OpenAPI document is served at `/openapi/v1.json`. Use
-`./generate-openapi.sh` to write it to `openapi.yml`.
+`./generate-openapi.sh` to write the contract snapshot to `../openapi.yml` at
+the monorepo root, then regenerate the frontend types with
+`npm run gen:api-types` in `frontend/`.
 
 ## Configuration
 
