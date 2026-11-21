@@ -9,7 +9,7 @@ import logo_img from "../../../assets/logo.png";
 import book_img from "../../../assets/book.webp";
 import add_img from "../../../assets/add.webp";
 import pencil_img from "../../../assets/pencil.webp";
-import wheel_img from "../../../assets/wheel.webp";
+import gear_img from "../../../assets/gear.webp";
 import textbox_img from "../../../assets/textbox.webp";
 
 type MainMenuItem = {
@@ -30,7 +30,7 @@ const mainMenuItems: MainMenuItem[] = [
   },
   { id: 2, text: "Ajouter un plat", icon: add_img, route: "/add" },
   { id: 3, text: "Modifier un plat", icon: pencil_img, route: "/edit" },
-  { id: 4, text: "Paramètres", icon: wheel_img, route: "/settings" },
+  { id: 4, text: "Paramètres", icon: gear_img, route: "/settings" },
 ];
 
 function HomePage() {
