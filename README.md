@@ -80,5 +80,6 @@ Backend releases must be live before the frontend reaches users.
 - `docs/development.md` — branching, API and error contract, testing, tooling
 - `docs/monorepo.md` — layout, imported history, tags and release conventions
 - `docs/issue-migration.md` — backend issue number mapping
+- `docs/azure-deploy.md` — Azure App Service deployment and OIDC setup
 - `frontend/README.md` — frontend details
 - `backend/README.md` — backend configuration and deployment details
