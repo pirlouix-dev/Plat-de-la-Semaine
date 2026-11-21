@@ -1,0 +1,47 @@
+# Monorepo conventions
+
+## Imported history
+
+The repository was formed from two independent repositories:
+`PDLS-webapp-front` and `PDLS-webapp-back`.
+
+- The frontend was moved into `frontend/` in a normal commit, so its commit
+  SHAs, branches, tags and pull request references are unchanged. Checkouts of
+  tags up to `v4.3.0` show the pre-monorepo layout with the frontend at the
+  repository root.
+- The backend was imported with `git subtree add` into `backend/`. Its commits
+  keep their original SHAs and remain reachable from the import merge commit.
+- Backend tags are namespaced as `backend/v4.0.0` … `backend/v4.3.0` because the
+  original backend tags used the same names as the frontend tags.
+
+Historical backend pull requests and releases remain in the archived
+`PDLS-webapp-back` repository. They cannot be transferred.
+
+## Tags and releases
+
+- Frontend tags `v4.0.0` … `v4.3.0` are historical and point at the original
+  frontend commits.
+- Backend tags `backend/v4.0.0` … `backend/v4.3.0` point at the original backend
+  commits.
+- From the first monorepo release onward there is a single tag `vX.Y.Z` on the
+  `main` release merge commit, covering both packages.
+- Each monorepo release has one GitHub Release with combined notes.
+
+## Local environment
+
+- Keep environment files per package: `frontend/.env`, `backend/.env`.
+- Do not create a root `.env`. The backend searches parent directories, so a
+  root file would silently override `backend/.env`.
+- A single `venv/` at the repository root is used by one-off Python scripts and
+  by `backend/generate-openapi.sh`.
+
+## Release ordering
+
+The backend must be running before the frontend that depends on it reaches
+users:
+
+1. Merge the release pull request only after the backend has been built and
+   deployed from the pull request head, and the running API is verified.
+2. Merging the pull request triggers the frontend deployment on Vercel.
+3. Tag the `main` merge commit and publish one GitHub Release.
+4. Update the version in Firestore.
