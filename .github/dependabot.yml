@@ -40,7 +40,7 @@ updates:
       prefix: "chore(deps)"
     ignore:
       # Ship with the SDK: a major only makes sense with a TargetFramework bump
-      # to net11, and Microsoft.OpenApi majors are coupled to
+      # to net12, and Microsoft.OpenApi majors are coupled to
       # Microsoft.AspNetCore.OpenApi. Dependabot's NuGet support does not apply
       # `update-types` ignores yet (dependabot-core#11398), so these majors still
       # arrive as pull requests and have to be closed by hand.

@@ -60,14 +60,14 @@ for the installed app, so it stays English regardless of the in-app choice.
 | Path | Stack | Description |
 |---|---|---|
 | `frontend/` | React 19, TypeScript, Vite 8, RxDB 17 | Offline-first PWA |
-| `backend/` | ASP.NET Core (.NET 10), Firebase/Firestore | REST API |
-| `openapi.yml` | OpenAPI 3.1 | Backend contract snapshot, generated from the backend |
+| `backend/` | ASP.NET Core (.NET 11), Firebase/Firestore | REST API |
+| `openapi.yml` | OpenAPI 3.2 | Backend contract snapshot, generated from the backend |
 | `docs/` | Markdown | Development and repository conventions |
 
 ## Prerequisites
 
 - Node 26 (see `frontend/.nvmrc`)
-- .NET 10 SDK
+- .NET 11 SDK
 - A Firebase project with Firestore enabled, for the backend
 
 ## Getting started

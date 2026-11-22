@@ -4,7 +4,7 @@ The backend is deployed by `.github/workflows/deploy-backend.yml`.
 
 - Trigger: every push to `main`, plus `workflow_dispatch`.
 - Target: Azure App Service `PDLS` (resource group `PDLS`), slot `Production`.
-- Build: `backend/plat-de-la-semaine-back.csproj` on .NET 10, after the full
+- Build: `backend/plat-de-la-semaine-back.csproj` on .NET 11, after the full
   backend test suite passes.
 - Serialization: `concurrency: group: deploy-production` with
   `cancel-in-progress: false`, so two deploys queue instead of interleaving.
