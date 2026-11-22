@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { beforeEach } from 'vitest';
 import { setBaseUrl } from './services/api';
 import { __resetI18nForTests } from './i18n';
