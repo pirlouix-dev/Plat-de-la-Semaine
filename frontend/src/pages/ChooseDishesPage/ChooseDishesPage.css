@@ -353,6 +353,33 @@
   gap: 10px;
 }
 
+/* Below the sidebar breakpoint the actions pin to the viewport so undo stays
+   reachable without scrolling past the selected dishes, and the confirmed
+   menu keeps the same action area as the editing view. */
+@media (max-width: 799px) {
+  .sidebar-actions,
+  .recap-bottom-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    max-width: 960px;
+    margin: 0 auto;
+    flex-direction: row;
+    gap: 12px;
+    padding: 12px min(20px, 4vw)
+      calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-dark);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .sidebar-actions .btn {
+    flex: 1;
+  }
+}
+
 .recap-layout {
   display: flex;
   flex-direction: column;
