@@ -16,9 +16,6 @@ updates:
     # satisfies them, so grouped PRs only move the lockfile.
     versioning-strategy: "increase-if-necessary"
     ignore:
-      # Majors track Node majors, and .nvmrc pins the runtime to Node 22.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
       # typescript-eslint peers allow "<6.1.0" only; drop this once the lint
       # stack supports the next TypeScript major.
       - dependency-name: "typescript"
@@ -42,11 +39,11 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     ignore:
-      # Ship with the SDK: a major only makes sense with a TargetFramework bump,
-      # and Microsoft.OpenApi majors are coupled to Microsoft.AspNetCore.OpenApi.
-      # Dependabot's NuGet support does not apply `update-types` ignores yet
-      # (dependabot-core#11398), so these majors still arrive as pull requests
-      # and have to be closed by hand.
+      # Ship with the SDK: a major only makes sense with a TargetFramework bump
+      # to net11, and Microsoft.OpenApi majors are coupled to
+      # Microsoft.AspNetCore.OpenApi. Dependabot's NuGet support does not apply
+      # `update-types` ignores yet (dependabot-core#11398), so these majors still
+      # arrive as pull requests and have to be closed by hand.
       - dependency-name: "Microsoft.AspNetCore.*"
         update-types: ["version-update:semver-major"]
       - dependency-name: "Microsoft.OpenApi"
@@ -68,8 +65,6 @@ updates:
     ignore:
       # See the backend entry: NuGet `update-types` ignores are not honoured yet.
       - dependency-name: "Microsoft.AspNetCore.*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "Microsoft.NET.Test.Sdk"
         update-types: ["version-update:semver-major"]
     groups:
       backend-tests-minor-patch:
