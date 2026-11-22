@@ -1,13 +1,13 @@
 # Plat de la Semaine — Backend
 
 The backend package of the Plat de la Semaine monorepo. Built with ASP.NET Core
-(.NET 10) and backed by Firebase/Firestore.
+(.NET 11) and backed by Firebase/Firestore.
 
 Run the commands below from the `backend/` directory.
 
 ## Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [.NET 11 SDK](https://dotnet.microsoft.com/download)
 - A Firebase project with Firestore enabled
 
 ## Getting started

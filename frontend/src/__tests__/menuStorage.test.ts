@@ -3,6 +3,7 @@ import {
   _resetMenuStorageState,
   applyRemoteMenu,
   beginMenuSave,
+  clearGuestMenu,
   getPendingRemoteMenu,
   isMenuDirty,
   keepLocalMenu,
@@ -55,6 +56,42 @@ describe("loadStoredMenu", () => {
 
     expect(stored?.selectedIds).toEqual(["g"]);
     expect(stored?.mode).toBe("recap");
+    // The guest slot is migrated, not merely borrowed, so it cannot resurface
+    // as guest state after the account logs out.
+    expect(localStorage.getItem(GUEST_KEY)).toBeNull();
+    expect(loadStoredMenu("u1")?.selectedIds).toEqual(["g"]);
+  });
+
+  it("does not hand an adopted guest menu to the next guest session", () => {
+    localStorage.setItem(
+      GUEST_KEY,
+      JSON.stringify({
+        ...menu({ selectedIds: ["g"], mode: "recap" }),
+        serverUpdatedAt: null,
+        localRevision: 1,
+        reconciledRevision: 1,
+      }),
+    );
+
+    expect(loadStoredMenu("u1")?.selectedIds).toEqual(["g"]);
+
+    expect(loadStoredMenu(null)).toBeNull();
+  });
+
+  it("clears a genuine guest menu", () => {
+    localStorage.setItem(
+      GUEST_KEY,
+      JSON.stringify({
+        ...menu({ selectedIds: ["g"], mode: "recap" }),
+        serverUpdatedAt: null,
+        localRevision: 1,
+        reconciledRevision: 1,
+      }),
+    );
+
+    clearGuestMenu();
+
+    expect(loadStoredMenu(null)).toBeNull();
   });
 
   it("reads the per-user slot for a logged-in user", () => {

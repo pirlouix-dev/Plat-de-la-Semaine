@@ -27,7 +27,14 @@ vi.mock("../repositories/dishRepository", async (importOriginal) => {
   };
 });
 
+vi.mock("../services/syncService", () => ({
+  requestDishFlush: vi.fn(),
+}));
+
 import * as dishRepository from "../repositories/dishRepository";
+import { requestDishFlush } from "../services/syncService";
+
+const mockRequestDishFlush = vi.mocked(requestDishFlush);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -58,9 +65,28 @@ describe("useDishes", () => {
         "dish-1",
         fields,
       );
+      expect(mockRequestDishFlush).toHaveBeenCalledWith(mockDb);
     });
 
-    it("throws when database is not ready", async () => {
+    it("does not trigger a flush when the write fails", async () => {
+      vi.mocked(dishRepository.editDish).mockRejectedValueOnce(
+        new Error("write failed"),
+      );
+      const { result } = renderHook(() => useDishes());
+
+      await expect(
+        result.current.editDish("dish-1", {
+          name: "X",
+          description: "",
+          course: 0,
+          seasons: [],
+        }),
+      ).rejects.toThrow("write failed");
+
+      expect(mockRequestDishFlush).not.toHaveBeenCalled();
+    });
+
+    it("does not trigger a flush when database is not ready", async () => {
       mockUseDatabase.mockReturnValue({
         db: null,
         isLoading: false,
@@ -77,6 +103,8 @@ describe("useDishes", () => {
           seasons: [],
         }),
       ).rejects.toThrow("Database not ready");
+
+      expect(mockRequestDishFlush).not.toHaveBeenCalled();
     });
   });
 
@@ -92,6 +120,7 @@ describe("useDishes", () => {
         mockDb,
         "dish-2",
       );
+      expect(mockRequestDishFlush).toHaveBeenCalledWith(mockDb);
     });
 
     it("throws when database is not ready", async () => {
@@ -139,6 +168,7 @@ describe("useDishes", () => {
         isDeleted: false,
         syncStatus: "pending_create",
       });
+      expect(mockRequestDishFlush).toHaveBeenCalledWith(mockDb);
     });
 
     it("throws when database is not ready", async () => {
@@ -176,6 +206,7 @@ describe("useDishes", () => {
       });
 
       expect(dishRepository.insertDish).toHaveBeenCalledWith(mockDb, dish);
+      expect(mockRequestDishFlush).toHaveBeenCalledWith(mockDb);
     });
   });
 });

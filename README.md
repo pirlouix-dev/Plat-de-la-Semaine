@@ -60,14 +60,14 @@ for the installed app, so it stays English regardless of the in-app choice.
 | Path | Stack | Description |
 |---|---|---|
 | `frontend/` | React 19, TypeScript, Vite 8, RxDB 17 | Offline-first PWA |
-| `backend/` | ASP.NET Core (.NET 10), Firebase/Firestore | REST API |
-| `openapi.yml` | OpenAPI 3.1 | Backend contract snapshot, generated from the backend |
+| `backend/` | ASP.NET Core (.NET 11), Firebase/Firestore | REST API |
+| `openapi.yml` | OpenAPI 3.2 | Backend contract snapshot, generated from the backend |
 | `docs/` | Markdown | Development and repository conventions |
 
 ## Prerequisites
 
-- Node 22 (see `frontend/.nvmrc`)
-- .NET 10 SDK
+- Node 26 (see `frontend/.nvmrc`)
+- .NET 11 SDK
 - A Firebase project with Firestore enabled, for the backend
 
 ## Getting started
@@ -123,7 +123,9 @@ changes.
   `/index.html` for the client-side router.
 - The backend is deployed to Azure App Service automatically by
   `.github/workflows/deploy-backend.yml` on every push to `main` (and manually
-  through `workflow_dispatch`), building and testing `backend/` first.
+  through `workflow_dispatch`), building and testing `backend/` first. Deploys
+  are serialized, and the workflow fails unless the live `/api/ping` reports the
+  deployed commit. See `docs/azure-deploy.md`.
 
 Backend releases must be live before the frontend reaches users.
 

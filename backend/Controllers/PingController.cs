@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using PlatDeLaSemaineBack.Configuration;
+using PlatDeLaSemaineBack.Models;
 
 namespace PlatDeLaSemaineBack.Controllers;
 
@@ -11,10 +13,11 @@ namespace PlatDeLaSemaineBack.Controllers;
 public class PingController : ControllerBase
 {
     /// <summary>
-    /// Return 200 OK to signal the server is warm and ready.
+    /// Return 200 OK and the running build's commit to signal the server is
+    /// warm and ready.
     /// </summary>
     [HttpGet]
     [EndpointSummary("Ping the server to warm it up")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult Ping() => Ok();
+    [ProducesResponseType(typeof(BuildInfo), StatusCodes.Status200OK)]
+    public IActionResult Ping() => Ok(new BuildInfo { Commit = BuildStamp.Commit });
 }

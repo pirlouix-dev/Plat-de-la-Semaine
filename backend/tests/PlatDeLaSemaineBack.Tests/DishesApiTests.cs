@@ -139,6 +139,41 @@ public class DishesApiTests
     }
 
     [Fact]
+    public async Task Batch_CreateWithExistingId_ReturnsExistingDishWithoutOverwriting()
+    {
+        // Arrange: the first create landed but its response was lost, so the
+        // client retries it after another device edited the dish.
+        var store = new InMemoryFirestoreService();
+        store.SeedUser("alice");
+        await store.InsertDishAsync(NewDish("alice", "c1", "Edited elsewhere"));
+
+        using var factory = CreateFactory(store);
+        using var client = CreateClient(factory);
+
+        const string body = """
+        {
+          "operations": [
+            { "op": "create", "id": "c1", "name": "Stale retry", "course": 2, "seasons": [2] }
+          ]
+        }
+        """;
+
+        // Act
+        using var response = await PostBatchAsync(client, body);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await ReadJsonAsync(response);
+        var result = json.GetProperty("results")[0];
+        Assert.Equal("created", result.GetProperty("status").GetString());
+        Assert.Equal("Edited elsewhere", result.GetProperty("data").GetProperty("name").GetString());
+
+        var storedDish = await store.GetDishByIdAsync("alice", "c1");
+        Assert.Equal("Edited elsewhere", storedDish!.Name);
+        Assert.Equal(1, storedDish.Course);
+    }
+
+    [Fact]
     public async Task Batch_InvalidOperation_ReturnsFailedOutcomeNotRejectedRequest()
     {
         // Arrange

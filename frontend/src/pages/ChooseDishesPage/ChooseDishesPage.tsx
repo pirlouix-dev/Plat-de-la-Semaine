@@ -115,7 +115,7 @@ export function ChooseDishesPage() {
       syncState.lastSyncAt !== null || syncState.lastErrorAt !== null,
   });
 
-  const [initialSaved] = useState<SavedMenuState | null>(() => {
+  const [initialSaved, setInitialSaved] = useState<SavedMenuState | null>(() => {
     const saved = loadStoredMenu(userId);
     if (!saved) return null;
     return saved.selectedIds.length > 0 || saved.history.length > 0
@@ -147,6 +147,7 @@ export function ChooseDishesPage() {
 
   const [session, setSession] = useState<SessionState | null>(null);
   const initializedRef = useRef(false);
+  const previousUserIdRef = useRef(userId);
 
   // Keep the banner and the live session in sync with menu sync events.
   useEffect(() => {
@@ -221,8 +222,28 @@ export function ChooseDishesPage() {
   const selectedIds = session?.selectedIds ?? NO_IDS;
   const history = session?.history ?? NO_HISTORY;
 
+  // Logging out while this page is open must not keep the account's live
+  // session, nor let it be written to the guest slot (#144). Reset to the
+  // normal guest flow and let the session builder start over.
   useEffect(() => {
+    if (!previousUserIdRef.current || userId) return;
+    initializedRef.current = false;
+    setInitialSaved(null);
+    setSession(null);
+    setMode("editing");
+    setConflict(null);
+    setExpandedDishIds({});
+  }, [userId]);
+
+  useEffect(() => {
+    const previousUserId = previousUserIdRef.current;
+    previousUserIdRef.current = userId;
+
+    // The transition account -> guest belongs to the account that just logged
+    // out; persisting it under the guest key would leak its menu.
+    if (previousUserId && !userId) return;
     if (!session) return;
+
     storeMenu(userId, {
       queueIds: session.queueIds,
       selectedIds: session.selectedIds,

@@ -1,7 +1,9 @@
+using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using PlatDeLaSemaineBack.Controllers;
+using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
 using Xunit;
 
@@ -10,7 +12,7 @@ namespace PlatDeLaSemaineBack.Tests;
 public class BaseControllerTests
 {
     [Fact]
-    public async Task GetUserIdAsync_WithoutAuthorizationHeader_ThrowsUnauthorized()
+    public async Task GetUserIdAsync_WithoutAuthorizationHeader_ThrowsMissingToken()
     {
         // Arrange
         var verifier = Substitute.For<ITokenVerifier>();
@@ -20,11 +22,13 @@ public class BaseControllerTests
         var act = () => controller.GetUserIdForTestAsync();
 
         // Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+        var ex = await Assert.ThrowsAsync<ApiException>(act);
+        Assert.Equal(HttpStatusCode.Unauthorized, ex.StatusCode);
+        Assert.Equal(ApiErrorCodes.MissingToken, ex.ErrorCode);
     }
 
     [Fact]
-    public async Task GetUserIdAsync_WithNonBearerScheme_ThrowsUnauthorized()
+    public async Task GetUserIdAsync_WithNonBearerScheme_ThrowsMissingToken()
     {
         // Arrange
         var verifier = Substitute.For<ITokenVerifier>();
@@ -34,7 +38,9 @@ public class BaseControllerTests
         var act = () => controller.GetUserIdForTestAsync();
 
         // Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+        var ex = await Assert.ThrowsAsync<ApiException>(act);
+        Assert.Equal(HttpStatusCode.Unauthorized, ex.StatusCode);
+        Assert.Equal(ApiErrorCodes.MissingToken, ex.ErrorCode);
     }
 
     [Fact]

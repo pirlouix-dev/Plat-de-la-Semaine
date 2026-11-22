@@ -9,6 +9,10 @@ namespace PlatDeLaSemaineBack.Models;
 /// </summary>
 public class CreateDishPayload : IValidatableObject
 {
+    /// <summary>
+    /// Client-supplied id, e.g. generated offline. A dish that already exists
+    /// under this id is returned unchanged instead of being overwritten.
+    /// </summary>
     public string? Id { get; set; }
 
     [Required]
@@ -408,6 +412,14 @@ public class BackupRestoreResponse
 public class VersionInfo
 {
     public required string LatestVersion { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Identifies the build serving the request.
+/// </summary>
+public class BuildInfo
+{
+    public required string Commit { get; set; } = string.Empty;
 }
 
 /// <summary>

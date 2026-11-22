@@ -41,9 +41,8 @@ The frontend is the only place that maps a `code` to localised user-facing copy
 is an English diagnostic and must never be rendered in the UI.
 
 Frontend and backend are released together. Do not add client-side
-compatibility mappings for error codes the backend no longer sends (for example
-the old generic `UNAUTHORIZED` auth failures); remove the old mapping and the
-backend code in the same release.
+compatibility mappings for error codes the backend no longer sends; remove the
+old mapping and the backend code in the same release.
 
 ## Testing
 
@@ -59,6 +58,29 @@ Run both suites before opening a pull request:
 cd frontend && npm test
 cd backend && dotnet test
 ```
+
+## Dependencies
+
+`.github/dependabot.yml` opens weekly version-update pull requests against
+`develop` for npm (`frontend/`), NuGet (`backend/` and its test project) and the
+workflow actions. Minor and patch bumps are grouped; major bumps arrive as
+individual pull requests and are never auto-merged.
+
+An `openapi-typescript` or `typescript` bump can change the generated types:
+run `npm run gen:api-types` in `frontend/` and confirm `src/schema.d.ts` is
+unchanged. A `Microsoft.OpenApi` bump is part of the API contract workflow
+above — regenerate `openapi.yml` in the same pull request.
+
+Majors arrive as individual pull requests and are merged by hand. Two cases are
+blocked for now and their pull requests should be closed rather than merged:
+
+- `typescript` majors, until `typescript-eslint` widens its peer range (it
+  currently allows `<6.1.0`). This one is ignored in the config so it is not
+  reopened every week.
+- `Microsoft.AspNetCore.*` and `Microsoft.OpenApi` majors, which only move with
+  a `net11.0` target. They are listed under `ignore` too, but Dependabot's NuGet
+  support does not honour `update-types` ignores yet
+  (`dependabot-core#11398`), so the pull requests still show up.
 
 ## Python tooling
 

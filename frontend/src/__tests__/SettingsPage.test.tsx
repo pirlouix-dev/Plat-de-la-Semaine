@@ -439,7 +439,7 @@ describe("SettingsPage", () => {
       });
     });
 
-    it("marks the first backup as current", async () => {
+    it("offers restore for every backup", async () => {
       mockGetBackups.mockResolvedValue({
         ok: true,
         data: [
@@ -452,8 +452,8 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText(t("settings.data.activeVersion"))).toBeTruthy();
-        expect(screen.getAllByText(t("settings.data.restore"))).toHaveLength(1);
+        expect(screen.queryByText(/active version/i)).toBeNull();
+        expect(screen.getAllByText(t("settings.data.restore"))).toHaveLength(2);
       });
     });
 
@@ -470,10 +470,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText(t("settings.data.restore"))).toBeTruthy();
+        expect(screen.getAllByText(t("settings.data.restore"))).toHaveLength(2);
       });
 
-      fireEvent.click(screen.getByText(t("settings.data.restore")));
+      fireEvent.click(screen.getAllByText(t("settings.data.restore"))[1]);
 
       await waitFor(() => {
         expect(mockRestoreBackup).toHaveBeenCalledWith("b2");
@@ -502,10 +502,10 @@ describe("SettingsPage", () => {
       fireEvent.click(screen.getByRole("button", { name: new RegExp(t("settings.tab.data"), "i") }));
 
       await waitFor(() => {
-        expect(screen.getByText(t("settings.data.restore"))).toBeTruthy();
+        expect(screen.getAllByText(t("settings.data.restore"))).toHaveLength(2);
       });
 
-      fireEvent.click(screen.getByText(t("settings.data.restore")));
+      fireEvent.click(screen.getAllByText(t("settings.data.restore"))[1]);
 
       await waitFor(() => {
         expect(mockShowToast).toHaveBeenCalledWith(
@@ -1066,7 +1066,7 @@ describe("SettingsPage", () => {
       mockDeleteAccount.mockResolvedValue({
         ok: false,
         error: {
-          code: "UNAUTHORIZED",
+          code: "MISSING_TOKEN",
           message: "Missing or invalid authorization header.",
         },
       });

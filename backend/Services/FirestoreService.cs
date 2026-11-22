@@ -132,6 +132,33 @@ public class FirestoreService : IFirestoreService
     }
 
     /// <inheritdoc />
+    public async Task<DishInsertResult> TryInsertDishAsync(Dish dish)
+    {
+        EnsureConnected();
+        if (string.IsNullOrEmpty(dish.UserId)) throw new ArgumentException("Dish UserId cannot be null or empty.");
+
+        var collection = DishesCollection(dish.UserId);
+        var docRef = dish.Id == null
+            ? collection.Document()
+            : collection.Document(dish.Id);
+
+        dish.Id ??= docRef.Id;
+
+        // Read and write in one transaction: a retried create that races the
+        // original request must not overwrite the document that request wrote.
+        return await _db!.RunTransactionAsync(async transaction =>
+        {
+            var snapshot = await transaction.GetSnapshotAsync(docRef);
+
+            if (snapshot.Exists)
+                return new DishInsertResult(false, snapshot.ConvertTo<Dish>());
+
+            transaction.Set(docRef, dish);
+            return new DishInsertResult(true, dish);
+        });
+    }
+
+    /// <inheritdoc />
     public async Task UpdateDishAsync(Dish dish)
     {
         EnsureConnected();

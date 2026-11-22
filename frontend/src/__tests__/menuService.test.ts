@@ -51,7 +51,7 @@ describe("getMenu", () => {
 
   it("propagates API errors", async () => {
     mockFetchResponse(401, {
-      code: "UNAUTHORIZED",
+      code: "MISSING_TOKEN",
       message: "Unauthorized",
     });
 
@@ -59,7 +59,7 @@ describe("getMenu", () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { code: "UNAUTHORIZED", message: "Unauthorized" },
+      error: { code: "MISSING_TOKEN", message: "Unauthorized" },
     });
   });
 });

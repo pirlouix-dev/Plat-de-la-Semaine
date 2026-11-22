@@ -43,6 +43,13 @@ public interface IFirestoreService
     Task<Dish> InsertDishAsync(Dish dish);
 
     /// <summary>
+    /// Creates a dish only when its id is not taken yet, atomically.
+    /// Returns the existing dish untouched when the id is already present, so a
+    /// retried create cannot overwrite an edit made after the first attempt.
+    /// </summary>
+    Task<DishInsertResult> TryInsertDishAsync(Dish dish);
+
+    /// <summary>
     /// Updates an existing dish document, under its owner's namespace.
     /// </summary>
     Task UpdateDishAsync(Dish dish);

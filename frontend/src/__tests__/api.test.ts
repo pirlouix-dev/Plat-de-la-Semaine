@@ -357,6 +357,9 @@ describe("getApiErrorMessage", () => {
     ["INVALID_CREDENTIALS", "errors.invalidCredentials"],
     ["USER_DISABLED", "errors.userDisabled"],
     ["TOO_MANY_ATTEMPTS", "errors.tooManyAttempts"],
+    ["AUTH_FAILED", "errors.authFailed"],
+    ["MISSING_TOKEN", "errors.sessionExpired"],
+    ["SESSION_EXPIRED", "errors.sessionExpired"],
     ["VALIDATION_ERROR", "errors.validation"],
     ["NOT_FOUND", "errors.notFound"],
     ["SERVICE_UNAVAILABLE", "errors.serviceUnavailable"],
@@ -511,7 +514,7 @@ describe("token refresh", () => {
       "fetch",
       vi.fn()
         .mockResolvedValueOnce(
-          mockRefreshResponse(false, { code: "UNAUTHORIZED" }),
+          mockRefreshResponse(false, { code: "INVALID_REFRESH_TOKEN" }),
         ),
     );
 
@@ -527,7 +530,7 @@ describe("token refresh", () => {
     // Error returned
     expect(result).toEqual({
       ok: false,
-      error: { code: "UNAUTHORIZED", message: "Session expired" },
+      error: { code: "SESSION_EXPIRED", message: "Session expired" },
     });
   });
 
@@ -632,6 +635,18 @@ describe("clearAuth", () => {
 
     expect(listener).toHaveBeenCalledTimes(1);
     window.removeEventListener(AUTH_CHANGED_EVENT, listener);
+  });
+
+  it("removes the guest menu so it cannot outlive the account", () => {
+    localStorage.setItem("user_id", "user-42");
+    localStorage.setItem(
+      "pdls_choose_menu_state_v2",
+      JSON.stringify({ selectedIds: ["d1"], mode: "recap" }),
+    );
+
+    clearAuth();
+
+    expect(localStorage.getItem("pdls_choose_menu_state_v2")).toBeNull();
   });
 });
 

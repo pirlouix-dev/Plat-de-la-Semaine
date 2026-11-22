@@ -1,0 +1,85 @@
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 6
+    labels: ["dependencies", "javascript"]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    # Keep package.json's minimums untouched while the new release still
+    # satisfies them, so grouped PRs only move the lockfile.
+    versioning-strategy: "increase-if-necessary"
+    ignore:
+      # typescript-eslint peers allow "<6.1.0" only; drop this once the lint
+      # stack supports the next TypeScript major.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    groups:
+      frontend-dev-minor-patch:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+      frontend-prod-minor-patch:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "nuget"
+    directory: "/backend"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 4
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # Ship with the SDK: a major only makes sense with a TargetFramework bump
+      # to net12, and Microsoft.OpenApi majors are coupled to
+      # Microsoft.AspNetCore.OpenApi. Dependabot's NuGet support does not apply
+      # `update-types` ignores yet (dependabot-core#11398), so these majors still
+      # arrive as pull requests and have to be closed by hand.
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.OpenApi"
+        update-types: ["version-update:semver-major"]
+    groups:
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "nuget"
+    directory: "/backend/tests/PlatDeLaSemaineBack.Tests"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 4
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # See the backend entry: NuGet `update-types` ignores are not honoured yet.
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      backend-tests-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "chore"]
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      github-actions-minor-patch:
+        update-types: ["minor", "patch"]

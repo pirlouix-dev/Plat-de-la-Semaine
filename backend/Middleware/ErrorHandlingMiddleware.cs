@@ -27,7 +27,7 @@ public class ErrorHandlingMiddleware
         }
         catch (Exception ex)
         {
-            if (ex is UnauthorizedAccessException)
+            if (ex is ApiException { StatusCode: HttpStatusCode.Unauthorized })
                 _logger.LogWarning("Authorization failed.");
             else
                 _logger.LogError(ex, "An unhandled exception occurred during request processing.");
@@ -46,7 +46,6 @@ public class ErrorHandlingMiddleware
             KeyNotFoundException => (HttpStatusCode.NotFound, ApiErrorCodes.NotFound, "The requested resource was not found."),
             MenuVersionConflictException => (HttpStatusCode.Conflict, MenuVersionConflictException.ErrorCode, exception.Message),
             ArgumentException => (HttpStatusCode.BadRequest, ApiErrorCodes.BadRequest, exception.Message),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ApiErrorCodes.Unauthorized, exception.Message),
             FirebaseAdmin.Auth.FirebaseAuthException => (HttpStatusCode.Unauthorized, ApiErrorCodes.AuthFailed, "Authentication failed."),
             InvalidOperationException => (HttpStatusCode.BadRequest, ApiErrorCodes.InvalidOperation, exception.Message),
             _ => (HttpStatusCode.InternalServerError, ApiErrorCodes.InternalError, "An unexpected error occurred.")
