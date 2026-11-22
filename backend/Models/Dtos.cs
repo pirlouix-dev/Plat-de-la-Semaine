@@ -9,6 +9,10 @@ namespace PlatDeLaSemaineBack.Models;
 /// </summary>
 public class CreateDishPayload : IValidatableObject
 {
+    /// <summary>
+    /// Client-supplied id, e.g. generated offline. A dish that already exists
+    /// under this id is returned unchanged instead of being overwritten.
+    /// </summary>
     public string? Id { get; set; }
 
     [Required]

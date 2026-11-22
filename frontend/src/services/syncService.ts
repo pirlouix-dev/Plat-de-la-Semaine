@@ -278,6 +278,12 @@ async function applyBatchResults(
       ? String(result.data.updatedAt)
       : null;
 
+    // The persisted dish is authoritative. It can differ from what was sent:
+    // an idempotent create that found an existing dish returns that dish
+    // untouched, so adopting it keeps the local copy equal to the server.
+    const serverDish =
+      !editedMeanwhile && !deletedMeanwhile ? result.data : null;
+
     await doc.patch({
       ...(status === "created" ? { serverId: String(result.id) } : {}),
       syncStatus: deletedMeanwhile
@@ -285,9 +291,18 @@ async function applyBatchResults(
         : editedMeanwhile
           ? "pending_update"
           : "synced",
-      ...(acknowledgedAt && !editedMeanwhile
-        ? { updatedAt: acknowledgedAt }
-        : {}),
+      ...(serverDish
+        ? {
+            name: String(serverDish.name ?? doc.get("name")),
+            description: String(serverDish.description ?? ""),
+            course: Number(serverDish.course ?? 1),
+            seasons: (serverDish.seasons ?? []).map(Number),
+            isDeleted: Boolean(serverDish.isDeleted),
+            updatedAt: acknowledgedAt ?? doc.get("updatedAt"),
+          }
+        : acknowledgedAt && !editedMeanwhile
+          ? { updatedAt: acknowledgedAt }
+          : {}),
     });
   }
 
@@ -307,6 +322,15 @@ export function chunkOperations<T>(operations: T[]): T[][] {
   return chunks;
 }
 
+/**
+ * Push pending dish changes.
+ *
+ * There is no conflict resolution: a write is applied when it reaches the
+ * server, so the last arrival wins. For a single user whose edits flush
+ * immediately that is the accepted policy; the backup snapshots are the
+ * recovery path. Creates are idempotent by client id, so a retried create
+ * returns the existing dish instead of reverting a later edit.
+ */
 async function pushPendingChanges(db: AppDatabase): Promise<boolean> {
   const docs = await db.dishes
     .find({

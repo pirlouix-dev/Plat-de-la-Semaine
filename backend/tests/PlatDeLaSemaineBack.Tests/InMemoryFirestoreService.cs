@@ -92,6 +92,36 @@ public sealed class InMemoryFirestoreService : IFirestoreService
         }
     }
 
+    public Task<DishInsertResult> TryInsertDishAsync(Dish dish)
+    {
+        lock (_gate)
+        {
+            if (string.IsNullOrEmpty(dish.UserId))
+                throw new ArgumentException("Dish UserId cannot be null or empty.");
+
+            var id = string.IsNullOrEmpty(dish.Id) ? Guid.NewGuid().ToString("N") : dish.Id!;
+            var owned = OwnedCollection(_dishes, dish.UserId);
+
+            if (owned.TryGetValue(id, out var existing))
+                return Task.FromResult(new DishInsertResult(false, Clone(existing)));
+
+            var stored = new Dish
+            {
+                Id = id,
+                UserId = dish.UserId,
+                Name = dish.Name,
+                Description = dish.Description,
+                Course = dish.Course,
+                Seasons = [.. dish.Seasons],
+                UpdatedAt = dish.UpdatedAt,
+                IsDeleted = dish.IsDeleted
+            };
+
+            owned[id] = stored;
+            return Task.FromResult(new DishInsertResult(true, Clone(stored)));
+        }
+    }
+
     public Task UpdateDishAsync(Dish dish)
     {
         lock (_gate)
