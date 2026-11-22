@@ -29,7 +29,7 @@ commands below from this directory.
 
 ## Getting Started
 
-**Prerequisites:** Node 22 (see `.nvmrc`)
+**Prerequisites:** Node 26 (see `.nvmrc`)
 
 ```sh
 npm ci
