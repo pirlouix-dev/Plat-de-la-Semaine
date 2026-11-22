@@ -46,6 +46,9 @@ export async function getDishes(
 /**
  * Create a new dish.
  * The backend assigns `id`, `userId`, `updatedAt`, and `isDeleted`.
+ * Supplying an id makes the call idempotent: if that dish already exists the
+ * backend returns it unchanged instead of overwriting it, so a retry after a
+ * lost response cannot revert a later edit.
  */
 export async function createDish(
   payload: CreateDishPayload,

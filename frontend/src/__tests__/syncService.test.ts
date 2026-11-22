@@ -269,6 +269,45 @@ describe("sync", () => {
     expect(doc!.get("updatedAt")).toBe("2026-01-02T00:00:00.000Z");
   });
 
+  it("adopts the existing dish when a retried create finds it on the server", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "retry-1",
+        name: "Stale retry",
+        description: "from the first attempt",
+        course: 2,
+        seasons: [2],
+        syncStatus: "pending_create",
+      }),
+    );
+
+    const existing = apiDish({
+      id: "retry-1",
+      name: "Edited elsewhere",
+      description: "newer content",
+      course: 0,
+      seasons: [3],
+      updatedAt: "2026-01-03T00:00:00.000Z",
+    });
+    mockApplyDishBatch.mockResolvedValue(
+      batchOk([
+        { index: 0, op: "create", status: "created", id: "retry-1", data: existing },
+      ]),
+    );
+    mockGetDishes.mockResolvedValue({ ok: true, data: [existing] });
+
+    await sync(db);
+
+    const doc = await db.dishes.findOne("retry-1").exec();
+    expect(doc!.get("name")).toBe("Edited elsewhere");
+    expect(doc!.get("description")).toBe("newer content");
+    expect(doc!.get("course")).toBe(0);
+    expect(doc!.get("seasons")).toEqual([3]);
+    expect(doc!.get("updatedAt")).toBe("2026-01-03T00:00:00.000Z");
+    expect(doc!.get("syncStatus")).toBe("synced");
+  });
+
   it("sends creates, updates, and deletes in a single batch", async () => {
     await insertDish(
       db,

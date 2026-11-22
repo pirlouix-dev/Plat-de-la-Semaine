@@ -32,8 +32,10 @@ public class DishService : IDishService
     public async Task<DishSingleResponse> CreateDishAsync(string userId, CreateDishPayload payload)
     {
         // A client may supply an id (e.g. for offline sync). Ids are scoped to the
-        // owner's namespace, so the dish is created or overwritten under the caller
-        // only and can never take over a document owned by another user.
+        // owner's namespace, so the dish is created under the caller only and can
+        // never take over a document owned by another user. An id that already
+        // exists is returned untouched: a retried create must not overwrite a
+        // later edit of the same dish.
         await CreateBackupAsync(userId);
 
         var dish = new Dish
@@ -47,11 +49,11 @@ public class DishService : IDishService
             UpdatedAt = DateTimeOffset.UtcNow
         };
 
-        var created = await _firestore.InsertDishAsync(dish);
+        var inserted = await _firestore.TryInsertDishAsync(dish);
 
         return new DishSingleResponse
         {
-            Data = created
+            Data = inserted.Dish
         };
     }
 
@@ -169,10 +171,12 @@ public class DishService : IDishService
         {
             await ensureBackup();
 
-            var created = await _firestore.InsertDishAsync(new Dish
+            // A blank id is treated as absent: the store then asks Firestore
+            // for one. A supplied id makes the create idempotent, so a retry
+            // after a lost response returns the existing dish instead of
+            // overwriting edits made after the first attempt.
+            var inserted = await _firestore.TryInsertDishAsync(new Dish
             {
-                // A blank id is treated as absent: `InsertDishAsync` then asks
-                // Firestore for one.
                 Id = string.IsNullOrWhiteSpace(operation.Id) ? null : operation.Id,
                 UserId = userId,
                 Name = operation.Name!,
@@ -182,7 +186,7 @@ public class DishService : IDishService
                 UpdatedAt = appliedAt
             });
 
-            return Succeeded(index, operation, DishBatchStatus.Created, created);
+            return Succeeded(index, operation, DishBatchStatus.Created, inserted.Dish);
         }
 
         var existing = await _firestore.GetDishByIdAsync(userId, operation.Id!);

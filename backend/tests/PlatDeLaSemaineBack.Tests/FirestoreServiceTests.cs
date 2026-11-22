@@ -139,6 +139,18 @@ public class FirestoreServiceTests
     }
 
     [Fact]
+    public async Task TryInsertDishAsync_WhenNotConnected_Throws()
+    {
+        // Arrange
+        var service = CreateService();
+        var dish = new Dish { Name = "Test" };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FirestoreUnavailableException>(
+            () => service.TryInsertDishAsync(dish));
+    }
+
+    [Fact]
     public async Task InsertUserAsync_WhenNotConnected_Throws()
     {
         // Arrange
