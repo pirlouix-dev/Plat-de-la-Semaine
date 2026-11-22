@@ -65,7 +65,7 @@ jobs:
           --configuration Release --no-build --output ${{ runner.temp }}/myapp
 
       - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: .net-app
           path: ${{ runner.temp }}/myapp
