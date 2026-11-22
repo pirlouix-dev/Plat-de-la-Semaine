@@ -10,7 +10,7 @@ public static class ApiErrorCodes
     public const string ValidationError = "VALIDATION_ERROR";
     public const string NotFound = "NOT_FOUND";
     public const string BadRequest = "BAD_REQUEST";
-    public const string Unauthorized = "UNAUTHORIZED";
+    public const string MissingToken = "MISSING_TOKEN";
     public const string InvalidOperation = "INVALID_OPERATION";
     public const string ServiceUnavailable = "SERVICE_UNAVAILABLE";
     public const string InternalError = "INTERNAL_ERROR";

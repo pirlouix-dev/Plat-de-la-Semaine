@@ -1066,7 +1066,7 @@ describe("SettingsPage", () => {
       mockDeleteAccount.mockResolvedValue({
         ok: false,
         error: {
-          code: "UNAUTHORIZED",
+          code: "MISSING_TOKEN",
           message: "Missing or invalid authorization header.",
         },
       });

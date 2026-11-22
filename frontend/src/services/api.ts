@@ -100,7 +100,7 @@ export const API_ERROR_CODES = {
   TIMEOUT: "TIMEOUT",
   NETWORK_ERROR: "NETWORK_ERROR",
   MISSING_CONFIG: "MISSING_CONFIG",
-  UNAUTHORIZED: "UNAUTHORIZED",
+  SESSION_EXPIRED: "SESSION_EXPIRED",
 } as const;
 
 /**
@@ -119,7 +119,8 @@ const ERROR_MESSAGE_KEYS: Record<string, MessageKey> = {
   TOO_MANY_ATTEMPTS: "errors.tooManyAttempts",
   INVALID_REFRESH_TOKEN: "errors.sessionExpired",
   AUTH_FAILED: "errors.authFailed",
-  UNAUTHORIZED: "errors.sessionExpired",
+  MISSING_TOKEN: "errors.sessionExpired",
+  SESSION_EXPIRED: "errors.sessionExpired",
 
   // General API
   VALIDATION_ERROR: "errors.validation",
@@ -380,7 +381,10 @@ async function request<T>(
     if (!valid) {
       return {
         ok: false,
-        error: { code: "UNAUTHORIZED", message: "Session expired" },
+        error: {
+          code: API_ERROR_CODES.SESSION_EXPIRED,
+          message: "Session expired",
+        },
       };
     }
   }
