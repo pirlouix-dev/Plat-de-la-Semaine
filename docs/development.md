@@ -60,6 +60,18 @@ cd frontend && npm test
 cd backend && dotnet test
 ```
 
+## Dependencies
+
+`.github/dependabot.yml` opens weekly version-update pull requests against
+`develop` for npm (`frontend/`), NuGet (`backend/` and its test project) and the
+workflow actions. Minor and patch bumps are grouped; major bumps arrive as
+individual pull requests and are never auto-merged.
+
+An `openapi-typescript` or `typescript` bump can change the generated types:
+run `npm run gen:api-types` in `frontend/` and confirm `src/schema.d.ts` is
+unchanged. A `Microsoft.OpenApi` bump is part of the API contract workflow
+above — regenerate `openapi.yml` in the same pull request.
+
 ## Python tooling
 
 Any Python library may be used for one-off work (image processing, scripts),
