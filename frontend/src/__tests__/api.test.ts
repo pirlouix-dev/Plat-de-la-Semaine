@@ -633,6 +633,18 @@ describe("clearAuth", () => {
     expect(listener).toHaveBeenCalledTimes(1);
     window.removeEventListener(AUTH_CHANGED_EVENT, listener);
   });
+
+  it("removes the guest menu so it cannot outlive the account", () => {
+    localStorage.setItem("user_id", "user-42");
+    localStorage.setItem(
+      "pdls_choose_menu_state_v2",
+      JSON.stringify({ selectedIds: ["d1"], mode: "recap" }),
+    );
+
+    clearAuth();
+
+    expect(localStorage.getItem("pdls_choose_menu_state_v2")).toBeNull();
+  });
 });
 
 // ── Type-level sanity (compile-time checks, no runtime effect) ───────────────
