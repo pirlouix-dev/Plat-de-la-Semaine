@@ -66,7 +66,7 @@ for the installed app, so it stays English regardless of the in-app choice.
 
 ## Prerequisites
 
-- Node 22 (see `frontend/.nvmrc`)
+- Node 26 (see `frontend/.nvmrc`)
 - .NET 10 SDK
 - A Firebase project with Firestore enabled, for the backend
 
