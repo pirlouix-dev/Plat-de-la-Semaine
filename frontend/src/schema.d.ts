@@ -1189,7 +1189,11 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/plain": components["schemas"]["BuildInfo"];
+                        "application/json": components["schemas"]["BuildInfo"];
+                        "text/json": components["schemas"]["BuildInfo"];
+                    };
                 };
             };
         };
@@ -1299,6 +1303,9 @@ export interface components {
             createdAt: string;
             /** Format: int32 */
             dishCount: number | string;
+        };
+        BuildInfo: {
+            commit: string;
         };
         CreateDishPayload: {
             id?: null | string;

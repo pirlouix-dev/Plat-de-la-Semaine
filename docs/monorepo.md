@@ -43,8 +43,9 @@ Vercel frontend deployment, so the backend is pre-deployed from `develop`
 before the merge:
 
 1. Wait for the release pull request CI to be green.
-2. Dispatch `deploy-backend.yml` on `develop` and wait for it to succeed, then
-   verify the running API's release contract.
+2. Dispatch `deploy-backend.yml` on `develop` and wait for it to succeed. The
+   workflow's post-deploy check already proves the live `/api/ping` commit
+   matches the dispatched commit.
 3. Merge the release pull request. Vercel deploys the frontend and the backend
    workflow deploys the same `main` tree again.
 4. Wait for `main` CI, the backend deployment and the Vercel production

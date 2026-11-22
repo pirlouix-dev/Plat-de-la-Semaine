@@ -411,6 +411,14 @@ public class VersionInfo
 }
 
 /// <summary>
+/// Identifies the build serving the request.
+/// </summary>
+public class BuildInfo
+{
+    public required string Commit { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Request payload for submitting feedback.
 /// </summary>
 public class FeedbackPayload

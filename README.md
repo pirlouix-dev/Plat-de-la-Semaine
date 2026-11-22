@@ -123,7 +123,9 @@ changes.
   `/index.html` for the client-side router.
 - The backend is deployed to Azure App Service automatically by
   `.github/workflows/deploy-backend.yml` on every push to `main` (and manually
-  through `workflow_dispatch`), building and testing `backend/` first.
+  through `workflow_dispatch`), building and testing `backend/` first. Deploys
+  are serialized, and the workflow fails unless the live `/api/ping` reports the
+  deployed commit. See `docs/azure-deploy.md`.
 
 Backend releases must be live before the frontend reaches users.
 
