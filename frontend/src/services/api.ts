@@ -18,6 +18,7 @@ import { getLocale } from "../i18n/localeStore";
 import { translate } from "../i18n/translate";
 import type { MessageKey } from "../i18n/types";
 import type { ApiErrorDetail, ApiFieldError } from "../types";
+import { clearGuestMenu } from "./menuStorage";
 
 // ── Mutable config (overridable for tests) ────────────────────────────────────
 
@@ -265,6 +266,7 @@ export function clearAuth(): void {
   } catch {
     // localStorage unavailable (e.g. in tests or SSR)
   }
+  clearGuestMenu();
   notifyAuthChange();
 }
 

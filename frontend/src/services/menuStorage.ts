@@ -77,9 +77,19 @@ function readRaw(key: string): string | null {
   }
 }
 
-function writeRaw(key: string, value: string): void {
+function writeRaw(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
+    return true;
+  } catch {
+    // localStorage unavailable (e.g. in tests or SSR)
+    return false;
+  }
+}
+
+function removeRaw(key: string): void {
+  try {
+    localStorage.removeItem(key);
   } catch {
     // localStorage unavailable (e.g. in tests or SSR)
   }
@@ -224,12 +234,28 @@ export function loadStoredMenu(userId: string | null): StoredMenu | null {
   const raw = readRaw(storageKey(userId));
   if (raw) return parseStoredMenu(raw);
 
-  if (userId) {
-    const legacy = readRaw(GUEST_STORAGE_KEY);
-    if (legacy) return parseStoredMenu(legacy);
-  }
+  if (!userId) return null;
 
-  return null;
+  const guestRaw = readRaw(GUEST_STORAGE_KEY);
+  if (!guestRaw) return null;
+
+  const adopted = parseStoredMenu(guestRaw);
+  if (!adopted) return null;
+
+  // Adopt the guest selection once. Leaving the guest slot behind lets it
+  // resurface after logout, pointing at dishes the guest database no longer has.
+  if (writeRaw(storageKey(userId), JSON.stringify(adopted))) {
+    removeRaw(GUEST_STORAGE_KEY);
+  }
+  return adopted;
+}
+
+/**
+ * Remove the guest menu slot. Logout must not hand the account's menu to the
+ * next guest session on this device.
+ */
+export function clearGuestMenu(): void {
+  removeRaw(GUEST_STORAGE_KEY);
 }
 
 function writeMenu(userId: string | null, menu: StoredMenu): StoredMenu {

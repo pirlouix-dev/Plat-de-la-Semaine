@@ -10,6 +10,7 @@ import {
   _resetMenuStorageState,
   setPendingRemoteMenu,
 } from "../services/menuStorage";
+import { clearAuth } from "../services/api";
 import {
   installElementGeometryMock,
   setElementGeometry,
@@ -276,6 +277,58 @@ describe("ChooseDishesPage persistence", () => {
     expect(saved.selectedIds).toEqual([]);
     expect(saved.savedIds).toEqual([]);
     expect(saved.pendingSave).toBe(true);
+  });
+
+  it("clears the account session when logging out while the page is open", () => {
+    localStorage.setItem("user_id", "u1");
+    localStorage.setItem(
+      "pdls_menu_state_v2:u1",
+      JSON.stringify({
+        queueIds: [],
+        selectedIds: ["all-seasons"],
+        history: [{ action: "accept", dishId: "all-seasons" }],
+        mode: "recap",
+        savedIds: ["all-seasons"],
+        pendingSave: false,
+        saveRevision: 0,
+        localRevision: 1,
+        reconciledRevision: 1,
+        pendingLocalRevision: null,
+        serverUpdatedAt: null,
+        lastModifiedAt: 0,
+        lastSavedAt: 0,
+      }),
+    );
+
+    renderPage();
+    expect(screen.getByText(t("choose.title.saved"))).toBeDefined();
+
+    const guestWrites: string[] = [];
+    const setItem = localStorage.setItem.bind(localStorage);
+    vi.spyOn(localStorage, "setItem").mockImplementation((key, value) => {
+      if (key === STORAGE_KEY) guestWrites.push(value);
+      setItem(key, value);
+    });
+
+    act(() => {
+      clearAuth();
+    });
+
+    // The account's live session was never persisted under the guest key.
+    expect(
+      guestWrites.some((raw) => JSON.parse(raw).mode === "recap"),
+    ).toBe(false);
+
+    // The guest never inherits the account's recap or selection.
+    const guest = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+    expect(guest?.mode).toBe("editing");
+    expect(guest?.selectedIds).toEqual([]);
+    expect(guest?.savedIds).toEqual([]);
+    expect(screen.queryByText(t("choose.title.saved"))).toBeNull();
+    expect(screen.getByText(t("choose.title.editing"))).toBeDefined();
+
+    // The account's own menu is kept for a later login.
+    expect(localStorage.getItem("pdls_menu_state_v2:u1")).not.toBeNull();
   });
 
   it("shows a conflict banner and applies the remote menu on demand", () => {
