@@ -9,6 +9,7 @@ import {
   softDeleteDish,
   observeDishes,
 } from "../repositories/dishRepository";
+import { requestDishFlush } from "../services/syncService";
 import { useMemo, useState, useEffect } from "react";
 import type { Observable } from "rxjs";
 
@@ -44,6 +45,7 @@ export function useDishes() {
   async function addDish(dish: DishDocType): Promise<void> {
     if (!db) throw new Error("Database not ready");
     await insertDish(db, dish);
+    void requestDishFlush(db);
   }
 
   /**
@@ -55,6 +57,7 @@ export function useDishes() {
   ): Promise<void> {
     if (!db) throw new Error("Database not ready");
     await insertManyDishes(db, buildPendingDishes(items));
+    void requestDishFlush(db);
   }
 
   async function editDish(
@@ -63,11 +66,13 @@ export function useDishes() {
   ): Promise<void> {
     if (!db) throw new Error("Database not ready");
     await repoEditDish(db, id, fields);
+    void requestDishFlush(db);
   }
 
   async function removeDish(id: string): Promise<void> {
     if (!db) throw new Error("Database not ready");
     await softDeleteDish(db, id);
+    void requestDishFlush(db);
   }
 
   return {

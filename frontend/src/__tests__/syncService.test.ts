@@ -17,7 +17,7 @@ import type { DatabaseCollections } from "../db/collections";
 import type { AppDatabase } from "../db/DatabaseContext";
 import { hashFunction } from "../db/hashFunction";
 import { userDatabaseName } from "../db/databaseName";
-import { insertDish } from "../repositories/dishRepository";
+import { insertDish, editDish, softDeleteDish } from "../repositories/dishRepository";
 import type { components } from "../schema";
 import {
   _resetMenuStorageState,
@@ -52,6 +52,7 @@ import {
   startAutoSync,
   refreshFromServer,
   flushPendingDishes,
+  requestDishFlush,
   chunkOperations,
   resolveMenuConflict,
   saveMenuNow,
@@ -1158,6 +1159,234 @@ describe("flushPendingDishes", () => {
 
     await expect(flushPendingDishes(db)).resolves.toBeNull();
     expect(mockApplyDishBatch).not.toHaveBeenCalled();
+  });
+});
+
+// ── requestDishFlush ─────────────────────────────────────────────────────────
+
+describe("requestDishFlush", () => {
+  it("pushes the pending change without pulling dishes or the menu", async () => {
+    await insertDish(
+      db,
+      makeDish({ id: "prompt-1", syncStatus: "pending_create" }),
+    );
+    mockApplyDishBatch.mockResolvedValue(
+      batchOk([
+        {
+          index: 0,
+          op: "create",
+          status: "created",
+          id: "prompt-1",
+          data: apiDish({
+            id: "prompt-1",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+          }),
+        },
+      ]),
+    );
+
+    await requestDishFlush(db);
+
+    expect(mockApplyDishBatch).toHaveBeenCalledTimes(1);
+    expect(mockGetDishes).not.toHaveBeenCalled();
+    expect(mockGetMenu).not.toHaveBeenCalled();
+
+    const doc = await db.dishes.findOne("prompt-1").exec();
+    expect(doc!.get("syncStatus")).toBe("synced");
+  });
+
+  it("sends an edit made during the push in a second, sequential pass", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "rapid-1",
+        serverId: "srv-rapid",
+        name: "First",
+        syncStatus: "pending_update",
+      }),
+    );
+
+    let resolveFirst!: () => void;
+    mockApplyDishBatch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = () =>
+            resolve(
+              batchOk([
+                {
+                  index: 0,
+                  op: "update",
+                  status: "updated",
+                  data: apiDish({
+                    id: "srv-rapid",
+                    updatedAt: "2026-01-01T00:00:00.000Z",
+                  }),
+                },
+              ]),
+            );
+        }),
+    );
+
+    const loop = requestDishFlush(db);
+    await vi.waitFor(() =>
+      expect(mockApplyDishBatch).toHaveBeenCalledTimes(1),
+    );
+
+    await editDish(db, "rapid-1", {
+      name: "Second",
+      description: "A test dish",
+      course: 1,
+      seasons: [0, 1],
+    });
+    void requestDishFlush(db);
+
+    mockApplyDishBatch.mockResolvedValueOnce(
+      batchOk([
+        {
+          index: 0,
+          op: "update",
+          status: "updated",
+          data: apiDish({
+            id: "srv-rapid",
+            updatedAt: "2026-01-01T00:00:01.000Z",
+          }),
+        },
+      ]),
+    );
+
+    expect(mockApplyDishBatch).toHaveBeenCalledTimes(1);
+    resolveFirst();
+    await loop;
+
+    expect(mockApplyDishBatch).toHaveBeenCalledTimes(2);
+    expect(mockApplyDishBatch.mock.calls[1][0]).toEqual({
+      operations: [
+        {
+          op: "update",
+          id: "srv-rapid",
+          name: "Second",
+          description: "A test dish",
+          course: 1,
+          seasons: [0, 1],
+        },
+      ],
+    });
+
+    const doc = await db.dishes.findOne("rapid-1").exec();
+    expect(doc!.get("syncStatus")).toBe("synced");
+  });
+
+  it("keeps a delete made during the push as a delete", async () => {
+    await insertDish(
+      db,
+      makeDish({
+        id: "rapid-del",
+        serverId: "srv-del",
+        syncStatus: "pending_update",
+      }),
+    );
+
+    let resolveFirst!: () => void;
+    mockApplyDishBatch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = () =>
+            resolve(
+              batchOk([
+                {
+                  index: 0,
+                  op: "update",
+                  status: "updated",
+                  data: apiDish({
+                    id: "srv-del",
+                    updatedAt: "2026-01-01T00:00:01.000Z",
+                  }),
+                },
+              ]),
+            );
+        }),
+    );
+
+    const loop = requestDishFlush(db);
+    await vi.waitFor(() =>
+      expect(mockApplyDishBatch).toHaveBeenCalledTimes(1),
+    );
+
+    await softDeleteDish(db, "rapid-del");
+    void requestDishFlush(db);
+
+    mockApplyDishBatch.mockResolvedValueOnce(
+      batchOk([{ index: 0, op: "delete", status: "deleted" }]),
+    );
+
+    resolveFirst();
+    await loop;
+
+    expect(mockApplyDishBatch).toHaveBeenCalledTimes(2);
+    expect(mockApplyDishBatch.mock.calls[1][0]).toEqual({
+      operations: [{ op: "delete", id: "srv-del" }],
+    });
+    expect(await db.dishes.findOne("rapid-del").exec()).toBeNull();
+  });
+
+  it("waits for an in-flight sync before pushing", async () => {
+    let resolvePull!: () => void;
+    mockGetDishes.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePull = () => resolve({ ok: true, data: [] });
+        }),
+    );
+
+    const syncPromise = sync(db);
+    await vi.waitFor(() =>
+      expect(mockGetDishes).toHaveBeenCalledTimes(1),
+    );
+
+    await insertDish(
+      db,
+      makeDish({ id: "queued-1", syncStatus: "pending_create" }),
+    );
+    mockApplyDishBatch.mockResolvedValue(
+      batchOk([
+        {
+          index: 0,
+          op: "create",
+          status: "created",
+          id: "queued-1",
+          data: apiDish({
+            id: "queued-1",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+          }),
+        },
+      ]),
+    );
+
+    const flushPromise = requestDishFlush(db);
+    await Promise.resolve();
+    expect(mockApplyDishBatch).not.toHaveBeenCalled();
+
+    resolvePull();
+    await syncPromise;
+    await flushPromise;
+
+    expect(mockApplyDishBatch).toHaveBeenCalledTimes(1);
+    const doc = await db.dishes.findOne("queued-1").exec();
+    expect(doc!.get("syncStatus")).toBe("synced");
+  });
+
+  it("does not retry in a tight loop after a failed push", async () => {
+    await insertDish(
+      db,
+      makeDish({ id: "fail-1", syncStatus: "pending_create" }),
+    );
+    mockApplyDishBatch.mockResolvedValue(batchFailed());
+
+    await requestDishFlush(db);
+
+    expect(mockApplyDishBatch).toHaveBeenCalledTimes(1);
+    const doc = await db.dishes.findOne("fail-1").exec();
+    expect(doc!.get("syncStatus")).toBe("pending_create");
   });
 });
 
