@@ -21,6 +21,9 @@
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Browsers ignore the manifest until the app is installed; the meta tag
+         keeps tab/address-bar chrome grey in the meantime. -->
+    <meta name="theme-color" content="#2c2c2c" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual"

@@ -5,8 +5,8 @@ import { DEFAULT_LOCALE } from '../i18n';
 
 // The first paint background must be inlined in index.html (see #95): if it
 // only lives in index.css, Firefox paints a white canvas while the bundle
-// loads. These tests keep the colour in sync across the three places that
-// define it and make sure the inline style is actually critical-path safe.
+// loads. These tests keep the colour in sync across every place that defines
+// it and make sure the inline style is actually critical-path safe.
 const APP_BACKGROUND = '#2c2c2c';
 
 const root = resolve(__dirname, '../..');
@@ -67,6 +67,17 @@ describe('app background colour', () => {
   it('is used by the PWA splash screen background', () => {
     const manifest = JSON.parse(read('public/manifest.webmanifest'));
     expect(manifest.background_color).toBe(APP_BACKGROUND);
+  });
+
+  it('is used for the installed app window chrome', () => {
+    const manifest = JSON.parse(read('public/manifest.webmanifest'));
+    expect(manifest.theme_color).toBe(APP_BACKGROUND);
+  });
+
+  it('is declared as the browser theme colour', () => {
+    expect(read('index.html')).toMatch(
+      new RegExp(`<meta\\s+name="theme-color"\\s+content="${APP_BACKGROUND}"`),
+    );
   });
 
   it('declares the fallback locale for the installed app', () => {
