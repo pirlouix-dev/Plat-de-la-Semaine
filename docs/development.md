@@ -72,6 +72,17 @@ run `npm run gen:api-types` in `frontend/` and confirm `src/schema.d.ts` is
 unchanged. A `Microsoft.OpenApi` bump is part of the API contract workflow
 above — regenerate `openapi.yml` in the same pull request.
 
+Majors arrive as individual pull requests and are merged by hand. Two are
+blocked for now and their pull requests should be closed rather than merged:
+
+- `typescript` majors, until `typescript-eslint` widens its peer range (it
+  currently allows `<6.1.0`).
+- NuGet majors of `Microsoft.AspNetCore.*`, `Microsoft.OpenApi` and
+  `Microsoft.NET.Test.Sdk`, which are coupled to the .NET SDK. They are listed
+  under `ignore` already, but Dependabot's NuGet support does not honour
+  `update-types` ignores yet (`dependabot-core#11398`), so the pull requests
+  still show up.
+
 ## Python tooling
 
 Any Python library may be used for one-off work (image processing, scripts),
