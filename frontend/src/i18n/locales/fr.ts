@@ -230,7 +230,7 @@ export const fr: Record<MessageKey, MessageValue> = {
   },
   "settings.data.backupTitle": "Restauration des données",
   "settings.data.backupDescription":
-    "Sélectionnez une sauvegarde dans l'historique pour restaurer l'état de vos plats.",
+    "Sauvegardes automatiques, créées avant chaque modification.",
   "settings.data.backupsLoading": "Chargement…",
   "settings.data.backupsEmpty": "Aucune sauvegarde disponible.",
   "settings.data.backupDishes": {
@@ -240,7 +240,6 @@ export const fr: Record<MessageKey, MessageValue> = {
   "settings.data.restore": "Restaurer",
   "settings.data.restoring": "Restauration…",
   "settings.data.restoreSuccess": "Sauvegarde restaurée avec succès",
-  "settings.data.activeVersion": "● Version active",
   "settings.data.atTime": "à {time}",
 
   // Settings — bugs

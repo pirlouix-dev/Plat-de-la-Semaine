@@ -239,12 +239,6 @@ select.settings-input {
   display: none;
 }
 
-.timeline-item.current .timeline-dot {
-  background: #1d61e7;
-  border-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(29, 97, 231, 0.35);
-}
-
 .timeline-card {
   flex: 1;
   background: rgba(255, 255, 255, 0.04);
@@ -261,15 +255,6 @@ select.settings-input {
 .timeline-card:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.14);
-}
-
-.timeline-item.current .timeline-card {
-  background: rgba(29, 97, 231, 0.08);
-  border-color: rgba(29, 97, 231, 0.35);
-}
-
-.timeline-item.current .timeline-card:hover {
-  background: rgba(29, 97, 231, 0.12);
 }
 
 .backup-main-info {
@@ -312,23 +297,6 @@ select.settings-input {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.status-pill {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 20px;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.active-pill {
-  background: rgba(29, 97, 231, 0.18);
-  color: #60a5fa;
-  border: 1px solid rgba(96, 165, 250, 0.25);
 }
 
 .btn.btn-restore {

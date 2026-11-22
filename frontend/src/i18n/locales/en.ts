@@ -237,7 +237,7 @@ export const en = {
   },
   "settings.data.backupTitle": "Data restore",
   "settings.data.backupDescription":
-    "Select a backup from the history to restore your dishes.",
+    "Automatic backups, created before each change.",
   "settings.data.backupsLoading": "Loading…",
   "settings.data.backupsEmpty": "No backup available.",
   "settings.data.backupDishes": {
@@ -247,7 +247,6 @@ export const en = {
   "settings.data.restore": "Restore",
   "settings.data.restoring": "Restoring…",
   "settings.data.restoreSuccess": "Backup restored successfully",
-  "settings.data.activeVersion": "● Active version",
   "settings.data.atTime": "at {time}",
 
   // Settings — bugs
