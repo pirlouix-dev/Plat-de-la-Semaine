@@ -193,11 +193,13 @@ public class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_UnauthorizedAccessException_Returns401()
+    public async Task InvokeAsync_MissingToken_Returns401()
     {
         // Arrange & Act
-        var (statusCode, body) = await CaptureAsync(
-            new UnauthorizedAccessException("Missing or invalid authorization header."));
+        var (statusCode, body) = await CaptureAsync(new ApiException(
+            HttpStatusCode.Unauthorized,
+            ApiErrorCodes.MissingToken,
+            "Missing or invalid authorization header."));
 
         // Assert
         Assert.Equal(StatusCodes.Status401Unauthorized, statusCode);
@@ -206,7 +208,7 @@ public class ErrorHandlingMiddlewareTests
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
         Assert.NotNull(response);
-        Assert.Equal("UNAUTHORIZED", response!.Code);
+        Assert.Equal("MISSING_TOKEN", response!.Code);
     }
 
     [Fact]

@@ -41,9 +41,8 @@ The frontend is the only place that maps a `code` to localised user-facing copy
 is an English diagnostic and must never be rendered in the UI.
 
 Frontend and backend are released together. Do not add client-side
-compatibility mappings for error codes the backend no longer sends (for example
-the old generic `UNAUTHORIZED` auth failures); remove the old mapping and the
-backend code in the same release.
+compatibility mappings for error codes the backend no longer sends; remove the
+old mapping and the backend code in the same release.
 
 ## Testing
 

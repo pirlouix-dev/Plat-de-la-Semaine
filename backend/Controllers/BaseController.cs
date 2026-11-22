@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using PlatDeLaSemaineBack.Models;
 using PlatDeLaSemaineBack.Services;
@@ -26,7 +27,10 @@ public abstract class BaseController : ControllerBase
         var authHeader = Request.Headers.Authorization.FirstOrDefault();
 
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
-            throw new UnauthorizedAccessException("Missing or invalid authorization header.");
+            throw new ApiException(
+                HttpStatusCode.Unauthorized,
+                ApiErrorCodes.MissingToken,
+                "Missing or invalid authorization header.");
 
         var token = authHeader["Bearer ".Length..];
 

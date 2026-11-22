@@ -357,6 +357,9 @@ describe("getApiErrorMessage", () => {
     ["INVALID_CREDENTIALS", "errors.invalidCredentials"],
     ["USER_DISABLED", "errors.userDisabled"],
     ["TOO_MANY_ATTEMPTS", "errors.tooManyAttempts"],
+    ["AUTH_FAILED", "errors.authFailed"],
+    ["MISSING_TOKEN", "errors.sessionExpired"],
+    ["SESSION_EXPIRED", "errors.sessionExpired"],
     ["VALIDATION_ERROR", "errors.validation"],
     ["NOT_FOUND", "errors.notFound"],
     ["SERVICE_UNAVAILABLE", "errors.serviceUnavailable"],
@@ -511,7 +514,7 @@ describe("token refresh", () => {
       "fetch",
       vi.fn()
         .mockResolvedValueOnce(
-          mockRefreshResponse(false, { code: "UNAUTHORIZED" }),
+          mockRefreshResponse(false, { code: "INVALID_REFRESH_TOKEN" }),
         ),
     );
 
@@ -527,7 +530,7 @@ describe("token refresh", () => {
     // Error returned
     expect(result).toEqual({
       ok: false,
-      error: { code: "UNAUTHORIZED", message: "Session expired" },
+      error: { code: "SESSION_EXPIRED", message: "Session expired" },
     });
   });
 
