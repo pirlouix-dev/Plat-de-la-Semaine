@@ -974,6 +974,16 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/BuildInfo'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildInfo'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/BuildInfo'
   /api/version:
     get:
       tags:
@@ -1104,6 +1114,13 @@ components:
           - integer
           - string
           format: int32
+    BuildInfo:
+      required:
+      - commit
+      type: object
+      properties:
+        commit:
+          type: string
     CreateDishPayload:
       required:
       - name

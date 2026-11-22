@@ -5,6 +5,18 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      ref:
+        description: >-
+          Git ref to build and deploy (branch, tag, or SHA). Defaults to the
+          selected ref. Use this to redeploy a tag that predates this workflow.
+        required: false
+        default: ''
+
+# Two deploys must never interleave; queue the second one instead.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -16,8 +28,17 @@ jobs:
       run:
         working-directory: backend
 
+    outputs:
+      commit: ${{ steps.revision.outputs.commit }}
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Resolve the commit being deployed
+        id: revision
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -28,7 +49,10 @@ jobs:
         run: dotnet restore plat-de-la-semaine-back.slnx
 
       - name: Build
-        run: dotnet build plat-de-la-semaine-back.slnx --configuration Release --no-restore
+        run: >-
+          dotnet build plat-de-la-semaine-back.slnx
+          --configuration Release --no-restore
+          -p:SourceRevisionId=${{ steps.revision.outputs.commit }}
 
       - name: Test
         run: >-
@@ -49,6 +73,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    # An environment subject is ref-independent, so a dispatch on any branch or
+    # tag can authenticate. See docs/azure-deploy.md.
+    environment: Production
     permissions:
       id-token: write
       contents: read
@@ -73,3 +100,29 @@ jobs:
           app-name: PDLS
           slot-name: Production
           package: .
+
+      - name: Verify the deployed build
+        shell: bash
+        env:
+          APP_URL: ${{ secrets.PROD_SERVER_URL }}
+          EXPECTED_COMMIT: ${{ needs.build.outputs.commit }}
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "::error::The PROD_SERVER_URL secret is not set."
+            exit 1
+          fi
+
+          deadline=$((SECONDS + 300))
+          while (( SECONDS < deadline )); do
+            live="$(curl -fsS --max-time 10 "$APP_URL/api/ping" 2>/dev/null \
+              | jq -r '.commit // empty' || true)"
+            if [ "$live" = "$EXPECTED_COMMIT" ]; then
+              echo "The live backend serves commit $live."
+              exit 0
+            fi
+            echo "Waiting for commit $EXPECTED_COMMIT (live: ${live:-unreachable})."
+            sleep 5
+          done
+
+          echo "::error::The live backend never reported commit $EXPECTED_COMMIT."
+          exit 1
