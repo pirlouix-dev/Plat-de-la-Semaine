@@ -15,6 +15,10 @@ updates:
     # Keep package.json's minimums untouched while the new release still
     # satisfies them, so grouped PRs only move the lockfile.
     versioning-strategy: "increase-if-necessary"
+    ignore:
+      # Majors track Node majors, and .nvmrc pins the runtime to Node 22.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       frontend-dev-minor-patch:
         dependency-type: "development"
