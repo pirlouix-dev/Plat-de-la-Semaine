@@ -45,10 +45,22 @@ let retryCount = 0;
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 
+/**
+ * Serializes every dish push and pull. A prompt push, a full sync, and a manual
+ * refresh must never overlap: a create that races a full pull can be removed by
+ * the pull's cleanup before the server ever sees it.
+ */
+let operationQueue: Promise<unknown> = Promise.resolve();
+let flushPending = false;
+let flushLoop: Promise<void> | null = null;
+
 /** @internal Reset module-level sync state. Only for use in tests. */
 export function _resetSyncState(): void {
   syncRunning = false;
   retryCount = 0;
+  flushPending = false;
+  flushLoop = null;
+  operationQueue = Promise.resolve();
   if (syncTimer) {
     clearTimeout(syncTimer);
     syncTimer = null;
@@ -72,6 +84,25 @@ function isOnline(): boolean {
 function isCurrentAccountDatabase(db: AppDatabase): boolean {
   const userId = getCurrentUserId();
   return !!userId && db.name === userDatabaseName(userId);
+}
+
+/** Whether a network sync of this database is allowed right now. */
+function canSyncNow(db: AppDatabase): boolean {
+  return (
+    isOnline() &&
+    !!db?.dishes &&
+    isLoggedIn() &&
+    isCurrentAccountDatabase(db)
+  );
+}
+
+function enqueue<T>(job: () => Promise<T>): Promise<T> {
+  const result = operationQueue.then(job, job);
+  operationQueue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
 }
 
 export async function getLastSyncAt(db: AppDatabase): Promise<string | null> {
@@ -238,15 +269,22 @@ async function applyBatchResults(
     }
 
     // An edit made while the request was in flight is newer than what the
-    // server acknowledged: keep it pending instead of marking it synced.
+    // server acknowledged: keep it pending instead of marking it synced. A
+    // delete made meanwhile must stay a delete, otherwise the dish would be
+    // hidden locally but never removed remotely.
     const editedMeanwhile = doc.get("updatedAt") !== pending.updatedAt;
+    const deletedMeanwhile = doc.get("syncStatus") === "pending_delete";
     const acknowledgedAt = result.data?.updatedAt
       ? String(result.data.updatedAt)
       : null;
 
     await doc.patch({
       ...(status === "created" ? { serverId: String(result.id) } : {}),
-      syncStatus: editedMeanwhile ? "pending_update" : "synced",
+      syncStatus: deletedMeanwhile
+        ? "pending_delete"
+        : editedMeanwhile
+          ? "pending_update"
+          : "synced",
       ...(acknowledgedAt && !editedMeanwhile
         ? { updatedAt: acknowledgedAt }
         : {}),
@@ -429,12 +467,14 @@ async function pullAndMerge(
  * already syncing, or the request failed.
  */
 export async function refreshFromServer(db: AppDatabase): Promise<boolean> {
-  if (!isOnline() || !db?.dishes || !isLoggedIn() || syncRunning) return false;
-  if (!isCurrentAccountDatabase(db)) return false;
+  if (syncRunning || !canSyncNow(db)) return false;
   syncRunning = true;
   try {
-    const result = await pullAndMerge(db, { forceFullSync: true });
-    return result !== null;
+    return await enqueue(async () => {
+      if (!canSyncNow(db)) return false;
+      const result = await pullAndMerge(db, { forceFullSync: true });
+      return result !== null;
+    });
   } finally {
     syncRunning = false;
   }
@@ -688,47 +728,88 @@ export function getLocalMenu(userId: string | null): StoredMenu | null {
  * touch sync status reporting or retry scheduling; the periodic sync remains
  * the recovery path for failures.
  *
- * Returns `null` when the push was skipped (offline, not logged in, database
- * belonging to another account, or a full sync already running), otherwise
- * whether any operation failed and is still pending.
+ * The push queues behind any in-flight sync, refresh, or other push, so two
+ * writes can never be sent concurrently.
+ *
+ * Returns `null` when the push was skipped (offline, not logged in, or database
+ * belonging to another account), otherwise whether any operation failed and is
+ * still pending.
  */
 export async function flushPendingDishes(
   db: AppDatabase,
 ): Promise<{ failed: boolean } | null> {
-  if (!isOnline() || !db?.dishes || !isLoggedIn() || syncRunning) return null;
-  if (!isCurrentAccountDatabase(db)) return null;
+  if (!db?.dishes) return null;
 
-  return { failed: await pushPendingChanges(db) };
+  return enqueue(async () => {
+    if (!canSyncNow(db)) return null;
+    return { failed: await pushPendingChanges(db) };
+  });
+}
+
+/**
+ * Push a pending dish change as soon as possible.
+ *
+ * Calls made while a push is already in flight are coalesced into one extra
+ * pass, so edits made during the request are not lost but the server is not
+ * asked twice for the same state.
+ */
+export function requestDishFlush(db: AppDatabase): Promise<void> {
+  flushPending = true;
+  if (!flushLoop) flushLoop = runFlushLoop(db);
+  return flushLoop;
+}
+
+async function runFlushLoop(db: AppDatabase): Promise<void> {
+  try {
+    while (flushPending) {
+      flushPending = false;
+      const result = await flushPendingDishes(db);
+
+      if (result?.failed && !syncTimer) {
+        // Without a retry the failure would wait for the next scheduled sync.
+        // Never reset an already-scheduled retry: re-arming it from every edit
+        // would keep the ladder at its shortest delay and hammer the server.
+        const delay =
+          BACKOFF_DELAYS_MS[Math.min(retryCount, BACKOFF_DELAYS_MS.length - 1)];
+        scheduleRetry(db, delay);
+      }
+    }
+  } catch {
+    // Best effort: the scheduled sync remains the recovery path.
+  } finally {
+    flushLoop = null;
+  }
 }
 
 export async function sync(db: AppDatabase): Promise<void> {
-  if (syncRunning) return;
-  if (!isOnline()) return;
-  if (!db?.dishes) return;
-  if (!isLoggedIn()) return;
-  if (!isCurrentAccountDatabase(db)) return;
+  if (syncRunning || !canSyncNow(db)) return;
 
   syncRunning = true;
-  markSyncStarted();
   try {
-    // Start the menu pull immediately; it must not wait behind dish operations.
-    const menuResolved = pullAndResolveMenu();
-    const hadFailures = await pushPendingChanges(db);
-    const pulledSyncAt = await pullAndMerge(db);
-    const menuSucceeded = await menuResolved;
+    await enqueue(async () => {
+      // Re-check: the job may run after an account switch while it waited.
+      if (!canSyncNow(db)) return;
 
-    if (hadFailures || pulledSyncAt === null || !menuSucceeded) {
-      retryCount += 1;
-      const delay =
-        BACKOFF_DELAYS_MS[
-          Math.min(retryCount - 1, BACKOFF_DELAYS_MS.length - 1)
-        ];
-      scheduleRetry(db, delay);
-      markSyncFailed(retryCount);
-    } else {
-      retryCount = 0;
-      markSyncSuccess(pulledSyncAt);
-    }
+      markSyncStarted();
+      // Start the menu pull immediately; it must not wait behind dish operations.
+      const menuResolved = pullAndResolveMenu();
+      const hadFailures = await pushPendingChanges(db);
+      const pulledSyncAt = await pullAndMerge(db);
+      const menuSucceeded = await menuResolved;
+
+      if (hadFailures || pulledSyncAt === null || !menuSucceeded) {
+        retryCount += 1;
+        const delay =
+          BACKOFF_DELAYS_MS[
+            Math.min(retryCount - 1, BACKOFF_DELAYS_MS.length - 1)
+          ];
+        scheduleRetry(db, delay);
+        markSyncFailed(retryCount);
+      } else {
+        retryCount = 0;
+        markSyncSuccess(pulledSyncAt);
+      }
+    });
   } finally {
     syncRunning = false;
   }
