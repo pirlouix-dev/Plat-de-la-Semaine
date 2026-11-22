@@ -746,18 +746,14 @@ export function SettingsPage() {
                   )}
 
                   <div className="backup-timeline">
-                    {backups.map((backup, index) => {
-                      const isCurrent = index === 0;
+                    {backups.map((backup) => {
                       const { dateLabel, timeLabel } = formatBackupDate(
                         backup.createdAt,
                       );
                       const isRestoring = restoringId === backup.id;
 
                       return (
-                        <div
-                          key={backup.id}
-                          className={`timeline-item ${isCurrent ? "current" : ""}`}
-                        >
+                        <div key={backup.id} className="timeline-item">
                           <div className="timeline-marker">
                             <div className="timeline-dot" />
                             <div className="timeline-line" />
@@ -784,21 +780,15 @@ export function SettingsPage() {
                             </div>
 
                             <div className="backup-action">
-                              {isCurrent ? (
-                                <span className="status-pill active-pill">
-                                  {t("settings.data.activeVersion")}
-                                </span>
-                              ) : (
-                                <button
-                                  className="btn btn-primary btn-restore"
-                                  disabled={isRestoring}
-                                  onClick={() => handleRestore(backup.id)}
-                                >
-                                  {isRestoring
-                                    ? t("settings.data.restoring")
-                                    : t("settings.data.restore")}
-                                </button>
-                              )}
+                              <button
+                                className="btn btn-primary btn-restore"
+                                disabled={isRestoring}
+                                onClick={() => handleRestore(backup.id)}
+                              >
+                                {isRestoring
+                                  ? t("settings.data.restoring")
+                                  : t("settings.data.restore")}
+                              </button>
                             </div>
                           </div>
                         </div>
