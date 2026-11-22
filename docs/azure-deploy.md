@@ -44,9 +44,10 @@ environment, not the ref: one credential authorizes a dispatch on `main`,
 `develop`, or any tag. Federated credential subjects do not support wildcards,
 which is why the environment claim is used instead of a per-ref list.
 
-The older ref-based credentials (`github-main-immutable`,
-`github-develop-immutable`) are no longer used by this workflow. They can be
-removed once no other workflow authenticates through them.
+The ref-based credentials (`github-main-immutable`,
+`github-develop-immutable`) were removed at the same time. The environment
+credential is the only trust on the app registration, so do not recreate
+per-ref credentials.
 
 ## Build stamp and verification
 
