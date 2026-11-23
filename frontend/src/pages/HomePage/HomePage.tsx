@@ -70,7 +70,7 @@ function HomePage() {
         </div>
         <button
           className="account-btn"
-          onClick={() => navigate(isLoggedIn ? "/settings" : "/login")}
+          onClick={() => navigate(isLoggedIn ? "/settings#account" : "/login")}
         >
           {isLoggedIn ? t("home.account") : t("home.signIn")}
         </button>

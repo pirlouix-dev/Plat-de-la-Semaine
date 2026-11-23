@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import HomePage from "../pages/HomePage/HomePage";
 import { useSyncStatus } from "../hooks/useSyncStatus";
 import type { SyncDisplay } from "../hooks/useSyncStatus";
@@ -13,6 +13,26 @@ vi.mock("../hooks/useSyncStatus", () => ({
 }));
 
 const mockUseSyncStatus = vi.mocked(useSyncStatus);
+
+function LocationProbe({ testId }: { testId: string }) {
+  const { pathname, hash } = useLocation();
+  return <div data-testid={testId}>{`${pathname}${hash}`}</div>;
+}
+
+function renderHome() {
+  return render(
+    <MemoryRouter initialEntries={["/"]}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/settings"
+          element={<LocationProbe testId="settings-route" />}
+        />
+        <Route path="/login" element={<LocationProbe testId="login-route" />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 function mockSyncStatus(overrides: Partial<SyncDisplay> = {}): void {
   mockUseSyncStatus.mockReturnValue({
@@ -125,6 +145,42 @@ describe("HomePage component", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText(t("home.account"))).toBeTruthy();
+  });
+
+  describe("navigation", () => {
+    it("opens the account settings tab directly when logged in", () => {
+      localStorage.setItem("user_id", "user-42");
+      localStorage.setItem("user_username", "Mathéo");
+
+      renderHome();
+      fireEvent.click(screen.getByRole("button", { name: t("home.account") }));
+
+      expect(screen.getByTestId("settings-route")).toHaveTextContent(
+        "/settings#account",
+      );
+    });
+
+    it("keeps the settings card opening the overview", () => {
+      localStorage.setItem("user_id", "user-42");
+
+      renderHome();
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: new RegExp(t("home.menu.settings")),
+        }),
+      );
+
+      expect(screen.getByTestId("settings-route")).toHaveTextContent(
+        /^\/settings$/,
+      );
+    });
+
+    it("sends guests to the login page", () => {
+      renderHome();
+      fireEvent.click(screen.getByRole("button", { name: t("home.signIn") }));
+
+      expect(screen.getByTestId("login-route")).toHaveTextContent("/login");
+    });
   });
 
   it("shows the syncing message while a sync is running", () => {

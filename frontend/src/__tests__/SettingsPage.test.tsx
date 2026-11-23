@@ -141,7 +141,7 @@ function renderSettingsPage(entry = "/settings") {
   );
 }
 
-function renderSettingsWithHistory(entry = "/settings") {
+function renderSettingsWithHistory(initialEntries: string[] = ["/settings"]) {
   const router = createMemoryRouter(
     [
       {
@@ -155,7 +155,7 @@ function renderSettingsWithHistory(entry = "/settings") {
       },
       { path: "/", element: <LocationProbe /> },
     ],
-    { initialEntries: [entry] },
+    { initialEntries, initialIndex: initialEntries.length - 1 },
   );
   const view = render(<RouterProvider router={router} />);
   return { ...view, router };
@@ -240,6 +240,26 @@ describe("SettingsPage", () => {
         screen.getByRole("heading", { name: t("settings.title") }),
       ).toBeTruthy();
       expect(screen.getByTestId("hash")).toHaveTextContent("");
+    });
+
+    it("opens the account section from a mobile deep link", () => {
+      mockMatchMedia(true);
+      renderSettingsPage("/settings#account");
+
+      expect(
+        screen.getByRole("heading", { name: t("settings.tab.account") }),
+      ).toBeTruthy();
+    });
+
+    it("returns home when the account tab was opened from there", async () => {
+      mockMatchMedia(true);
+      renderSettingsWithHistory(["/", "/settings#account"]);
+
+      fireEvent.click(screen.getByRole("button", { name: t("common.back") }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("location")).toHaveTextContent("/");
+      });
     });
 
     it("replaces to the summary when leaving a deep-linked subpage", () => {
