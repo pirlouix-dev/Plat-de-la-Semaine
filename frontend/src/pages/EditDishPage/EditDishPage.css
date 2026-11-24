@@ -77,7 +77,14 @@
   flex-shrink: 0;
 }
 
-.back-btn:hover {
+@media (hover: hover) {
+  .back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(-2px);
+  }
+}
+
+.back-btn:active {
   background: rgba(255, 255, 255, 0.2);
   transform: translateX(-2px);
 }
@@ -128,8 +135,19 @@
   flex-shrink: 0;
 }
 
-.toggle-filters-btn.active,
-.toggle-filters-btn:hover {
+.toggle-filters-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (hover: hover) {
+  .toggle-filters-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.toggle-filters-btn:active {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
 }
@@ -236,8 +254,10 @@
   gap: 6px;
 }
 
-.dish-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+@media (hover: hover) {
+  .dish-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .dish-card.selected {
@@ -319,8 +339,10 @@
   align-self: flex-end;
 }
 
-.see-more-btn:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .see-more-btn:hover {
+    text-decoration: underline;
+  }
 }
 
 .empty-search-state {

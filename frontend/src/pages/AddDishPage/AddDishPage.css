@@ -44,7 +44,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.back-btn:hover {
+@media (hover: hover) {
+  .back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(-2px);
+  }
+}
+
+.back-btn:active {
   background: rgba(255, 255, 255, 0.2);
   transform: translateX(-2px);
 }

@@ -88,7 +88,17 @@
     color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.nav-item-btn:hover {
+/* Touch browsers keep :hover on the element under the last tap, which left a
+   row in the overview looking selected after a tap or a back navigation.
+   Hover styling is pointer-only; :active below covers the touch press. */
+@media (hover: hover) {
+  .nav-item-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+}
+
+.nav-item-btn:active {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
@@ -252,9 +262,11 @@ select.settings-input {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.timeline-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.14);
+@media (hover: hover) {
+  .timeline-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
 }
 
 .backup-main-info {

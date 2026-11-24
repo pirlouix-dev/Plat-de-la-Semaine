@@ -21,7 +21,13 @@
   border: 2px solid #1955ce;
 }
 
-.btn-primary:hover {
+@media (hover: hover) {
+  .btn-primary:hover {
+    background-color: rgb(40, 106, 238);
+  }
+}
+
+.btn-primary:active {
   background-color: rgb(40, 106, 238);
 }
 
@@ -37,6 +43,12 @@
   border: 2px solid rgb(20, 119, 53);
 }
 
-.btn-success:hover {
+@media (hover: hover) {
+  .btn-success:hover {
+    background-color: #179d43;
+  }
+}
+
+.btn-success:active {
   background-color: #179d43;
 }
