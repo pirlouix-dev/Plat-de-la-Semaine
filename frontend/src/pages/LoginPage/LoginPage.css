@@ -16,6 +16,12 @@
   transition: color 0.2s ease;
 }
 
-.forgot-password-link:hover {
+@media (hover: hover) {
+  .forgot-password-link:hover {
+    color: #ffffff;
+  }
+}
+
+.forgot-password-link:active {
   color: #ffffff;
 }

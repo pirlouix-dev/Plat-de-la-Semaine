@@ -67,7 +67,13 @@
   transition: transform 0.15s ease;
 }
 
-.account-btn:hover {
+@media (hover: hover) {
+  .account-btn:hover {
+    transform: scale(1.03);
+  }
+}
+
+.account-btn:active {
   transform: scale(1.03);
 }
 
@@ -94,7 +100,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.menu-card-wrapper:hover {
+@media (hover: hover) {
+  .menu-card-wrapper:hover {
+    transform: scale(1.02);
+  }
+}
+
+.menu-card-wrapper:active {
   transform: scale(1.02);
 }
 

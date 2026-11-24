@@ -241,8 +241,10 @@
   align-self: flex-end;
 }
 
-.see-more-btn:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .see-more-btn:hover {
+    text-decoration: underline;
+  }
 }
 
 .card-decision-actions {
@@ -275,7 +277,13 @@
   border: 2px solid #b91c1c;
 }
 
-.btn-reject:hover {
+@media (hover: hover) {
+  .btn-reject:hover {
+    background-color: #ef4444;
+  }
+}
+
+.btn-reject:active {
   background-color: #ef4444;
 }
 
@@ -477,7 +485,13 @@
   border: 2px solid rgb(105, 105, 105);
 }
 
-.btn-revert:hover {
+@media (hover: hover) {
+  .btn-revert:hover {
+    background-color: rgb(105, 105, 105);
+  }
+}
+
+.btn-revert:active {
   background-color: rgb(105, 105, 105);
 }
 
@@ -493,7 +507,13 @@
   border: 2px solid #b91c1c;
 }
 
-.btn-danger:hover {
+@media (hover: hover) {
+  .btn-danger:hover {
+    background-color: #e32f2f;
+  }
+}
+
+.btn-danger:active {
   background-color: #e32f2f;
 }
 
@@ -503,7 +523,13 @@
   border: 2px solid #b91c1c;
 }
 
-.btn-refuse:hover {
+@media (hover: hover) {
+  .btn-refuse:hover {
+    background-color: #e92b2b;
+  }
+}
+
+.btn-refuse:active {
   background-color: #e92b2b;
 }
 
@@ -513,6 +539,12 @@
   border: 2px solid #158e41;
 }
 
-.btn-accept:hover {
+@media (hover: hover) {
+  .btn-accept:hover {
+    background-color: #21ab54;
+  }
+}
+
+.btn-accept:active {
   background-color: #21ab54;
 }

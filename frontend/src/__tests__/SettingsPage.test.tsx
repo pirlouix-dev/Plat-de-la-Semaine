@@ -141,7 +141,7 @@ function renderSettingsPage(entry = "/settings") {
   );
 }
 
-function renderSettingsWithHistory(entry = "/settings") {
+function renderSettingsWithHistory(initialEntries: string[] = ["/settings"]) {
   const router = createMemoryRouter(
     [
       {
@@ -155,7 +155,7 @@ function renderSettingsWithHistory(entry = "/settings") {
       },
       { path: "/", element: <LocationProbe /> },
     ],
-    { initialEntries: [entry] },
+    { initialEntries, initialIndex: initialEntries.length - 1 },
   );
   const view = render(<RouterProvider router={router} />);
   return { ...view, router };
@@ -205,6 +205,48 @@ describe("SettingsPage", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
+  describe("sidebar order", () => {
+    const expectedLabels = [
+      t("settings.tab.account"),
+      t("settings.tab.data"),
+      t("settings.tab.bugs"),
+      t("settings.tab.language"),
+      t("settings.tab.info"),
+    ];
+
+    function navLabels(container: HTMLElement) {
+      return Array.from(
+        container.querySelectorAll(".settings-nav-list .nav-label"),
+        (node) => node.textContent,
+      );
+    }
+
+    it("opens the first section by default on desktop", () => {
+      mockMatchMedia(false);
+      const { container } = renderSettingsPage();
+
+      expect(navLabels(container)).toEqual(expectedLabels);
+
+      const items = container.querySelectorAll(
+        ".settings-nav-list .nav-item-btn",
+      );
+      expect(items[0].className).toContain("active");
+      for (const item of Array.from(items).slice(1)) {
+        expect(item.className).not.toContain("active");
+      }
+    });
+
+    it("keeps the order with no active section in the mobile overview", () => {
+      mockMatchMedia(true);
+      const { container } = renderSettingsPage();
+
+      expect(navLabels(container)).toEqual(expectedLabels);
+      expect(
+        container.querySelector(".settings-nav-list .nav-item-btn.active"),
+      ).toBeNull();
+    });
+  });
+
   it("returns to summary first on mobile then navigates home", () => {
     mockMatchMedia(true);
     renderSettingsPage();
@@ -240,6 +282,26 @@ describe("SettingsPage", () => {
         screen.getByRole("heading", { name: t("settings.title") }),
       ).toBeTruthy();
       expect(screen.getByTestId("hash")).toHaveTextContent("");
+    });
+
+    it("opens the account section from a mobile deep link", () => {
+      mockMatchMedia(true);
+      renderSettingsPage("/settings#account");
+
+      expect(
+        screen.getByRole("heading", { name: t("settings.tab.account") }),
+      ).toBeTruthy();
+    });
+
+    it("returns home when the account tab was opened from there", async () => {
+      mockMatchMedia(true);
+      renderSettingsWithHistory(["/", "/settings#account"]);
+
+      fireEvent.click(screen.getByRole("button", { name: t("common.back") }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("location")).toHaveTextContent("/");
+      });
     });
 
     it("replaces to the summary when leaving a deep-linked subpage", () => {

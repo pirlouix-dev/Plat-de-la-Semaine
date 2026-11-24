@@ -1,11 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor, act, cleanup } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import { DatabaseProvider, useDatabase } from "../db/DatabaseContext";
 import { _resetDatabaseManager } from "../db/databaseManagerInstance";
+import { claimLegacyDatabaseOwner } from "../db/databaseName";
 import { AUTH_CHANGED_EVENT } from "../services/api";
 import { insertDish } from "../repositories/dishRepository";
 import type { DishDocType } from "../db/schemas/dishes";
+
+// Opening an RxDB database can be slow when the whole suite runs in parallel.
+const DB_TIMEOUT = 30_000;
 
 function makeDish(): DishDocType {
   return {
@@ -64,16 +68,20 @@ function switchUser(userId: string | null) {
   });
 }
 
-describe("DatabaseProvider account scoping", { timeout: 30_000 }, () => {
+describe("DatabaseProvider account scoping", () => {
   beforeEach(() => {
     localStorage.clear();
+    // Keep the first open scoped to account switching: claiming the legacy
+    // database for user A would run a full migration on top of it.
+    claimLegacyDatabaseOwner(null);
   });
 
   afterEach(async () => {
+    cleanup();
     await _resetDatabaseManager();
-  });
+  }, DB_TIMEOUT);
 
-  it("switches to the next account's database without leaking dishes", async () => {
+  it("switches to the next account's database without leaking dishes", { timeout: DB_TIMEOUT * 4 }, async () => {
     const userA = "user-" + crypto.randomUUID();
     const userB = "user-" + crypto.randomUUID();
     localStorage.setItem("user_id", userA);
@@ -88,15 +96,18 @@ describe("DatabaseProvider account scoping", { timeout: 30_000 }, () => {
       () => {
         expect(screen.getByTestId("user")).toHaveTextContent(userA);
       },
-      { timeout: 10_000 },
+      { timeout: DB_TIMEOUT },
     );
 
     act(() => {
       screen.getByText("add").click();
     });
-    await waitFor(() => {
-      expect(screen.getByTestId("count")).toHaveTextContent("1");
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("count")).toHaveTextContent("1");
+      },
+      { timeout: DB_TIMEOUT },
+    );
 
     switchUser(userB);
 
@@ -104,11 +115,14 @@ describe("DatabaseProvider account scoping", { timeout: 30_000 }, () => {
       () => {
         expect(screen.getByTestId("user")).toHaveTextContent(userB);
       },
-      { timeout: 10_000 },
+      { timeout: DB_TIMEOUT },
     );
-    await waitFor(() => {
-      expect(screen.getByTestId("count")).toHaveTextContent("0");
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("count")).toHaveTextContent("0");
+      },
+      { timeout: DB_TIMEOUT },
+    );
 
     switchUser(userA);
 
@@ -116,10 +130,13 @@ describe("DatabaseProvider account scoping", { timeout: 30_000 }, () => {
       () => {
         expect(screen.getByTestId("user")).toHaveTextContent(userA);
       },
-      { timeout: 10_000 },
+      { timeout: DB_TIMEOUT },
     );
-    await waitFor(() => {
-      expect(screen.getByTestId("count")).toHaveTextContent("1");
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("count")).toHaveTextContent("1");
+      },
+      { timeout: DB_TIMEOUT },
+    );
   });
 });
