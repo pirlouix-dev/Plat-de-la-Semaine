@@ -205,6 +205,48 @@ describe("SettingsPage", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
+  describe("sidebar order", () => {
+    const expectedLabels = [
+      t("settings.tab.account"),
+      t("settings.tab.data"),
+      t("settings.tab.bugs"),
+      t("settings.tab.language"),
+      t("settings.tab.info"),
+    ];
+
+    function navLabels(container: HTMLElement) {
+      return Array.from(
+        container.querySelectorAll(".settings-nav-list .nav-label"),
+        (node) => node.textContent,
+      );
+    }
+
+    it("opens the first section by default on desktop", () => {
+      mockMatchMedia(false);
+      const { container } = renderSettingsPage();
+
+      expect(navLabels(container)).toEqual(expectedLabels);
+
+      const items = container.querySelectorAll(
+        ".settings-nav-list .nav-item-btn",
+      );
+      expect(items[0].className).toContain("active");
+      for (const item of Array.from(items).slice(1)) {
+        expect(item.className).not.toContain("active");
+      }
+    });
+
+    it("keeps the order with no active section in the mobile overview", () => {
+      mockMatchMedia(true);
+      const { container } = renderSettingsPage();
+
+      expect(navLabels(container)).toEqual(expectedLabels);
+      expect(
+        container.querySelector(".settings-nav-list .nav-item-btn.active"),
+      ).toBeNull();
+    });
+  });
+
   it("returns to summary first on mobile then navigates home", () => {
     mockMatchMedia(true);
     renderSettingsPage();
