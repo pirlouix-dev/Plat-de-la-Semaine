@@ -69,10 +69,10 @@ const TAB_CONFIG: Record<
   SettingsTab,
   { titleKey: MessageKey; Icon: ComponentType<{ size?: number }> }
 > = {
-  language: { titleKey: "settings.tab.language", Icon: GlobeIcon },
   account: { titleKey: "settings.tab.account", Icon: UserIcon },
   data: { titleKey: "settings.tab.data", Icon: RefreshIcon },
   bugs: { titleKey: "settings.tab.bugs", Icon: BugIcon },
+  language: { titleKey: "settings.tab.language", Icon: GlobeIcon },
   info: { titleKey: "settings.tab.info", Icon: InfoIcon },
 };
 
