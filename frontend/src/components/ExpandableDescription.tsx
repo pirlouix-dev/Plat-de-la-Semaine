@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useIsOverflowing } from "../hooks/useIsOverflowing";
 import { useTranslation } from "../i18n";
+import "./ExpandableDescription.css";
 
 interface ExpandableDescriptionProps {
   description: string;

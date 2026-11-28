@@ -1,0 +1,22 @@
+.see-more-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-end;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.see-more-btn:active {
+  text-decoration: underline;
+}
+
+@media (hover: hover) {
+  .see-more-btn:hover {
+    text-decoration: underline;
+  }
+}
