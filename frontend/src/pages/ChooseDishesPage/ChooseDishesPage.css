@@ -229,24 +229,6 @@
   line-clamp: unset !important;
 }
 
-.see-more-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  margin-top: 4px;
-  color: #1a1a1a;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  align-self: flex-end;
-}
-
-@media (hover: hover) {
-  .see-more-btn:hover {
-    text-decoration: underline;
-  }
-}
-
 .card-decision-actions {
   display: flex;
   gap: 12px;
